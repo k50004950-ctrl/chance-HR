@@ -165,11 +165,19 @@ export const initDatabase = async () => {
           address TEXT NOT NULL,
           latitude DECIMAL(10, 8),
           longitude DECIMAL(11, 8),
+          radius INTEGER DEFAULT 100,
           owner_id INTEGER,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (owner_id) REFERENCES users(id)
         )
       `);
+
+      // 기존 workplaces 테이블에 radius 컬럼 추가 (마이그레이션)
+      try {
+        await pool.query(`ALTER TABLE workplaces ADD COLUMN IF NOT EXISTS radius INTEGER DEFAULT 100`);
+      } catch (e) {
+        console.log('radius 컬럼은 이미 존재합니다.');
+      }
 
       // Employee_details 테이블
       await pool.query(`
@@ -292,11 +300,17 @@ export const initDatabase = async () => {
           address TEXT NOT NULL,
           latitude REAL,
           longitude REAL,
+          radius INTEGER DEFAULT 100,
           owner_id INTEGER,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (owner_id) REFERENCES users(id)
         )
       `);
+
+      // 기존 workplaces 테이블에 radius 컬럼 추가 (마이그레이션)
+      try {
+        await run(`ALTER TABLE workplaces ADD COLUMN radius INTEGER DEFAULT 100`);
+      } catch (e) {}
 
       // Employee_details 테이블
       await run(`

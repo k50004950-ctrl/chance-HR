@@ -250,6 +250,13 @@ export const initDatabase = async () => {
         console.log('기본 관리자 계정이 생성되었습니다. (username: admin, password: admin123)');
       }
 
+      // 기존 테이블에 새 컬럼 추가 (마이그레이션)
+      try {
+        await pool.query('ALTER TABLE salary_info ADD COLUMN IF NOT EXISTS tax_type VARCHAR(50) DEFAULT \'4대보험\'');
+      } catch (e) {
+        // 컬럼이 이미 존재하면 무시
+      }
+
       console.log('PostgreSQL 데이터베이스 초기화 완료');
     } else {
       // SQLite 초기화 (기존 코드)

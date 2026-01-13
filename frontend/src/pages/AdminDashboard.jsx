@@ -63,6 +63,22 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleToggleOwnerStatus = async (ownerId, ownerName) => {
+    const owner = owners.find(o => o.id === ownerId);
+    const action = owner.approval_status === 'approved' ? '일시 중지' : '활성화';
+    
+    if (!window.confirm(`${ownerName} 사업주를 ${action}하시겠습니까?`)) return;
+
+    try {
+      const response = await authAPI.toggleOwnerStatus(ownerId);
+      setMessage({ type: 'success', text: response.data.message });
+      loadOwners();
+    } catch (error) {
+      console.error('상태 변경 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '상태 변경 중 오류가 발생했습니다.' });
+    }
+  };
+
   const openModal = (type, data = {}) => {
     setModalType(type);
     setFormData(data);
@@ -468,6 +484,7 @@ const AdminDashboard = () => {
                       <th>관리 사업장</th>
                       <th>상태</th>
                       <th>등록일</th>
+                      <th>작업</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -498,19 +515,47 @@ const AdminDashboard = () => {
                             fontSize: '12px',
                             background: 
                               owner.approval_status === 'approved' ? '#d1fae5' :
+                              owner.approval_status === 'suspended' ? '#fee2e2' :
                               owner.approval_status === 'pending' ? '#fef3c7' :
-                              '#fee2e2',
+                              '#f3f4f6',
                             color:
                               owner.approval_status === 'approved' ? '#065f46' :
+                              owner.approval_status === 'suspended' ? '#991b1b' :
                               owner.approval_status === 'pending' ? '#92400e' :
-                              '#991b1b'
+                              '#6b7280'
                           }}>
-                            {owner.approval_status === 'approved' ? '승인' :
+                            {owner.approval_status === 'approved' ? '활성' :
+                             owner.approval_status === 'suspended' ? '중지' :
                              owner.approval_status === 'pending' ? '대기' :
                              '거부'}
                           </span>
                         </td>
                         <td>{new Date(owner.created_at).toLocaleDateString('ko-KR')}</td>
+                        <td>
+                          {owner.approval_status === 'approved' && (
+                            <button
+                              className="btn btn-sm"
+                              style={{ 
+                                background: '#fee2e2', 
+                                color: '#991b1b',
+                                padding: '6px 12px',
+                                border: '1px solid #fecaca'
+                              }}
+                              onClick={() => handleToggleOwnerStatus(owner.id, owner.name)}
+                            >
+                              ⏸️ 일시 중지
+                            </button>
+                          )}
+                          {owner.approval_status === 'suspended' && (
+                            <button
+                              className="btn btn-sm btn-primary"
+                              style={{ padding: '6px 12px' }}
+                              onClick={() => handleToggleOwnerStatus(owner.id, owner.name)}
+                            >
+                              ▶️ 활성화
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

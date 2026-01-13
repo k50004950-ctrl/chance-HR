@@ -27,7 +27,20 @@ body {
 
 @media (max-width: 768px) {
   .container {
-    padding: 16px;
+    padding: 12px;
+  }
+
+  /* 제목 크기 조정 */
+  h2 {
+    font-size: 22px;
+  }
+
+  h3 {
+    font-size: 18px;
+  }
+
+  h4 {
+    font-size: 16px;
   }
 }
 
@@ -38,6 +51,14 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   padding: 28px;
   margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
 }
 
 /* 제목 */
@@ -70,6 +91,15 @@ h4 {
   cursor: pointer;
   transition: all 0.3s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+  .btn {
+    padding: 14px 20px;
+    font-size: 14px;
+    width: 100%;
+    min-height: 44px; /* 모바일 터치 영역 */
+  }
 }
 
 .btn-primary {
@@ -152,6 +182,23 @@ h4 {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+@media (max-width: 768px) {
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-label {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  .form-input,
+  .form-select {
+    font-size: 16px; /* iOS에서 줌 방지 */
+    padding: 12px;
+  }
+}
+
 /* 테이블 */
 .table {
   width: 100%;
@@ -189,6 +236,25 @@ h4 {
 .table tbody tr:hover {
   background: #f9fafb;
   transition: background 0.2s;
+}
+
+@media (max-width: 768px) {
+  .table th,
+  .table td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .table th {
+    font-size: 11px;
+    letter-spacing: 0.3px;
+  }
+
+  /* 테이블 스크롤 */
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* 헤더 */
@@ -232,6 +298,37 @@ h4 {
   border-radius: 8px;
 }
 
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    align-items: flex-start;
+  }
+
+  .header-title {
+    font-size: 18px;
+  }
+
+  .header-nav {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .header-user {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+
+  .header .btn {
+    font-size: 13px;
+    padding: 8px 14px;
+    min-height: auto;
+    width: auto;
+  }
+}
+
 /* 네비게이션 */
 .nav-tabs {
   display: flex;
@@ -241,6 +338,8 @@ h4 {
   padding: 8px;
   margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nav-tab {
@@ -265,6 +364,19 @@ h4 {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+@media (max-width: 768px) {
+  .nav-tabs {
+    padding: 6px;
+    gap: 4px;
+    border-radius: 8px;
+  }
+
+  .nav-tab {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
 }
 
 /* 알림 */
@@ -370,6 +482,26 @@ h4 {
   letter-spacing: 0.5px;
 }
 
+@media (max-width: 768px) {
+  .stat-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .stat-card:hover {
+    transform: none;
+  }
+
+  .stat-value {
+    font-size: 28px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    letter-spacing: 0.3px;
+  }
+}
+
 /* 모달 */
 .modal-overlay {
   position: fixed;
@@ -382,6 +514,7 @@ h4 {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 16px;
 }
 
 .modal {
@@ -406,4 +539,26 @@ h4 {
   gap: 12px;
   justify-content: flex-end;
   margin-top: 24px;
+}
+
+@media (max-width: 768px) {
+  .modal {
+    width: 95%;
+    padding: 16px;
+    max-height: 85vh;
+  }
+
+  .modal-header {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+  }
 }

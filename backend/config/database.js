@@ -207,6 +207,7 @@ export const initDatabase = async () => {
           salary_type VARCHAR(50) NOT NULL,
           amount DECIMAL(15, 2) NOT NULL,
           weekly_holiday_pay BOOLEAN DEFAULT false,
+          tax_type VARCHAR(50) DEFAULT '4대보험',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id)
         )
@@ -339,6 +340,9 @@ export const initDatabase = async () => {
       try {
         await run(`ALTER TABLE employee_details ADD COLUMN work_end_time TEXT`);
       } catch (e) {}
+      try {
+        await run(`ALTER TABLE salary_info ADD COLUMN tax_type TEXT DEFAULT '4대보험'`);
+      } catch (e) {}
 
       // Salary_info 테이블
       await run(`
@@ -348,6 +352,7 @@ export const initDatabase = async () => {
           salary_type TEXT NOT NULL,
           amount REAL NOT NULL,
           weekly_holiday_pay INTEGER DEFAULT 0,
+          tax_type TEXT DEFAULT '4대보험',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id)
         )

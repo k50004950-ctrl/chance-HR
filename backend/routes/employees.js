@@ -63,7 +63,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         u.emergency_contact, u.emergency_phone,
         ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file,
         ed.work_start_time, ed.work_end_time,
-        si.salary_type, si.amount, si.weekly_holiday_pay
+        si.salary_type, si.amount, si.weekly_holiday_pay, si.tax_type
       FROM users u
       LEFT JOIN employee_details ed ON u.id = ed.user_id
       LEFT JOIN salary_info si ON u.id = si.user_id
@@ -87,7 +87,7 @@ router.get('/:id', authenticate, async (req, res) => {
         u.emergency_contact, u.emergency_phone, u.workplace_id,
         ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file, ed.notes,
         ed.work_start_time, ed.work_end_time,
-        si.salary_type, si.amount, si.weekly_holiday_pay
+        si.salary_type, si.amount, si.weekly_holiday_pay, si.tax_type
       FROM users u
       LEFT JOIN employee_details ed ON u.id = ed.user_id
       LEFT JOIN salary_info si ON u.id = si.user_id
@@ -121,7 +121,7 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
       emergency_contact, emergency_phone, workplace_id,
       hire_date, position, department, notes,
       work_start_time, work_end_time,
-      salary_type, amount, weekly_holiday_pay
+      salary_type, amount, weekly_holiday_pay, tax_type
     } = req.body;
 
     if (!username || !password || !name || !workplace_id) {
@@ -159,8 +159,8 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
     // 급여 정보 등록
     if (salary_type && amount) {
       await run(
-        'INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, weekly_holiday_pay) VALUES (?, ?, ?, ?, ?)',
-        [userId, workplace_id, salary_type, amount, weekly_holiday_pay || 0]
+        'INSERT INTO salary_info (user_id, salary_type, amount, weekly_holiday_pay, tax_type) VALUES (?, ?, ?, ?, ?)',
+        [userId, salary_type, amount, weekly_holiday_pay || 0, tax_type || '4대보험']
       );
     }
 
@@ -185,7 +185,7 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       name, phone, email, ssn, address, emergency_contact, emergency_phone,
       hire_date, position, department, notes,
       work_start_time, work_end_time,
-      salary_type, amount, weekly_holiday_pay
+      salary_type, amount, weekly_holiday_pay, tax_type
     } = req.body;
 
     // 권한 확인
@@ -235,13 +235,13 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       const existingSalary = await get('SELECT id FROM salary_info WHERE user_id = ?', [employeeId]);
       if (existingSalary) {
         await run(
-          'UPDATE salary_info SET salary_type = ?, amount = ?, weekly_holiday_pay = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
-          [salary_type, amount, weekly_holiday_pay, employeeId]
+          'UPDATE salary_info SET salary_type = ?, amount = ?, weekly_holiday_pay = ?, tax_type = ? WHERE user_id = ?',
+          [salary_type, amount, weekly_holiday_pay, tax_type || '4대보험', employeeId]
         );
       } else {
         await run(
-          'INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, weekly_holiday_pay) VALUES (?, ?, ?, ?, ?)',
-          [employeeId, employee.workplace_id, salary_type, amount, weekly_holiday_pay || 0]
+          'INSERT INTO salary_info (user_id, salary_type, amount, weekly_holiday_pay, tax_type) VALUES (?, ?, ?, ?, ?)',
+          [employeeId, salary_type, amount, weekly_holiday_pay || 0, tax_type || '4대보험']
         );
       }
     }

@@ -86,7 +86,7 @@ const OwnerDashboard = () => {
       employeeStats[record.user_id].totalDays++;
       if (record.status === 'completed') {
         employeeStats[record.user_id].completedDays++;
-        employeeStats[record.user_id].totalHours += record.work_hours || 0;
+        employeeStats[record.user_id].totalHours += Number(record.work_hours) || 0;
       } else {
         employeeStats[record.user_id].incompleteDays++;
       }
@@ -96,7 +96,7 @@ const OwnerDashboard = () => {
       totalRecords: attendanceData.length,
       completedRecords: attendanceData.filter(r => r.status === 'completed').length,
       incompleteRecords: attendanceData.filter(r => r.status !== 'completed').length,
-      totalWorkHours: attendanceData.reduce((sum, r) => sum + (r.work_hours || 0), 0),
+      totalWorkHours: attendanceData.reduce((sum, r) => sum + (Number(r.work_hours) || 0), 0),
       employeeStats: Object.values(employeeStats)
     });
   };
@@ -339,6 +339,7 @@ const OwnerDashboard = () => {
                           <th>직책</th>
                           <th>입사일</th>
                           <th>급여유형</th>
+                          <th>인건비 신고</th>
                           <th>비상연락망</th>
                           <th>상세</th>
                         </tr>
@@ -355,6 +356,7 @@ const OwnerDashboard = () => {
                             <td>{emp.position || '-'}</td>
                             <td>{formatDate(emp.hire_date)}</td>
                             <td>{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</td>
+                            <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.tax_type || '4대보험'}</td>
                             <td>
                               {emp.emergency_contact ? (
                                 <div style={{ fontSize: '12px' }}>
@@ -407,6 +409,7 @@ const OwnerDashboard = () => {
                           <th>사용자명</th>
                           <th>직책</th>
                           <th>급여유형</th>
+                          <th>인건비 신고</th>
                           <th>급여</th>
                           <th>전화번호</th>
                           <th>작업</th>
@@ -419,6 +422,7 @@ const OwnerDashboard = () => {
                             <td>{emp.username}</td>
                             <td>{emp.position || '-'}</td>
                             <td>{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</td>
+                            <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.tax_type || '4대보험'}</td>
                             <td>{emp.amount ? `${emp.amount.toLocaleString()}원` : '-'}</td>
                             <td>{emp.phone || '-'}</td>
                             <td>
@@ -683,6 +687,7 @@ const OwnerDashboard = () => {
                             <tr>
                               <th>직원명</th>
                               <th>급여유형</th>
+                              <th>인건비 신고</th>
                               <th>기본급</th>
                               <th>근무일수</th>
                               <th>근무시간</th>
@@ -696,6 +701,7 @@ const OwnerDashboard = () => {
                               <tr key={emp.employeeId}>
                                 <td style={{ fontWeight: '600' }}>{emp.employeeName}</td>
                                 <td>{getSalaryTypeName(emp.salaryType)}</td>
+                                <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.taxType || '4대보험'}</td>
                                 <td>{emp.baseAmount.toLocaleString()}원</td>
                                 <td>{emp.totalWorkDays}일</td>
                                 <td>{emp.totalWorkHours}h</td>
@@ -985,6 +991,20 @@ const OwnerDashboard = () => {
                     placeholder="원"
                   />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">인건비 신고</label>
+                <select
+                  name="tax_type"
+                  className="form-select"
+                  value={formData.tax_type || '4대보험'}
+                  onChange={handleInputChange}
+                >
+                  <option value="4대보험">4대보험</option>
+                  <option value="3.3%">3.3% (프리랜서)</option>
+                  <option value="일용직">일용직</option>
+                </select>
               </div>
 
               {formData.salary_type === 'hourly' && (

@@ -89,7 +89,8 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
       salaryInfo: {
         type: salaryInfo.salary_type,
         baseAmount: salaryInfo.amount,
-        weeklyHolidayPay: salaryInfo.weekly_holiday_pay
+        weeklyHolidayPay: salaryInfo.weekly_holiday_pay,
+        taxType: salaryInfo.tax_type
       },
       period: {
         startDate,
@@ -194,6 +195,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         username: employee.username,
         salaryType: salaryInfo.salary_type,
         baseAmount: salaryInfo.amount,
+        taxType: salaryInfo.tax_type,
         totalWorkDays: attendanceRecords.length,
         totalWorkHours: totalWorkHours.toFixed(2),
         calculatedSalary: roundedSalary,

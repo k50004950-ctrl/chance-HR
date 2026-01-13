@@ -120,14 +120,29 @@ router.get('/create-test-data', async (req, res) => {
       let employeeDetails = await get('SELECT id FROM employee_details WHERE user_id = $1', [employeeUserId]);
       if (!employeeDetails) {
         await run(
-          `INSERT INTO employee_details (user_id, workplace_id, hire_date, position, department, notes, work_start_time, work_end_time, salary_type, amount, weekly_holiday_pay)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-          [employeeUserId, testWorkplaceId, '2024-01-01', '사원', '개발팀', '테스트 직원', '09:00', '18:00', emp.salary_type, emp.amount, emp.weekly_holiday_pay]
+          `INSERT INTO employee_details (user_id, workplace_id, hire_date, position, department, notes, work_start_time, work_end_time)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [employeeUserId, testWorkplaceId, '2024-01-01', '사원', '개발팀', '테스트 직원', '09:00', '18:00']
         );
       } else {
         await run(
-          `UPDATE employee_details SET salary_type = $1, amount = $2, weekly_holiday_pay = $3, work_start_time = $4, work_end_time = $5 WHERE user_id = $6`,
-          [emp.salary_type, emp.amount, emp.weekly_holiday_pay, '09:00', '18:00', employeeUserId]
+          `UPDATE employee_details SET work_start_time = $1, work_end_time = $2 WHERE user_id = $3`,
+          ['09:00', '18:00', employeeUserId]
+        );
+      }
+
+      // 급여 정보 (salary_info 테이블)
+      let salaryInfo = await get('SELECT id FROM salary_info WHERE user_id = $1', [employeeUserId]);
+      if (!salaryInfo) {
+        await run(
+          `INSERT INTO salary_info (user_id, salary_type, amount, weekly_holiday_pay)
+           VALUES ($1, $2, $3, $4)`,
+          [employeeUserId, emp.salary_type, emp.amount, emp.weekly_holiday_pay]
+        );
+      } else {
+        await run(
+          `UPDATE salary_info SET salary_type = $1, amount = $2, weekly_holiday_pay = $3 WHERE user_id = $4`,
+          [emp.salary_type, emp.amount, emp.weekly_holiday_pay, employeeUserId]
         );
       }
     }

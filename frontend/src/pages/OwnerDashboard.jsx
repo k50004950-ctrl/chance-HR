@@ -563,8 +563,8 @@ const OwnerDashboard = () => {
                                   <span style={{ color: '#6b7280' }}>-</span>
                                 )}
                               </td>
-                              <td style={{ fontWeight: '600' }}>{stat.totalHours.toFixed(1)}h</td>
-                              <td>{stat.completedDays > 0 ? (stat.totalHours / stat.completedDays).toFixed(1) : '0'}h</td>
+                              <td style={{ fontWeight: '600' }}>{(Number(stat.totalHours) || 0).toFixed(1)}h</td>
+                              <td>{stat.completedDays > 0 ? (Number(stat.totalHours) / stat.completedDays).toFixed(1) : '0'}h</td>
                             </tr>
                           ))}
                         </tbody>
@@ -608,7 +608,7 @@ const OwnerDashboard = () => {
                               <td>{formatDate(record.date)}</td>
                               <td>{formatTime(record.check_in_time)}</td>
                               <td>{formatTime(record.check_out_time)}</td>
-                              <td style={{ fontWeight: '600' }}>{record.work_hours ? `${record.work_hours.toFixed(1)}h` : '-'}</td>
+                              <td style={{ fontWeight: '600' }}>{record.work_hours ? `${Number(record.work_hours).toFixed(1)}h` : '-'}</td>
                               <td>
                                 <span style={{
                                   padding: '4px 8px',

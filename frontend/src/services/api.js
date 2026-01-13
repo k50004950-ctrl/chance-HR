@@ -44,7 +44,8 @@ export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   getOwners: () => api.get('/auth/owners'),
   getPendingOwners: () => api.get('/auth/pending-owners'),
-  approveOwner: (id, action) => api.post(`/auth/approve-owner/${id}`, { action })
+  approveOwner: (id, action) => api.post(`/auth/approve-owner/${id}`, { action }),
+  changePassword: (data) => api.put('/auth/change-password', data)
 };
 
 // 사업장 API

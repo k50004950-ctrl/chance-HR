@@ -198,4 +198,45 @@ router.post('/approve-owner/:id', authenticate, authorizeRole('admin'), async (r
   }
 });
 
+// 비밀번호 변경
+router.put('/change-password', authenticate, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: '현재 비밀번호와 새 비밀번호를 입력해주세요.' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: '새 비밀번호는 최소 6자 이상이어야 합니다.' });
+    }
+
+    // 현재 사용자 정보 조회
+    const user = await get('SELECT * FROM users WHERE id = ?', [userId]);
+
+    if (!user) {
+      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    // 현재 비밀번호 확인
+    const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isValidPassword) {
+      return res.status(401).json({ message: '현재 비밀번호가 올바르지 않습니다.' });
+    }
+
+    // 새 비밀번호 해시화
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // 비밀번호 업데이트
+    await run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, userId]);
+
+    res.json({ message: '비밀번호가 성공적으로 변경되었습니다.' });
+  } catch (error) {
+    console.error('비밀번호 변경 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 export default router;

@@ -16,6 +16,7 @@ import workplaceRoutes from './routes/workplaces.js';
 import employeeRoutes from './routes/employees.js';
 import attendanceRoutes from './routes/attendance.js';
 import salaryRoutes from './routes/salary.js';
+import seedRoutes from './routes/seed.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -61,6 +62,7 @@ app.use('/api/workplaces', workplaceRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/salary', salaryRoutes);
+app.use('/api/seed', seedRoutes);
 
 // 기본 라우트
 app.get('/', (req, res) => {

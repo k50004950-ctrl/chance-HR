@@ -509,7 +509,7 @@ const OwnerDashboard = () => {
                       boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                     }}>
                       <div style={{ fontSize: '14px', opacity: '0.9', marginBottom: '8px' }}>총 근무시간</div>
-                      <div style={{ fontSize: '32px', fontWeight: '700' }}>{(attendanceStats.totalWorkHours || 0).toFixed(1)}h</div>
+                      <div style={{ fontSize: '32px', fontWeight: '700' }}>{(Number(attendanceStats.totalWorkHours) || 0).toFixed(1)}h</div>
                     </div>
                   </div>
                 )}

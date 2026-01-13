@@ -54,7 +54,7 @@ const Login = () => {
           fontSize: '28px',
           fontWeight: '700'
         }}>
-          출퇴근 관리 시스템
+          출퇴근 관리 시스템 HR
         </h1>
 
         {error && (
@@ -118,11 +118,11 @@ const Login = () => {
           padding: '16px',
           background: '#f9fafb',
           borderRadius: '8px',
-          fontSize: '13px',
-          color: '#6b7280'
+          fontSize: '14px',
+          color: '#6b7280',
+          textAlign: 'center'
         }}>
-          <p style={{ fontWeight: '600', marginBottom: '8px' }}>테스트 계정:</p>
-          <p>관리자 - username: <strong>admin</strong> / password: <strong>admin123</strong></p>
+          <p style={{ fontWeight: '600' }}>문의: 카카오톡 채널 "찬스컴퍼니"</p>
         </div>
       </div>
     </div>

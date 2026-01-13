@@ -193,11 +193,21 @@ export const initDatabase = async () => {
           notes TEXT,
           work_start_time VARCHAR(10),
           work_end_time VARCHAR(10),
+          work_days VARCHAR(100),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id),
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
+      
+      // Add work_days column if it doesn't exist
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN work_days VARCHAR(100)`);
+      } catch (e) {
+        if (!e.message.includes('duplicate column') && !e.message.includes('already exists')) {
+          console.error('Error adding work_days column to employee_details:', e);
+        }
+      }
 
       // Salary_info 테이블
       await pool.query(`
@@ -321,32 +331,36 @@ export const initDatabase = async () => {
       } catch (e) {}
 
       // Employee_details 테이블
-      await run(`
-        CREATE TABLE IF NOT EXISTS employee_details (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER UNIQUE NOT NULL,
-          workplace_id INTEGER,
-          hire_date DATE,
-          position TEXT,
-          department TEXT,
-          contract_file TEXT,
-          resume_file TEXT,
-          notes TEXT,
-          work_start_time TEXT,
-          work_end_time TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id),
-          FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
-        )
-      `);
+        await run(`
+          CREATE TABLE IF NOT EXISTS employee_details (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER UNIQUE NOT NULL,
+            workplace_id INTEGER,
+            hire_date DATE,
+            position TEXT,
+            department TEXT,
+            contract_file TEXT,
+            resume_file TEXT,
+            notes TEXT,
+            work_start_time TEXT,
+            work_end_time TEXT,
+            work_days TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
+          )
+        `);
 
       // 기존 테이블에 새 컬럼 추가
       try {
         await run(`ALTER TABLE employee_details ADD COLUMN work_start_time TEXT`);
       } catch (e) {}
-      try {
-        await run(`ALTER TABLE employee_details ADD COLUMN work_end_time TEXT`);
-      } catch (e) {}
+        try {
+          await run(`ALTER TABLE employee_details ADD COLUMN work_end_time TEXT`);
+        } catch (e) {}
+        try {
+          await run(`ALTER TABLE employee_details ADD COLUMN work_days TEXT`);
+        } catch (e) {}
       try {
         await run(`ALTER TABLE salary_info ADD COLUMN tax_type TEXT DEFAULT '4대보험'`);
       } catch (e) {}

@@ -57,19 +57,19 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       }
     }
 
-    const employees = await query(`
-      SELECT 
-        u.id, u.username, u.name, u.phone, u.email, u.ssn, u.address,
-        u.emergency_contact, u.emergency_phone,
-        ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file,
-        ed.work_start_time, ed.work_end_time,
-        si.salary_type, si.amount, si.weekly_holiday_pay, si.tax_type
-      FROM users u
-      LEFT JOIN employee_details ed ON u.id = ed.user_id
-      LEFT JOIN salary_info si ON u.id = si.user_id
-      WHERE u.workplace_id = ? AND u.role = 'employee'
-      ORDER BY u.created_at DESC
-    `, [workplaceId]);
+  const employees = await query(`
+    SELECT 
+      u.id, u.username, u.name, u.phone, u.email, u.ssn, u.address,
+      u.emergency_contact, u.emergency_phone,
+      ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file,
+      ed.work_start_time, ed.work_end_time, ed.work_days,
+      si.salary_type, si.amount, si.weekly_holiday_pay, si.tax_type
+    FROM users u
+    LEFT JOIN employee_details ed ON u.id = ed.user_id
+    LEFT JOIN salary_info si ON u.id = si.user_id
+    WHERE u.workplace_id = ? AND u.role = 'employee'
+    ORDER BY u.created_at DESC
+  `, [workplaceId]);
 
     res.json(employees);
   } catch (error) {
@@ -86,7 +86,7 @@ router.get('/:id', authenticate, async (req, res) => {
         u.id, u.username, u.name, u.phone, u.email, u.ssn, u.address,
         u.emergency_contact, u.emergency_phone, u.workplace_id,
         ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file, ed.notes,
-        ed.work_start_time, ed.work_end_time,
+        ed.work_start_time, ed.work_end_time, ed.work_days,
         si.salary_type, si.amount, si.weekly_holiday_pay, si.tax_type
       FROM users u
       LEFT JOIN employee_details ed ON u.id = ed.user_id
@@ -120,7 +120,7 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
       username, password, name, phone, email, ssn, address,
       emergency_contact, emergency_phone, workplace_id,
       hire_date, position, department, notes,
-      work_start_time, work_end_time,
+      work_start_time, work_end_time, work_days,
       salary_type, amount, weekly_holiday_pay, tax_type
     } = req.body;
 
@@ -152,8 +152,8 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
 
     // 직원 상세정보 등록
     await run(
-      'INSERT INTO employee_details (user_id, workplace_id, hire_date, position, department, contract_file, resume_file, notes, work_start_time, work_end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, workplace_id, hire_date, position, department, contractFile, resumeFile, notes, work_start_time, work_end_time]
+      'INSERT INTO employee_details (user_id, workplace_id, hire_date, position, department, contract_file, resume_file, notes, work_start_time, work_end_time, work_days) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, workplace_id, hire_date, position, department, contractFile, resumeFile, notes, work_start_time, work_end_time, work_days]
     );
 
     // 급여 정보 등록
@@ -184,7 +184,7 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     const {
       name, phone, email, ssn, address, emergency_contact, emergency_phone,
       hire_date, position, department, notes,
-      work_start_time, work_end_time,
+      work_start_time, work_end_time, work_days,
       salary_type, amount, weekly_holiday_pay, tax_type
     } = req.body;
 
@@ -212,8 +212,8 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     const resumeFile = req.files && req.files['resume_file'] ? req.files['resume_file'][0].filename : undefined;
 
     // 직원 상세정보 수정
-    let updateQuery = 'UPDATE employee_details SET hire_date = ?, position = ?, department = ?, notes = ?, work_start_time = ?, work_end_time = ?';
-    let updateParams = [hire_date, position, department, notes, work_start_time, work_end_time];
+    let updateQuery = 'UPDATE employee_details SET hire_date = ?, position = ?, department = ?, notes = ?, work_start_time = ?, work_end_time = ?, work_days = ?';
+    let updateParams = [hire_date, position, department, notes, work_start_time, work_end_time, work_days];
     
     if (contractFile) {
       updateQuery += ', contract_file = ?';

@@ -1007,6 +1007,66 @@ const OwnerDashboard = () => {
               </div>
 
               <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
+                근무 요일
+              </h4>
+
+              <div className="form-group">
+                <label className="form-label">근무 요일 선택</label>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', 
+                  gap: '12px',
+                  marginTop: '8px'
+                }}>
+                  {['월', '화', '수', '목', '금', '토', '일'].map((day, index) => {
+                    const dayValue = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'][index];
+                    const workDays = formData.work_days ? formData.work_days.split(',') : [];
+                    const isChecked = workDays.includes(dayValue);
+                    
+                    return (
+                      <label
+                        key={dayValue}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: isChecked ? '2px solid #667eea' : '2px solid #e5e7eb',
+                          background: isChecked ? '#f0f4ff' : 'white',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          fontWeight: isChecked ? '600' : '400',
+                          color: isChecked ? '#667eea' : '#6b7280'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            let newWorkDays = [...workDays];
+                            if (e.target.checked) {
+                              if (!newWorkDays.includes(dayValue)) {
+                                newWorkDays.push(dayValue);
+                              }
+                            } else {
+                              newWorkDays = newWorkDays.filter(d => d !== dayValue);
+                            }
+                            setFormData({ ...formData, work_days: newWorkDays.join(',') });
+                          }}
+                          style={{ marginRight: '6px' }}
+                        />
+                        {day}
+                      </label>
+                    );
+                  })}
+                </div>
+                <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '8px', display: 'block' }}>
+                  💡 직원이 근무하는 요일을 선택하세요. 선택하지 않으면 전체 요일 근무로 간주됩니다.
+                </small>
+              </div>
+
+              <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
                 첨부 서류
               </h4>
 

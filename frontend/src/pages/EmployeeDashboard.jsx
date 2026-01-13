@@ -333,7 +333,7 @@ const EmployeeDashboard = () => {
               color: 'white',
               textAlign: 'center'
             }}>
-              <div style={{ fontSize: '14px', marginBottom: '8px', opacity: '0.9' }}>예상 급여</div>
+              <div style={{ fontSize: '14px', marginBottom: '8px', opacity: '0.9' }}>예상 급여 (세전)</div>
               <div style={{ fontSize: '32px', fontWeight: '700' }}>
                 {salaryInfo.calculatedSalary.toLocaleString()}원
               </div>

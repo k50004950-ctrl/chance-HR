@@ -43,7 +43,7 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
 
     // 출퇴근 기록 조회
     const attendanceRecords = await query(
-      'SELECT * FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ? AND status = "completed"',
+      "SELECT * FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ? AND status = 'completed'",
       [employeeId, startDate, endDate]
     );
 
@@ -127,7 +127,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
 
     // 사업장의 모든 직원 조회
     const employees = await query(
-      'SELECT id, name, username FROM users WHERE workplace_id = ? AND role = "employee"',
+      "SELECT id, name, username FROM users WHERE workplace_id = ? AND role = 'employee'",
       [workplaceId]
     );
 
@@ -143,7 +143,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       if (!salaryInfo) continue;
 
       const attendanceRecords = await query(
-        'SELECT * FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ? AND status = "completed"',
+        "SELECT * FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ? AND status = 'completed'",
         [employee.id, startDate, endDate]
       );
 

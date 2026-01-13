@@ -665,7 +665,7 @@ const OwnerDashboard = () => {
                       textAlign: 'center'
                     }}>
                       <div style={{ fontSize: '14px', marginBottom: '8px', opacity: '0.9' }}>
-                        총 지급 급여
+                        총 지급 급여 (세전)
                       </div>
                       <div style={{ fontSize: '36px', fontWeight: '700' }}>
                         {salaryData.totalSalary.toLocaleString()}원

@@ -40,6 +40,10 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ message: '가입이 거부되었습니다. 관리자에게 문의하세요.' });
     }
 
+    if (user.role !== 'admin' && user.approval_status === 'suspended') {
+      return res.status(403).json({ message: '계정이 일시 중지되었습니다. 관리자에게 문의하세요.' });
+    }
+
     const token = jwt.sign(
       {
         id: user.id,
@@ -194,6 +198,37 @@ router.post('/approve-owner/:id', authenticate, authorizeRole('admin'), async (r
     });
   } catch (error) {
     console.error('승인/거부 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 사업주 계정 활성화/비활성화 (관리자만)
+router.put('/owners/:id/toggle-status', authenticate, authorizeRole('admin'), async (req, res) => {
+  try {
+    const ownerId = req.params.id;
+
+    // 현재 상태 조회
+    const owner = await get('SELECT approval_status FROM users WHERE id = ? AND role = ?', [ownerId, 'owner']);
+
+    if (!owner) {
+      return res.status(404).json({ message: '사업주를 찾을 수 없습니다.' });
+    }
+
+    // 상태 토글
+    const newStatus = owner.approval_status === 'approved' ? 'suspended' : 'approved';
+
+    await run(
+      'UPDATE users SET approval_status = ? WHERE id = ? AND role = ?',
+      [newStatus, ownerId, 'owner']
+    );
+
+    const message = newStatus === 'suspended' 
+      ? '사업주 계정이 일시 중지되었습니다.' 
+      : '사업주 계정이 활성화되었습니다.';
+
+    res.json({ message, newStatus });
+  } catch (error) {
+    console.error('계정 상태 변경 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 });

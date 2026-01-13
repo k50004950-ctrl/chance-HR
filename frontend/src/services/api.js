@@ -45,6 +45,7 @@ export const authAPI = {
   getOwners: () => api.get('/auth/owners'),
   getPendingOwners: () => api.get('/auth/pending-owners'),
   approveOwner: (id, action) => api.post(`/auth/approve-owner/${id}`, { action }),
+  toggleOwnerStatus: (id) => api.put(`/auth/owners/${id}/toggle-status`),
   changePassword: (data) => api.put('/auth/change-password', data)
 };
 

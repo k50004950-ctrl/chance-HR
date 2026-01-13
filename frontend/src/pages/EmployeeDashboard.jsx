@@ -199,7 +199,7 @@ const EmployeeDashboard = () => {
                 📡 현재 위치 확인됨
               </div>
               <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                위도: {currentLocation.latitude.toFixed(6)} / 경도: {currentLocation.longitude.toFixed(6)}
+                위도: {Number(currentLocation.latitude).toFixed(6)} / 경도: {Number(currentLocation.longitude).toFixed(6)}
               </div>
               <div style={{ fontSize: '12px', color: '#6b7280' }}>
                 정확도: 약 {Math.round(currentLocation.accuracy)}m
@@ -297,7 +297,7 @@ const EmployeeDashboard = () => {
             }}>
               <div style={{ fontSize: '14px', opacity: '0.9', marginBottom: '4px' }}>오늘 근무시간</div>
               <div style={{ fontSize: '32px', fontWeight: '700' }}>
-                {todayStatus.record.work_hours.toFixed(1)}시간
+                {(Number(todayStatus.record.work_hours) || 0).toFixed(1)}시간
               </div>
             </div>
           )}
@@ -388,7 +388,7 @@ const EmployeeDashboard = () => {
                 <div style={{ padding: '16px', background: '#fef3c7', borderRadius: '8px', textAlign: 'center' }}>
                   <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>총 근무시간</div>
                   <div style={{ fontSize: '24px', fontWeight: '700', color: '#f59e0b' }}>
-                    {attendanceRecords.reduce((sum, r) => sum + (r.work_hours || 0), 0).toFixed(1)}h
+                    {Number(attendanceRecords.reduce((sum, r) => sum + (Number(r.work_hours) || 0), 0)).toFixed(1)}h
                   </div>
                 </div>
               </div>
@@ -411,7 +411,7 @@ const EmployeeDashboard = () => {
                         <td>{formatTime(record.check_in_time)}</td>
                         <td>{formatTime(record.check_out_time)}</td>
                         <td style={{ fontWeight: '600', color: '#667eea' }}>
-                          {record.work_hours ? `${record.work_hours.toFixed(1)}h` : '-'}
+                          {record.work_hours ? `${Number(record.work_hours).toFixed(1)}h` : '-'}
                         </td>
                         <td>
                           <span style={{

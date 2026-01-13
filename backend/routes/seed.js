@@ -75,6 +75,13 @@ router.get('/create-test-data', async (req, res) => {
       console.log(`✅ 테스트 사업장 존재 (ID: ${testWorkplaceId})`);
     }
     
+    // test 사업주의 workplace_id 업데이트
+    await run(
+      'UPDATE users SET workplace_id = $1 WHERE id = $2',
+      [testWorkplaceId, testOwnerId]
+    );
+    console.log(`✅ 테스트 사업주의 workplace_id 업데이트 완료`);
+    
     // 3. 직원 3명 생성
     const employeesData = [
       { username: 'employee1', name: '김직원', salary_type: 'hourly', amount: 12000, weekly_holiday_pay: true },

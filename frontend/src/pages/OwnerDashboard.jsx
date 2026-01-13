@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import * as XLSX from 'xlsx';
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
@@ -238,6 +239,70 @@ const OwnerDashboard = () => {
       case 'annual': return '연봉';
       default: return type;
     }
+  };
+
+  const downloadExcel = () => {
+    if (!salaryData || !salaryData.employees || salaryData.employees.length === 0) {
+      alert('다운로드할 급여 데이터가 없습니다.');
+      return;
+    }
+
+    // 엑셀 데이터 준비
+    const excelData = salaryData.employees.map(emp => ({
+      '직원명': emp.employeeName,
+      '사용자명': emp.username,
+      '급여유형': getSalaryTypeName(emp.salaryType),
+      '인건비신고': emp.taxType || '4대보험',
+      '기본급': emp.baseAmount,
+      '근무일수': emp.totalWorkDays,
+      '근무시간': emp.totalWorkHours,
+      '기본급여': emp.baseSalaryAmount || emp.calculatedSalary,
+      '주휴수당': emp.weeklyHolidayPayAmount || 0,
+      '총지급액': emp.calculatedSalary
+    }));
+
+    // 합계 행 추가
+    const totalRow = {
+      '직원명': '합계',
+      '사용자명': '',
+      '급여유형': '',
+      '인건비신고': '',
+      '기본급': '',
+      '근무일수': '',
+      '근무시간': '',
+      '기본급여': '',
+      '주휴수당': salaryData.employees.reduce((sum, emp) => sum + (emp.weeklyHolidayPayAmount || 0), 0),
+      '총지급액': salaryData.totalSalary
+    };
+    excelData.push(totalRow);
+
+    // 워크시트 생성
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // 컬럼 너비 설정
+    ws['!cols'] = [
+      { wch: 10 }, // 직원명
+      { wch: 12 }, // 사용자명
+      { wch: 10 }, // 급여유형
+      { wch: 12 }, // 인건비신고
+      { wch: 12 }, // 기본급
+      { wch: 10 }, // 근무일수
+      { wch: 10 }, // 근무시간
+      { wch: 12 }, // 기본급여
+      { wch: 12 }, // 주휴수당
+      { wch: 14 }  // 총지급액
+    ];
+
+    // 워크북 생성
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '급여계산');
+
+    // 파일명 생성 (YYYY년MM월_급여계산.xlsx)
+    const [year, month] = selectedMonth.split('-');
+    const filename = `${year}년${month}월_급여계산.xlsx`;
+
+    // 파일 다운로드
+    XLSX.writeFile(wb, filename);
   };
 
   return (
@@ -649,13 +714,24 @@ const OwnerDashboard = () => {
               <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                   <h3 style={{ color: '#374151' }}>급여 계산</h3>
-                  <input
-                    type="month"
-                    className="form-input"
-                    style={{ width: 'auto' }}
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                  />
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <input
+                      type="month"
+                      className="form-input"
+                      style={{ width: 'auto' }}
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                    />
+                    {salaryData && salaryData.employees && salaryData.employees.length > 0 && (
+                      <button
+                        className="btn btn-success"
+                        onClick={downloadExcel}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        📥 엑셀 다운로드
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {salaryData && (

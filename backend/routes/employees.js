@@ -406,4 +406,66 @@ router.delete('/:id', authenticate, authorizeRole('admin', 'owner'), async (req,
   }
 });
 
+// 재직증명서 정보 조회
+router.get('/:id/employment-certificate', authenticate, async (req, res) => {
+  try {
+    const employeeId = req.params.id;
+
+    // 권한 확인 - 본인 또는 사업주만 조회 가능
+    if (req.user.role === 'employee' && req.user.id !== parseInt(employeeId)) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    // 직원 정보 조회
+    const employeeInfo = await get(
+      `SELECT u.id, u.username, u.name, u.created_at,
+              ed.ssn, ed.hire_date, ed.position, ed.department, ed.address,
+              w.name as workplace_name, w.address as workplace_address, w.business_number,
+              si.salary_type, si.amount
+       FROM users u
+       LEFT JOIN employee_details ed ON u.id = ed.user_id
+       LEFT JOIN workplaces w ON u.workplace_id = w.id
+       LEFT JOIN salary_info si ON u.id = si.user_id
+       WHERE u.id = ? AND u.role = 'employee'`,
+      [employeeId]
+    );
+
+    if (!employeeInfo) {
+      return res.status(404).json({ message: '직원 정보를 찾을 수 없습니다.' });
+    }
+
+    // 사업주 권한 확인
+    if (req.user.role === 'owner') {
+      const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [employeeInfo.workplace_id]);
+      if (!workplace || workplace.owner_id !== req.user.id) {
+        return res.status(403).json({ message: '권한이 없습니다.' });
+      }
+    }
+
+    // 주민등록번호 마스킹 (뒤 7자리)
+    let maskedSSN = employeeInfo.ssn;
+    if (maskedSSN && maskedSSN.length >= 7) {
+      maskedSSN = maskedSSN.substring(0, maskedSSN.length - 7) + '*******';
+    }
+
+    res.json({
+      employeeName: employeeInfo.name,
+      ssn: maskedSSN,
+      hireDate: employeeInfo.hire_date,
+      position: employeeInfo.position || '직원',
+      department: employeeInfo.department || '-',
+      address: employeeInfo.address || '-',
+      workplaceName: employeeInfo.workplace_name,
+      workplaceAddress: employeeInfo.workplace_address,
+      businessNumber: employeeInfo.business_number,
+      salaryType: employeeInfo.salary_type,
+      amount: employeeInfo.amount,
+      issueDate: new Date().toISOString().split('T')[0]
+    });
+  } catch (error) {
+    console.error('재직증명서 조회 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 export default router;

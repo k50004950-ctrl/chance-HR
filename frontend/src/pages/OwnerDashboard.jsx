@@ -112,7 +112,24 @@ const OwnerDashboard = () => {
       const startDate = `${selectedMonth}-01`;
       const endDate = `${selectedMonth}-31`;
       const response = await salaryAPI.calculateWorkplace(selectedWorkplace, { startDate, endDate });
-      setSalaryData(response.data);
+      
+      // 각 직원의 퇴직금 계산
+      const employeesWithSeverance = await Promise.all(
+        response.data.employees.map(async (emp) => {
+          try {
+            const severanceResponse = await salaryAPI.getSeverance(emp.employeeId);
+            return { ...emp, severance: severanceResponse.data };
+          } catch (error) {
+            // 퇴직금 계산 실패 시 null로 설정
+            return { ...emp, severance: null };
+          }
+        })
+      );
+      
+      setSalaryData({
+        ...response.data,
+        employees: employeesWithSeverance
+      });
     } catch (error) {
       console.error('급여 계산 오류:', error);
     }
@@ -862,6 +879,7 @@ const OwnerDashboard = () => {
                               <th>근무시간</th>
                               <th>기본 급여</th>
                               <th>주휴수당</th>
+                              <th>퇴직금 (1년 이상)</th>
                               <th>총 지급액</th>
                             </tr>
                           </thead>
@@ -877,6 +895,20 @@ const OwnerDashboard = () => {
                                 <td>{emp.baseSalaryAmount ? emp.baseSalaryAmount.toLocaleString() : emp.calculatedSalary.toLocaleString()}원</td>
                                 <td style={{ color: emp.weeklyHolidayPayAmount > 0 ? '#10b981' : '#9ca3af' }}>
                                   {emp.weeklyHolidayPayAmount > 0 ? `+${emp.weeklyHolidayPayAmount.toLocaleString()}원` : '-'}
+                                </td>
+                                <td style={{ color: emp.severance && emp.severance.eligible ? '#f59e0b' : '#9ca3af', fontSize: '12px' }}>
+                                  {emp.severance && emp.severance.eligible ? (
+                                    <div>
+                                      <div>{emp.severance.severancePay.toLocaleString()}원</div>
+                                      <div style={{ fontSize: '10px', opacity: 0.8 }}>
+                                        ({emp.severance.yearsWorked}년)
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div style={{ fontSize: '11px' }}>
+                                      {emp.severance ? emp.severance.message : '조회 중...'}
+                                    </div>
+                                  )}
                                 </td>
                                 <td style={{ fontWeight: '700', color: '#667eea' }}>
                                   {emp.calculatedSalary.toLocaleString()}원
@@ -1176,7 +1208,40 @@ const OwnerDashboard = () => {
                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                   />
                   {formData.contract_file && typeof formData.contract_file === 'string' && (
-                    <small style={{ color: '#6b7280' }}>현재 파일: {formData.contract_file}</small>
+                    <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <small style={{ color: '#6b7280' }}>현재 파일: {formData.contract_file}</small>
+                      <button
+                        type="button"
+                        onClick={() => window.open(`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.contract_file}`, '_blank')}
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                          backgroundColor: '#667eea',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        보기
+                      </button>
+                      <a
+                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.contract_file}`}
+                        download
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          textDecoration: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        다운로드
+                      </a>
+                    </div>
                   )}
                 </div>
                 <div className="form-group">
@@ -1189,7 +1254,40 @@ const OwnerDashboard = () => {
                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                   />
                   {formData.resume_file && typeof formData.resume_file === 'string' && (
-                    <small style={{ color: '#6b7280' }}>현재 파일: {formData.resume_file}</small>
+                    <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <small style={{ color: '#6b7280' }}>현재 파일: {formData.resume_file}</small>
+                      <button
+                        type="button"
+                        onClick={() => window.open(`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.resume_file}`, '_blank')}
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                          backgroundColor: '#667eea',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        보기
+                      </button>
+                      <a
+                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.resume_file}`}
+                        download
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          textDecoration: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        다운로드
+                      </a>
+                    </div>
                   )}
                 </div>
                 <div className="form-group">
@@ -1202,7 +1300,40 @@ const OwnerDashboard = () => {
                     accept=".pdf,.jpg,.jpeg,.png"
                   />
                   {formData.id_card_file && typeof formData.id_card_file === 'string' && (
-                    <small style={{ color: '#6b7280' }}>현재 파일: {formData.id_card_file}</small>
+                    <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <small style={{ color: '#6b7280' }}>현재 파일: {formData.id_card_file}</small>
+                      <button
+                        type="button"
+                        onClick={() => window.open(`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.id_card_file}`, '_blank')}
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                          backgroundColor: '#667eea',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        보기
+                      </button>
+                      <a
+                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.id_card_file}`}
+                        download
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          textDecoration: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        다운로드
+                      </a>
+                    </div>
                   )}
                 </div>
                 <div className="form-group">
@@ -1215,7 +1346,40 @@ const OwnerDashboard = () => {
                     accept=".pdf,.jpg,.jpeg,.png"
                   />
                   {formData.family_cert_file && typeof formData.family_cert_file === 'string' && (
-                    <small style={{ color: '#6b7280' }}>현재 파일: {formData.family_cert_file}</small>
+                    <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <small style={{ color: '#6b7280' }}>현재 파일: {formData.family_cert_file}</small>
+                      <button
+                        type="button"
+                        onClick={() => window.open(`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.family_cert_file}`, '_blank')}
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                          backgroundColor: '#667eea',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        보기
+                      </button>
+                      <a
+                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.family_cert_file}`}
+                        download
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          textDecoration: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        다운로드
+                      </a>
+                    </div>
                   )}
                 </div>
               </div>

@@ -63,6 +63,7 @@ export const workplaceAPI = {
 export const employeeAPI = {
   getByWorkplace: (workplaceId) => api.get(`/employees/workplace/${workplaceId}`),
   getById: (id) => api.get(`/employees/${id}`),
+  getEmploymentCertificate: (id) => api.get(`/employees/${id}/employment-certificate`),
   create: (data) => {
     // 이미 FormData인 경우 그대로 사용
     if (data instanceof FormData) {
@@ -118,7 +119,8 @@ export const attendanceAPI = {
 // 급여 API
 export const salaryAPI = {
   calculate: (employeeId, params) => api.get(`/salary/calculate/${employeeId}`, { params }),
-  calculateWorkplace: (workplaceId, params) => api.get(`/salary/workplace/${workplaceId}`, { params })
+  calculateWorkplace: (workplaceId, params) => api.get(`/salary/workplace/${workplaceId}`, { params }),
+  getSeverance: (employeeId) => api.get(`/salary/severance/${employeeId}`)
 };
 
 export default api;

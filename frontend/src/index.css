@@ -562,3 +562,28 @@ h4 {
     width: 100%;
   }
 }
+
+/* 인쇄 스타일 */
+@media print {
+  body {
+    background: white !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .modal-overlay {
+    background: white !important;
+    position: static !important;
+  }
+
+  .modal {
+    box-shadow: none !important;
+    max-width: 100% !important;
+  }
+
+  #certificate-content {
+    page-break-inside: avoid;
+  }
+}

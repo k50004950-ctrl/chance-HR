@@ -238,4 +238,112 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
   }
 });
 
+// 퇴직금 계산
+router.get('/severance/:employeeId', authenticate, async (req, res) => {
+  try {
+    const employeeId = req.params.employeeId;
+
+    // 권한 확인
+    const employee = await get(
+      `SELECT u.id, u.workplace_id, ed.hire_date, u.name
+       FROM users u
+       LEFT JOIN employee_details ed ON u.id = ed.user_id
+       WHERE u.id = ? AND u.role = 'employee'`,
+      [employeeId]
+    );
+
+    if (!employee) {
+      return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
+    }
+
+    if (req.user.role === 'employee' && req.user.id !== parseInt(employeeId)) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    if (req.user.role === 'owner') {
+      const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [employee.workplace_id]);
+      if (!workplace || workplace.owner_id !== req.user.id) {
+        return res.status(403).json({ message: '권한이 없습니다.' });
+      }
+    }
+
+    // 입사일 확인
+    if (!employee.hire_date) {
+      return res.status(400).json({ message: '입사일 정보가 없습니다.' });
+    }
+
+    const hireDate = new Date(employee.hire_date);
+    const currentDate = new Date();
+    
+    // 재직 기간 계산 (일 단위)
+    const daysWorked = Math.floor((currentDate - hireDate) / (1000 * 60 * 60 * 24));
+    const yearsWorked = daysWorked / 365;
+
+    // 1년 미만 근무자는 퇴직금 없음
+    if (yearsWorked < 1) {
+      return res.json({
+        eligible: false,
+        yearsWorked: yearsWorked.toFixed(2),
+        message: '1년 이상 근무해야 퇴직금이 발생합니다.'
+      });
+    }
+
+    // 급여 정보 조회
+    const salaryInfo = await get(
+      'SELECT * FROM salary_info WHERE user_id = ?',
+      [employeeId]
+    );
+
+    if (!salaryInfo) {
+      return res.status(404).json({ message: '급여 정보가 등록되지 않았습니다.' });
+    }
+
+    // 최근 3개월 급여 계산
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    
+    const threeMonthsAgoStr = threeMonthsAgo.toISOString().split('T')[0];
+    const currentDateStr = currentDate.toISOString().split('T')[0];
+
+    let averageDailyWage = 0;
+
+    if (salaryInfo.salary_type === 'hourly') {
+      // 시급제: 최근 3개월 근무 시간 기반 계산
+      const attendanceRecords = await query(
+        "SELECT * FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ? AND status = 'completed'",
+        [employeeId, threeMonthsAgoStr, currentDateStr]
+      );
+
+      const totalWorkHours = attendanceRecords.reduce((sum, record) => sum + (parseFloat(record.work_hours) || 0), 0);
+      const threeMonthsSalary = totalWorkHours * salaryInfo.amount;
+      
+      // 3개월 = 약 90일
+      averageDailyWage = threeMonthsSalary / 90;
+    } else if (salaryInfo.salary_type === 'monthly') {
+      // 월급제: 월급 * 3개월 / 90일
+      averageDailyWage = (salaryInfo.amount * 3) / 90;
+    } else if (salaryInfo.salary_type === 'annual') {
+      // 연봉제: 연봉 / 365일
+      averageDailyWage = salaryInfo.amount / 365;
+    }
+
+    // 퇴직금 = (1일 평균임금) × (재직일수) / 365 × 30일
+    const severancePay = (averageDailyWage * daysWorked / 365) * 30;
+
+    res.json({
+      eligible: true,
+      employeeName: employee.name,
+      hireDate: employee.hire_date,
+      yearsWorked: yearsWorked.toFixed(2),
+      daysWorked,
+      averageDailyWage: Math.round(averageDailyWage),
+      severancePay: Math.round(severancePay),
+      salaryType: salaryInfo.salary_type
+    });
+  } catch (error) {
+    console.error('퇴직금 계산 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 export default router;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { attendanceAPI, salaryAPI } from '../services/api';
+import { attendanceAPI, salaryAPI, employeeAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const EmployeeDashboard = () => {
@@ -13,6 +13,8 @@ const EmployeeDashboard = () => {
   const [salaryInfo, setSalaryInfo] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
+  const [certificateData, setCertificateData] = useState(null);
 
   useEffect(() => {
     loadTodayStatus();
@@ -160,11 +162,39 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const handleGetCertificate = async () => {
+    try {
+      setLoading(true);
+      const response = await employeeAPI.getEmploymentCertificate(user.id);
+      setCertificateData(response.data);
+      setShowCertificateModal(true);
+    } catch (error) {
+      console.error('재직증명서 조회 오류:', error);
+      setMessage({ type: 'error', text: '재직증명서 발급에 실패했습니다.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePrintCertificate = () => {
+    window.print();
+  };
+
   return (
     <div>
       <Header />
       <div className="container">
-        <h2 style={{ marginBottom: '24px', color: '#374151' }}>직원 대시보드</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h2 style={{ margin: 0, color: '#374151' }}>직원 대시보드</h2>
+          <button
+            className="btn btn-primary"
+            onClick={handleGetCertificate}
+            disabled={loading}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            📄 재직증명서 발급
+          </button>
+        </div>
 
         {message.text && (
           <div className={`alert alert-${message.type}`}>
@@ -433,6 +463,136 @@ const EmployeeDashboard = () => {
             </>
           )}
         </div>
+
+        {/* 재직증명서 모달 */}
+        {showCertificateModal && certificateData && (
+          <div className="modal-overlay" onClick={() => setShowCertificateModal(false)}>
+            <div
+              className="modal"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: '800px',
+                padding: '40px',
+                backgroundColor: 'white'
+              }}
+              id="certificate-content"
+            >
+              {/* 인쇄 시 숨길 버튼 */}
+              <div style={{ marginBottom: '30px', textAlign: 'right' }} className="no-print">
+                <button
+                  className="btn btn-primary"
+                  onClick={handlePrintCertificate}
+                  style={{ marginRight: '10px' }}
+                >
+                  🖨️ 인쇄
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowCertificateModal(false)}
+                >
+                  닫기
+                </button>
+              </div>
+
+              {/* 재직증명서 내용 */}
+              <div style={{
+                border: '3px double #333',
+                padding: '50px',
+                fontFamily: '"Noto Sans KR", sans-serif'
+              }}>
+                <h1 style={{
+                  textAlign: 'center',
+                  fontSize: '32px',
+                  fontWeight: '700',
+                  marginBottom: '50px',
+                  color: '#000'
+                }}>
+                  재 직 증 명 서
+                </h1>
+
+                <div style={{ lineHeight: '2.5', fontSize: '16px', color: '#000' }}>
+                  <div style={{ marginBottom: '30px' }}>
+                    <div style={{ display: 'flex', borderBottom: '1px solid #ccc', padding: '12px 0' }}>
+                      <div style={{ width: '150px', fontWeight: '600' }}>성명</div>
+                      <div style={{ flex: 1 }}>{certificateData.employeeName}</div>
+                    </div>
+                    <div style={{ display: 'flex', borderBottom: '1px solid #ccc', padding: '12px 0' }}>
+                      <div style={{ width: '150px', fontWeight: '600' }}>주민등록번호</div>
+                      <div style={{ flex: 1 }}>{certificateData.ssn || '-'}</div>
+                    </div>
+                    <div style={{ display: 'flex', borderBottom: '1px solid #ccc', padding: '12px 0' }}>
+                      <div style={{ width: '150px', fontWeight: '600' }}>주소</div>
+                      <div style={{ flex: 1 }}>{certificateData.address || '-'}</div>
+                    </div>
+                    <div style={{ display: 'flex', borderBottom: '1px solid #ccc', padding: '12px 0' }}>
+                      <div style={{ width: '150px', fontWeight: '600' }}>입사일</div>
+                      <div style={{ flex: 1 }}>{certificateData.hireDate}</div>
+                    </div>
+                    <div style={{ display: 'flex', borderBottom: '1px solid #ccc', padding: '12px 0' }}>
+                      <div style={{ width: '150px', fontWeight: '600' }}>부서</div>
+                      <div style={{ flex: 1 }}>{certificateData.department}</div>
+                    </div>
+                    <div style={{ display: 'flex', borderBottom: '1px solid #ccc', padding: '12px 0' }}>
+                      <div style={{ width: '150px', fontWeight: '600' }}>직책</div>
+                      <div style={{ flex: 1 }}>{certificateData.position}</div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    marginTop: '40px',
+                    marginBottom: '40px',
+                    textAlign: 'center',
+                    padding: '20px',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '8px'
+                  }}>
+                    위 사람은 본 사업장에 현재 재직 중임을 증명합니다.
+                  </div>
+
+                  <div style={{ textAlign: 'center', marginTop: '60px' }}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '10px' }}>
+                      발급일자: {certificateData.issueDate}
+                    </div>
+                  </div>
+
+                  <div style={{
+                    marginTop: '50px',
+                    paddingTop: '30px',
+                    borderTop: '2px solid #333'
+                  }}>
+                    <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '15px' }}>
+                      사업장 정보
+                    </div>
+                    <div style={{ display: 'flex', padding: '8px 0' }}>
+                      <div style={{ width: '150px', fontWeight: '600' }}>사업장명</div>
+                      <div style={{ flex: 1 }}>{certificateData.workplaceName}</div>
+                    </div>
+                    <div style={{ display: 'flex', padding: '8px 0' }}>
+                      <div style={{ width: '150px', fontWeight: '600' }}>사업장 주소</div>
+                      <div style={{ flex: 1 }}>{certificateData.workplaceAddress}</div>
+                    </div>
+                    <div style={{ display: 'flex', padding: '8px 0' }}>
+                      <div style={{ width: '150px', fontWeight: '600' }}>사업자등록번호</div>
+                      <div style={{ flex: 1 }}>{certificateData.businessNumber || '-'}</div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    marginTop: '60px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '24px', fontWeight: '700' }}>
+                      {certificateData.workplaceName}
+                    </div>
+                    <div style={{ marginTop: '20px', fontSize: '18px' }}>
+                      (인)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

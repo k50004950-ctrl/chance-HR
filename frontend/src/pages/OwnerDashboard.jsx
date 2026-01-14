@@ -1135,6 +1135,8 @@ const OwnerDashboard = () => {
                       >
                         <input
                           type="checkbox"
+                          name="work_days"
+                          value={dayValue}
                           checked={isChecked}
                           onChange={(e) => {
                             let newWorkDays = [...workDays];

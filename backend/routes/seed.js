@@ -142,14 +142,14 @@ router.get('/create-test-data', async (req, res) => {
       let salaryInfo = await get('SELECT id FROM salary_info WHERE user_id = $1', [employeeUserId]);
       if (!salaryInfo) {
         await run(
-          `INSERT INTO salary_info (user_id, salary_type, amount, weekly_holiday_pay)
-           VALUES ($1, $2, $3, $4)`,
-          [employeeUserId, emp.salary_type, emp.amount, emp.weekly_holiday_pay]
+          `INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, weekly_holiday_pay, tax_type)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [employeeUserId, testWorkplaceId, emp.salary_type, emp.amount, emp.weekly_holiday_pay, '3.3%']
         );
       } else {
         await run(
-          `UPDATE salary_info SET salary_type = $1, amount = $2, weekly_holiday_pay = $3 WHERE user_id = $4`,
-          [emp.salary_type, emp.amount, emp.weekly_holiday_pay, employeeUserId]
+          `UPDATE salary_info SET salary_type = $1, amount = $2, weekly_holiday_pay = $3, tax_type = $4 WHERE user_id = $5`,
+          [emp.salary_type, emp.amount, emp.weekly_holiday_pay, '3.3%', employeeUserId]
         );
       }
     }

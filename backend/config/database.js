@@ -214,12 +214,14 @@ export const initDatabase = async () => {
         CREATE TABLE IF NOT EXISTS salary_info (
           id SERIAL PRIMARY KEY,
           user_id INTEGER UNIQUE NOT NULL,
+          workplace_id INTEGER NOT NULL,
           salary_type VARCHAR(50) NOT NULL,
           amount DECIMAL(15, 2) NOT NULL,
           weekly_holiday_pay BOOLEAN DEFAULT false,
           tax_type VARCHAR(50) DEFAULT '4대보험',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id)
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
 
@@ -370,12 +372,14 @@ export const initDatabase = async () => {
         CREATE TABLE IF NOT EXISTS salary_info (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER UNIQUE NOT NULL,
+          workplace_id INTEGER NOT NULL,
           salary_type TEXT NOT NULL,
           amount REAL NOT NULL,
           weekly_holiday_pay INTEGER DEFAULT 0,
           tax_type TEXT DEFAULT '4대보험',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id)
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
 

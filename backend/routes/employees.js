@@ -208,11 +208,46 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       }
     }
 
-    // 사용자 정보 수정
-    await run(
-      'UPDATE users SET name = ?, phone = ?, email = ?, ssn = ?, address = ?, emergency_contact = ?, emergency_phone = ? WHERE id = ?',
-      [name, phone, email, ssn, address, emergency_contact, emergency_phone, employeeId]
-    );
+    // 사용자 정보 수정 (빈 값이 아닌 경우만 업데이트)
+    let userUpdateQuery = 'UPDATE users SET';
+    let userUpdateParams = [];
+    let userUpdateFields = [];
+    
+    if (name) {
+      userUpdateFields.push(' name = ?');
+      userUpdateParams.push(name);
+    }
+    if (phone !== undefined) {
+      userUpdateFields.push(' phone = ?');
+      userUpdateParams.push(phone);
+    }
+    if (email !== undefined) {
+      userUpdateFields.push(' email = ?');
+      userUpdateParams.push(email);
+    }
+    if (ssn !== undefined) {
+      userUpdateFields.push(' ssn = ?');
+      userUpdateParams.push(ssn);
+    }
+    if (address !== undefined) {
+      userUpdateFields.push(' address = ?');
+      userUpdateParams.push(address);
+    }
+    if (emergency_contact !== undefined) {
+      userUpdateFields.push(' emergency_contact = ?');
+      userUpdateParams.push(emergency_contact);
+    }
+    if (emergency_phone !== undefined) {
+      userUpdateFields.push(' emergency_phone = ?');
+      userUpdateParams.push(emergency_phone);
+    }
+    
+    if (userUpdateFields.length > 0) {
+      userUpdateQuery += userUpdateFields.join(',');
+      userUpdateQuery += ' WHERE id = ?';
+      userUpdateParams.push(employeeId);
+      await run(userUpdateQuery, userUpdateParams);
+    }
 
     // 파일 처리
     const contractFile = req.files && req.files['contract_file'] ? req.files['contract_file'][0].filename : undefined;

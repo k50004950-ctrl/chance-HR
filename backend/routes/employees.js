@@ -160,9 +160,11 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
 
     // 급여 정보 등록
     if (salary_type && amount) {
+      const weeklyHolidayPayValue = weekly_holiday_pay === true || weekly_holiday_pay === 'true' || weekly_holiday_pay === 1 ? 1 : 0;
+      
       await run(
         'INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, weekly_holiday_pay, overtime_pay, tax_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [userId, workplace_id, salary_type, amount, weekly_holiday_pay || 0, overtime_pay || 0, tax_type || '4대보험']
+        [userId, workplace_id, salary_type, amount, weeklyHolidayPayValue, overtime_pay || 0, tax_type || '4대보험']
       );
     }
 
@@ -245,19 +247,28 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     await run(updateQuery, updateParams);
 
     // 급여 정보 수정
+    const existingSalary = await get('SELECT id FROM salary_info WHERE user_id = ?', [employeeId]);
+    
     if (salary_type && amount) {
-      const existingSalary = await get('SELECT id FROM salary_info WHERE user_id = ?', [employeeId]);
+      const weeklyHolidayPayValue = weekly_holiday_pay === true || weekly_holiday_pay === 'true' || weekly_holiday_pay === 1 ? 1 : 0;
+      
       if (existingSalary) {
         await run(
           'UPDATE salary_info SET salary_type = ?, amount = ?, weekly_holiday_pay = ?, overtime_pay = ?, tax_type = ? WHERE user_id = ?',
-          [salary_type, amount, weekly_holiday_pay, overtime_pay || 0, tax_type || '4대보험', employeeId]
+          [salary_type, amount, weeklyHolidayPayValue, overtime_pay || 0, tax_type || '4대보험', employeeId]
         );
       } else {
         await run(
           'INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, weekly_holiday_pay, overtime_pay, tax_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [employeeId, employee.workplace_id, salary_type, amount, weekly_holiday_pay || 0, overtime_pay || 0, tax_type || '4대보험']
+          [employeeId, employee.workplace_id, salary_type, amount, weeklyHolidayPayValue, overtime_pay || 0, tax_type || '4대보험']
         );
       }
+    } else if (existingSalary && tax_type) {
+      // tax_type만 변경하는 경우
+      await run(
+        'UPDATE salary_info SET tax_type = ? WHERE user_id = ?',
+        [tax_type, employeeId]
+      );
     }
 
     res.json({ message: '직원 정보가 수정되었습니다.' });

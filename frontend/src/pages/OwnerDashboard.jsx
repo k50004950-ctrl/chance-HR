@@ -120,10 +120,12 @@ const OwnerDashboard = () => {
 
   const openModal = (type, data = {}) => {
     setModalType(type);
-    setFormData({
+    const newFormData = {
       ...data,
       workplace_id: selectedWorkplace
-    });
+    };
+    console.log('모달 열기 - formData:', newFormData);
+    setFormData(newFormData);
     setShowModal(true);
   };
 
@@ -153,36 +155,74 @@ const OwnerDashboard = () => {
     setMessage({ type: '', text: '' }); // 이전 메시지 초기화
 
     try {
+      const form = e.target;
       const formDataToSend = new FormData();
       
-      // 파일 필드 목록
-      const fileFields = ['contract_file', 'resume_file', 'id_card_file', 'family_cert_file'];
+      // ID가 있으면 추가 (수정 모드)
+      if (formData.id) {
+        formDataToSend.append('id', formData.id);
+      }
       
-      // 모든 텍스트 필드 추가
-      Object.keys(formData).forEach(key => {
-        if (!fileFields.includes(key) && formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
-          // work_days가 배열이면 JSON 문자열로 변환
-          if (key === 'work_days' && Array.isArray(formData[key])) {
-            formDataToSend.append(key, JSON.stringify(formData[key]));
-          } else {
-            formDataToSend.append(key, formData[key]);
-          }
+      // 모든 텍스트 필드를 DOM에서 직접 읽기
+      const textFields = [
+        'username', 'password', 'name', 'phone', 'email', 'ssn', 'address',
+        'emergency_contact', 'emergency_phone', 'hire_date', 'position',
+        'department', 'notes', 'work_start_time', 'work_end_time'
+      ];
+      
+      textFields.forEach(field => {
+        const element = form.querySelector(`[name="${field}"]`);
+        if (element && element.value) {
+          formDataToSend.append(field, element.value);
         }
       });
       
+      // 급여 정보를 DOM에서 직접 읽기
+      const salaryTypeElement = form.querySelector('[name="salary_type"]');
+      if (salaryTypeElement && salaryTypeElement.value) {
+        formDataToSend.append('salary_type', salaryTypeElement.value);
+        console.log('salary_type from DOM:', salaryTypeElement.value);
+      }
+      
+      const amountElement = form.querySelector('[name="amount"]');
+      if (amountElement && amountElement.value) {
+        formDataToSend.append('amount', amountElement.value);
+        console.log('amount from DOM:', amountElement.value);
+      }
+      
+      const taxTypeElement = form.querySelector('[name="tax_type"]');
+      if (taxTypeElement && taxTypeElement.value) {
+        formDataToSend.append('tax_type', taxTypeElement.value);
+        console.log('tax_type from DOM:', taxTypeElement.value);
+      }
+      
+      const overtimePayElement = form.querySelector('[name="overtime_pay"]');
+      if (overtimePayElement && overtimePayElement.value) {
+        formDataToSend.append('overtime_pay', overtimePayElement.value);
+        console.log('overtime_pay from DOM:', overtimePayElement.value);
+      }
+      
+      const weeklyHolidayTypeElement = form.querySelector('input[name="weekly_holiday_type"]:checked');
+      if (weeklyHolidayTypeElement && weeklyHolidayTypeElement.value) {
+        formDataToSend.append('weekly_holiday_type', weeklyHolidayTypeElement.value);
+        console.log('weekly_holiday_type from DOM:', weeklyHolidayTypeElement.value);
+      }
+      
+      // work_days 처리 - 체크된 체크박스 값을 배열로 수집
+      const workDaysCheckboxes = form.querySelectorAll('input[name="work_days"]:checked');
+      const workDaysArray = Array.from(workDaysCheckboxes).map(cb => cb.value);
+      formDataToSend.append('work_days', JSON.stringify(workDaysArray));
+      console.log('work_days from DOM:', JSON.stringify(workDaysArray));
+      
       // 파일 추가
-      if (formData.contract_file instanceof File) {
-        formDataToSend.append('contract_file', formData.contract_file);
-      }
-      if (formData.resume_file instanceof File) {
-        formDataToSend.append('resume_file', formData.resume_file);
-      }
-      if (formData.id_card_file instanceof File) {
-        formDataToSend.append('id_card_file', formData.id_card_file);
-      }
-      if (formData.family_cert_file instanceof File) {
-        formDataToSend.append('family_cert_file', formData.family_cert_file);
-      }
+      const fileFields = ['contract_file', 'resume_file', 'id_card_file', 'family_cert_file'];
+      fileFields.forEach(field => {
+        const fileInput = form.querySelector(`input[name="${field}"]`);
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+          formDataToSend.append(field, fileInput.files[0]);
+          console.log(`${field} from DOM:`, fileInput.files[0].name);
+        }
+      });
 
       console.log('전송할 데이터:', Object.fromEntries(formDataToSend.entries()));
 
@@ -1189,7 +1229,11 @@ const OwnerDashboard = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">기본급</label>
+                  <label className="form-label">
+                    {formData.salary_type === 'hourly' ? '시급' : 
+                     formData.salary_type === 'monthly' ? '월급' : 
+                     formData.salary_type === 'annual' ? '연봉' : '기본급'}
+                  </label>
                   <input
                     type="number"
                     name="amount"

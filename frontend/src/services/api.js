@@ -64,6 +64,14 @@ export const employeeAPI = {
   getByWorkplace: (workplaceId) => api.get(`/employees/workplace/${workplaceId}`),
   getById: (id) => api.get(`/employees/${id}`),
   create: (data) => {
+    // 이미 FormData인 경우 그대로 사용
+    if (data instanceof FormData) {
+      return api.post('/employees', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
+    
+    // 일반 객체인 경우 FormData로 변환
     const formData = new FormData();
     Object.keys(data).forEach(key => {
       if (data[key] !== null && data[key] !== undefined) {
@@ -75,6 +83,14 @@ export const employeeAPI = {
     });
   },
   update: (id, data) => {
+    // 이미 FormData인 경우 그대로 사용
+    if (data instanceof FormData) {
+      return api.put(`/employees/${id}`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
+    
+    // 일반 객체인 경우 FormData로 변환
     const formData = new FormData();
     Object.keys(data).forEach(key => {
       if (data[key] !== null && data[key] !== undefined) {

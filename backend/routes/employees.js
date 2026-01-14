@@ -64,8 +64,8 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       u.id, u.username, u.name, u.phone, u.email, u.ssn, u.address,
       u.emergency_contact, u.emergency_phone,
       ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file,
-      ed.work_start_time, ed.work_end_time, ed.work_days,
-      si.salary_type, si.amount, si.weekly_holiday_pay, si.tax_type
+      ed.work_start_time, ed.work_end_time, ed.work_days, ed.id_card_file, ed.family_cert_file,
+      si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
     FROM users u
     LEFT JOIN employee_details ed ON u.id = ed.user_id
     LEFT JOIN salary_info si ON u.id = si.user_id
@@ -88,8 +88,8 @@ router.get('/:id', authenticate, async (req, res) => {
         u.id, u.username, u.name, u.phone, u.email, u.ssn, u.address,
         u.emergency_contact, u.emergency_phone, u.workplace_id,
         ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file, ed.notes,
-        ed.work_start_time, ed.work_end_time, ed.work_days,
-        si.salary_type, si.amount, si.weekly_holiday_pay, si.tax_type
+        ed.work_start_time, ed.work_end_time, ed.work_days, ed.id_card_file, ed.family_cert_file,
+        si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
       FROM users u
       LEFT JOIN employee_details ed ON u.id = ed.user_id
       LEFT JOIN salary_info si ON u.id = si.user_id
@@ -198,6 +198,12 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
 router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, async (req, res) => {
   try {
     const employeeId = req.params.id;
+    
+    console.log('=== 전체 req.body ===');
+    console.log(req.body);
+    console.log('=== 전체 req.files ===');
+    console.log(req.files);
+    
     let {
       name, phone, email, ssn, address, emergency_contact, emergency_phone,
       hire_date, position, department, notes,
@@ -214,6 +220,8 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
         // 파싱 실패 시 그대로 사용
       }
     }
+
+    console.log('받은 데이터:', { salary_type, amount, tax_type, weekly_holiday_pay, weekly_holiday_type, overtime_pay });
 
     // 권한 확인
     const employee = await get('SELECT workplace_id FROM users WHERE id = ? AND role = "employee"', [employeeId]);
@@ -305,28 +313,58 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     await run(updateQuery, updateParams);
 
     // 급여 정보 수정
-    const existingSalary = await get('SELECT id FROM salary_info WHERE user_id = ?', [employeeId]);
+    const existingSalary = await get('SELECT * FROM salary_info WHERE user_id = ?', [employeeId]);
     
-    if (salary_type && amount) {
+    if (existingSalary) {
+      // 기존 급여 정보가 있으면 업데이트
+      let salaryUpdateQuery = 'UPDATE salary_info SET';
+      let salaryUpdateParams = [];
+      let salaryUpdateFields = [];
+      
+      if (salary_type) {
+        salaryUpdateFields.push(' salary_type = ?');
+        salaryUpdateParams.push(salary_type);
+      }
+      
+      if (amount) {
+        salaryUpdateFields.push(' amount = ?');
+        salaryUpdateParams.push(amount);
+      }
+      
+      if (weekly_holiday_pay !== undefined) {
+        salaryUpdateFields.push(' weekly_holiday_pay = ?');
+        salaryUpdateParams.push(weekly_holiday_pay === true || weekly_holiday_pay === 'true' || weekly_holiday_pay === 1 ? 1 : 0);
+      }
+      
+      if (weekly_holiday_type) {
+        salaryUpdateFields.push(' weekly_holiday_type = ?');
+        salaryUpdateParams.push(weekly_holiday_type);
+      }
+      
+      if (overtime_pay !== undefined) {
+        salaryUpdateFields.push(' overtime_pay = ?');
+        salaryUpdateParams.push(overtime_pay || 0);
+      }
+      
+      if (tax_type) {
+        salaryUpdateFields.push(' tax_type = ?');
+        salaryUpdateParams.push(tax_type);
+      }
+      
+      if (salaryUpdateFields.length > 0) {
+        salaryUpdateQuery += salaryUpdateFields.join(',');
+        salaryUpdateQuery += ' WHERE user_id = ?';
+        salaryUpdateParams.push(employeeId);
+        await run(salaryUpdateQuery, salaryUpdateParams);
+      }
+    } else if (salary_type && amount) {
+      // 기존 급여 정보가 없고 새로운 급여 정보가 제공된 경우에만 INSERT
       const weeklyHolidayPayValue = weekly_holiday_pay === true || weekly_holiday_pay === 'true' || weekly_holiday_pay === 1 ? 1 : 0;
       const weeklyHolidayTypeValue = weekly_holiday_type || 'included';
       
-      if (existingSalary) {
-        await run(
-          'UPDATE salary_info SET salary_type = ?, amount = ?, weekly_holiday_pay = ?, weekly_holiday_type = ?, overtime_pay = ?, tax_type = ? WHERE user_id = ?',
-          [salary_type, amount, weeklyHolidayPayValue, weeklyHolidayTypeValue, overtime_pay || 0, tax_type || '4대보험', employeeId]
-        );
-      } else {
-        await run(
-          'INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [employeeId, employee.workplace_id, salary_type, amount, weeklyHolidayPayValue, weeklyHolidayTypeValue, overtime_pay || 0, tax_type || '4대보험']
-        );
-      }
-    } else if (existingSalary && tax_type) {
-      // tax_type만 변경하는 경우
       await run(
-        'UPDATE salary_info SET tax_type = ? WHERE user_id = ?',
-        [tax_type, employeeId]
+        'INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [employeeId, employee.workplace_id, salary_type, amount, weeklyHolidayPayValue, weeklyHolidayTypeValue, overtime_pay || 0, tax_type || '4대보험']
       );
     }
 

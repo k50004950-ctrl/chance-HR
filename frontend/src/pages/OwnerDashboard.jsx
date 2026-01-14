@@ -163,6 +163,11 @@ const OwnerDashboard = () => {
         formDataToSend.append('id', formData.id);
       }
       
+      // workplace_id 추가 (필수)
+      if (formData.workplace_id) {
+        formDataToSend.append('workplace_id', formData.workplace_id);
+      }
+      
       // 모든 텍스트 필드를 DOM에서 직접 읽기
       const textFields = [
         'username', 'password', 'name', 'phone', 'email', 'ssn', 'address',
@@ -1158,7 +1163,7 @@ const OwnerDashboard = () => {
 
               <div className="grid grid-2">
                 <div className="form-group">
-                  <label className="form-label">근로계약서 <span style={{ color: '#ef4444' }}>*필수</span></label>
+                  <label className="form-label">근로계약서</label>
                   <input
                     type="file"
                     name="contract_file"

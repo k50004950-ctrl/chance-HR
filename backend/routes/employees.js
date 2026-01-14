@@ -121,7 +121,7 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
       emergency_contact, emergency_phone, workplace_id,
       hire_date, position, department, notes,
       work_start_time, work_end_time, work_days,
-      salary_type, amount, weekly_holiday_pay, tax_type
+      salary_type, amount, weekly_holiday_pay, overtime_pay, tax_type
     } = req.body;
 
     if (!username || !password || !name || !workplace_id) {
@@ -149,18 +149,20 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
     // 파일 처리
     const contractFile = req.files && req.files['contract_file'] ? req.files['contract_file'][0].filename : null;
     const resumeFile = req.files && req.files['resume_file'] ? req.files['resume_file'][0].filename : null;
+    const idCardFile = req.files && req.files['id_card_file'] ? req.files['id_card_file'][0].filename : null;
+    const familyCertFile = req.files && req.files['family_cert_file'] ? req.files['family_cert_file'][0].filename : null;
 
     // 직원 상세정보 등록
     await run(
-      'INSERT INTO employee_details (user_id, workplace_id, hire_date, position, department, contract_file, resume_file, notes, work_start_time, work_end_time, work_days) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, workplace_id, hire_date, position, department, contractFile, resumeFile, notes, work_start_time, work_end_time, work_days]
+      'INSERT INTO employee_details (user_id, workplace_id, hire_date, position, department, contract_file, resume_file, id_card_file, family_cert_file, notes, work_start_time, work_end_time, work_days) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, workplace_id, hire_date, position, department, contractFile, resumeFile, idCardFile, familyCertFile, notes, work_start_time, work_end_time, work_days]
     );
 
     // 급여 정보 등록
     if (salary_type && amount) {
       await run(
-        'INSERT INTO salary_info (user_id, salary_type, amount, weekly_holiday_pay, tax_type) VALUES (?, ?, ?, ?, ?)',
-        [userId, salary_type, amount, weekly_holiday_pay || 0, tax_type || '4대보험']
+        'INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, weekly_holiday_pay, overtime_pay, tax_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [userId, workplace_id, salary_type, amount, weekly_holiday_pay || 0, overtime_pay || 0, tax_type || '4대보험']
       );
     }
 
@@ -185,7 +187,7 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       name, phone, email, ssn, address, emergency_contact, emergency_phone,
       hire_date, position, department, notes,
       work_start_time, work_end_time, work_days,
-      salary_type, amount, weekly_holiday_pay, tax_type
+      salary_type, amount, weekly_holiday_pay, overtime_pay, tax_type
     } = req.body;
 
     // 권한 확인
@@ -210,6 +212,8 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     // 파일 처리
     const contractFile = req.files && req.files['contract_file'] ? req.files['contract_file'][0].filename : undefined;
     const resumeFile = req.files && req.files['resume_file'] ? req.files['resume_file'][0].filename : undefined;
+    const idCardFile = req.files && req.files['id_card_file'] ? req.files['id_card_file'][0].filename : undefined;
+    const familyCertFile = req.files && req.files['family_cert_file'] ? req.files['family_cert_file'][0].filename : undefined;
 
     // 직원 상세정보 수정
     let updateQuery = 'UPDATE employee_details SET hire_date = ?, position = ?, department = ?, notes = ?, work_start_time = ?, work_end_time = ?, work_days = ?';
@@ -225,6 +229,16 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       updateParams.push(resumeFile);
     }
     
+    if (idCardFile) {
+      updateQuery += ', id_card_file = ?';
+      updateParams.push(idCardFile);
+    }
+    
+    if (familyCertFile) {
+      updateQuery += ', family_cert_file = ?';
+      updateParams.push(familyCertFile);
+    }
+    
     updateQuery += ' WHERE user_id = ?';
     updateParams.push(employeeId);
     
@@ -235,13 +249,13 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       const existingSalary = await get('SELECT id FROM salary_info WHERE user_id = ?', [employeeId]);
       if (existingSalary) {
         await run(
-          'UPDATE salary_info SET salary_type = ?, amount = ?, weekly_holiday_pay = ?, tax_type = ? WHERE user_id = ?',
-          [salary_type, amount, weekly_holiday_pay, tax_type || '4대보험', employeeId]
+          'UPDATE salary_info SET salary_type = ?, amount = ?, weekly_holiday_pay = ?, overtime_pay = ?, tax_type = ? WHERE user_id = ?',
+          [salary_type, amount, weekly_holiday_pay, overtime_pay || 0, tax_type || '4대보험', employeeId]
         );
       } else {
         await run(
-          'INSERT INTO salary_info (user_id, salary_type, amount, weekly_holiday_pay, tax_type) VALUES (?, ?, ?, ?, ?)',
-          [employeeId, salary_type, amount, weekly_holiday_pay || 0, tax_type || '4대보험']
+          'INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, weekly_holiday_pay, overtime_pay, tax_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [employeeId, employee.workplace_id, salary_type, amount, weekly_holiday_pay || 0, overtime_pay || 0, tax_type || '4대보험']
         );
       }
     }

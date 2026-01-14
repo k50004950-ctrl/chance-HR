@@ -208,6 +208,19 @@ export const initDatabase = async () => {
           console.error('Error adding work_days column to employee_details:', e);
         }
       }
+      
+      // Add id_card_file and family_cert_file columns if they don't exist
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN id_card_file VARCHAR(500)`);
+      } catch (e) {
+        // Column already exists, ignore
+      }
+      
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN family_cert_file VARCHAR(500)`);
+      } catch (e) {
+        // Column already exists, ignore
+      }
 
       // Salary_info 테이블
       await pool.query(`
@@ -218,12 +231,23 @@ export const initDatabase = async () => {
           salary_type VARCHAR(50) NOT NULL,
           amount DECIMAL(15, 2) NOT NULL,
           weekly_holiday_pay BOOLEAN DEFAULT false,
+          overtime_pay DECIMAL(15, 2) DEFAULT 0,
           tax_type VARCHAR(50) DEFAULT '4대보험',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id),
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
+      
+      // overtime_pay 컬럼 추가 (기존 테이블용)
+      try {
+        await pool.query(`
+          ALTER TABLE salary_info 
+          ADD COLUMN IF NOT EXISTS overtime_pay DECIMAL(15, 2) DEFAULT 0
+        `);
+      } catch (err) {
+        // 컬럼이 이미 존재하면 무시
+      }
 
       // Attendance 테이블
       await pool.query(`
@@ -357,12 +381,18 @@ export const initDatabase = async () => {
       try {
         await run(`ALTER TABLE employee_details ADD COLUMN work_start_time TEXT`);
       } catch (e) {}
-        try {
-          await run(`ALTER TABLE employee_details ADD COLUMN work_end_time TEXT`);
-        } catch (e) {}
-        try {
-          await run(`ALTER TABLE employee_details ADD COLUMN work_days TEXT`);
-        } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN work_end_time TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN work_days TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN id_card_file TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN family_cert_file TEXT`);
+      } catch (e) {}
       try {
         await run(`ALTER TABLE salary_info ADD COLUMN tax_type TEXT DEFAULT '4대보험'`);
       } catch (e) {}
@@ -376,12 +406,20 @@ export const initDatabase = async () => {
           salary_type TEXT NOT NULL,
           amount REAL NOT NULL,
           weekly_holiday_pay INTEGER DEFAULT 0,
+          overtime_pay REAL DEFAULT 0,
           tax_type TEXT DEFAULT '4대보험',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id),
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
+      
+      // overtime_pay 컬럼 추가 (기존 테이블용)
+      try {
+        await run(`ALTER TABLE salary_info ADD COLUMN overtime_pay REAL DEFAULT 0`);
+      } catch (err) {
+        // 컬럼이 이미 존재하면 무시
+      }
 
       // Attendance 테이블
       await run(`

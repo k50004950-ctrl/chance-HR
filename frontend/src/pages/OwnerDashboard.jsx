@@ -19,6 +19,7 @@ const OwnerDashboard = () => {
   const [formData, setFormData] = useState({});
   const [selectedMonth, setSelectedMonth] = useState('2025-12'); // 샘플 데이터를 위해 2025-12로 설정
   const [attendanceStats, setAttendanceStats] = useState(null);
+  const [employeesWithoutContract, setEmployeesWithoutContract] = useState([]);
 
   useEffect(() => {
     loadWorkplaces();
@@ -52,6 +53,10 @@ const OwnerDashboard = () => {
     try {
       const response = await employeeAPI.getByWorkplace(selectedWorkplace);
       setEmployees(response.data);
+      
+      // 근로계약서 미제출 직원 확인
+      const withoutContract = response.data.filter(emp => !emp.contract_file);
+      setEmployeesWithoutContract(withoutContract);
     } catch (error) {
       console.error('직원 조회 오류:', error);
     }
@@ -343,6 +348,33 @@ const OwnerDashboard = () => {
           </div>
         ) : (
           <>
+            {/* 근로계약서 미제출 알람 */}
+            {employeesWithoutContract.length > 0 && (
+              <div style={{
+                backgroundColor: '#fef3c7',
+                border: '2px solid #f59e0b',
+                borderRadius: '8px',
+                padding: '16px',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <span style={{ fontSize: '24px' }}>⚠️</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>
+                    근로계약서 미제출 직원이 있습니다!
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#78350f' }}>
+                    {employeesWithoutContract.map(emp => emp.name).join(', ')} 님의 근로계약서가 필요합니다.
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#78350f', marginTop: '4px' }}>
+                    💡 직원 관리에서 근로계약서를 업로드해주세요.
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 탭 메뉴 */}
             <div className="nav-tabs">
               <button
@@ -1072,7 +1104,7 @@ const OwnerDashboard = () => {
 
               <div className="grid grid-2">
                 <div className="form-group">
-                  <label className="form-label">근로계약서</label>
+                  <label className="form-label">근로계약서 <span style={{ color: '#ef4444' }}>*필수</span></label>
                   <input
                     type="file"
                     name="contract_file"
@@ -1097,6 +1129,32 @@ const OwnerDashboard = () => {
                     <small style={{ color: '#6b7280' }}>현재 파일: {formData.resume_file}</small>
                   )}
                 </div>
+                <div className="form-group">
+                  <label className="form-label">신분증 사본</label>
+                  <input
+                    type="file"
+                    name="id_card_file"
+                    className="form-input"
+                    onChange={handleFileChange}
+                    accept=".pdf,.jpg,.jpeg,.png"
+                  />
+                  {formData.id_card_file && typeof formData.id_card_file === 'string' && (
+                    <small style={{ color: '#6b7280' }}>현재 파일: {formData.id_card_file}</small>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">가족관계증명서/등본</label>
+                  <input
+                    type="file"
+                    name="family_cert_file"
+                    className="form-input"
+                    onChange={handleFileChange}
+                    accept=".pdf,.jpg,.jpeg,.png"
+                  />
+                  {formData.family_cert_file && typeof formData.family_cert_file === 'string' && (
+                    <small style={{ color: '#6b7280' }}>현재 파일: {formData.family_cert_file}</small>
+                  )}
+                </div>
               </div>
 
               <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151' }}>급여 정보</h4>
@@ -1117,7 +1175,7 @@ const OwnerDashboard = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">금액</label>
+                  <label className="form-label">기본급</label>
                   <input
                     type="number"
                     name="amount"
@@ -1129,18 +1187,34 @@ const OwnerDashboard = () => {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">인건비 신고</label>
-                <select
-                  name="tax_type"
-                  className="form-select"
-                  value={formData.tax_type || '4대보험'}
-                  onChange={handleInputChange}
-                >
-                  <option value="4대보험">4대보험</option>
-                  <option value="3.3%">3.3% (프리랜서)</option>
-                  <option value="일용직">일용직</option>
-                </select>
+              <div className="grid grid-2">
+                <div className="form-group">
+                  <label className="form-label">인건비 신고</label>
+                  <select
+                    name="tax_type"
+                    className="form-select"
+                    value={formData.tax_type || '4대보험'}
+                    onChange={handleInputChange}
+                  >
+                    <option value="4대보험">4대보험</option>
+                    <option value="3.3%">3.3% (프리랜서)</option>
+                    <option value="일용직">일용직</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">초과근무수당 (시급)</label>
+                  <input
+                    type="number"
+                    name="overtime_pay"
+                    className="form-input"
+                    value={formData.overtime_pay || ''}
+                    onChange={handleInputChange}
+                    placeholder="원 (1시간당)"
+                  />
+                  <small style={{ color: '#6b7280', fontSize: '12px' }}>
+                    💡 기본 근무시간 초과 시 적용되는 시급을 입력하세요
+                  </small>
+                </div>
               </div>
 
               {formData.salary_type === 'hourly' && (

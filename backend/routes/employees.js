@@ -224,7 +224,7 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     console.log('받은 데이터:', { salary_type, amount, tax_type, weekly_holiday_pay, weekly_holiday_type, overtime_pay });
 
     // 권한 확인
-    const employee = await get('SELECT workplace_id FROM users WHERE id = ? AND role = "employee"', [employeeId]);
+    const employee = await get('SELECT workplace_id FROM users WHERE id = ? AND role = 'employee'', [employeeId]);
     if (!employee) {
       return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
     }
@@ -381,7 +381,7 @@ router.delete('/:id', authenticate, authorizeRole('admin', 'owner'), async (req,
     const employeeId = req.params.id;
 
     // 권한 확인
-    const employee = await get('SELECT workplace_id FROM users WHERE id = ? AND role = "employee"', [employeeId]);
+    const employee = await get('SELECT workplace_id FROM users WHERE id = ? AND role = 'employee'', [employeeId]);
     if (!employee) {
       return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
     }

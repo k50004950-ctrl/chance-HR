@@ -229,8 +229,9 @@ const OwnerDashboard = () => {
         }
       });
 
-      // FormData 전송 디버그 로그 (2026-01-14 업데이트)
-      console.log('전송할 데이터:', Object.fromEntries(formDataToSend.entries()));
+      // === 2026-01-14 최종 수정 ===
+      console.log('🚀 [최종] 전송할 FormData:', Object.fromEntries(formDataToSend.entries()));
+      console.log('🚀 FormData 전체 항목 수:', Array.from(formDataToSend.entries()).length);
 
       if (formData.id) {
         const response = await employeeAPI.update(formData.id, formDataToSend);

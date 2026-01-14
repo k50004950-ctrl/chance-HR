@@ -587,3 +587,88 @@ h4 {
     page-break-inside: avoid;
   }
 }
+
+/* 모바일 최적화 - 새로운 기능들 */
+@media (max-width: 768px) {
+  /* 재직증명서 발급 버튼 */
+  .container > div:first-child {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+
+  .container > div:first-child button {
+    width: 100%;
+  }
+
+  /* 파일 보기/다운로드 버튼 */
+  div[style*="display: flex"][style*="gap: 8px"][style*="alignItems: center"] {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  div[style*="display: flex"][style*="gap: 8px"][style*="alignItems: center"] button,
+  div[style*="display: flex"][style*="gap: 8px"][style*="alignItems: center"] a {
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+  }
+
+  /* 급여 계산 테이블 - 퇴직금 컬럼 추가로 인한 최적화 */
+  .table {
+    font-size: 11px !important;
+  }
+
+  .table th,
+  .table td {
+    padding: 8px 4px !important;
+    min-width: 60px;
+  }
+
+  /* 퇴직금 컬럼 */
+  .table th:nth-child(9),
+  .table td:nth-child(9) {
+    min-width: 80px;
+    font-size: 10px !important;
+  }
+
+  /* 재직증명서 모달 */
+  #certificate-content {
+    padding: 20px !important;
+  }
+
+  #certificate-content h1 {
+    font-size: 24px !important;
+    margin-bottom: 30px !important;
+  }
+
+  #certificate-content > div {
+    padding: 30px !important;
+  }
+
+  #certificate-content [style*="display: flex"] {
+    flex-direction: column;
+  }
+
+  #certificate-content [style*="width: 150px"] {
+    width: 100% !important;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  /* 엑셀 다운로드 버튼 */
+  div[style*="display: flex"][style*="gap: 12px"] button {
+    font-size: 13px !important;
+    padding: 8px 12px !important;
+  }
+
+  /* 헤더 반응형 */
+  header > div {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  header button {
+    width: 100%;
+    font-size: 13px !important;
+  }
+}

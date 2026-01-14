@@ -118,13 +118,23 @@ router.get('/:id', authenticate, async (req, res) => {
 // 직원 등록
 router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, async (req, res) => {
   try {
-    const {
+    let {
       username, password, name, phone, email, ssn, address,
       emergency_contact, emergency_phone, workplace_id,
       hire_date, position, department, notes,
       work_start_time, work_end_time, work_days,
       salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type
     } = req.body;
+    
+    // work_days가 JSON 문자열이면 파싱
+    if (typeof work_days === 'string' && work_days.startsWith('[')) {
+      try {
+        work_days = JSON.parse(work_days);
+        work_days = Array.isArray(work_days) ? work_days.join(',') : work_days;
+      } catch (e) {
+        // 파싱 실패 시 그대로 사용
+      }
+    }
 
     if (!username || !password || !name || !workplace_id) {
       return res.status(400).json({ message: '필수 정보를 입력해주세요.' });
@@ -188,12 +198,22 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
 router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, async (req, res) => {
   try {
     const employeeId = req.params.id;
-    const {
+    let {
       name, phone, email, ssn, address, emergency_contact, emergency_phone,
       hire_date, position, department, notes,
       work_start_time, work_end_time, work_days,
       salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type
     } = req.body;
+    
+    // work_days가 JSON 문자열이면 파싱
+    if (typeof work_days === 'string' && work_days.startsWith('[')) {
+      try {
+        work_days = JSON.parse(work_days);
+        work_days = Array.isArray(work_days) ? work_days.join(',') : work_days;
+      } catch (e) {
+        // 파싱 실패 시 그대로 사용
+      }
+    }
 
     // 권한 확인
     const employee = await get('SELECT workplace_id FROM users WHERE id = ? AND role = "employee"', [employeeId]);

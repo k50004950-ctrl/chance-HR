@@ -155,10 +155,18 @@ const OwnerDashboard = () => {
     try {
       const formDataToSend = new FormData();
       
+      // 파일 필드 목록
+      const fileFields = ['contract_file', 'resume_file', 'id_card_file', 'family_cert_file'];
+      
       // 모든 텍스트 필드 추가
       Object.keys(formData).forEach(key => {
-        if (key !== 'contract_file' && key !== 'resume_file' && formData[key] !== null && formData[key] !== undefined) {
-          formDataToSend.append(key, formData[key]);
+        if (!fileFields.includes(key) && formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
+          // work_days가 배열이면 JSON 문자열로 변환
+          if (key === 'work_days' && Array.isArray(formData[key])) {
+            formDataToSend.append(key, JSON.stringify(formData[key]));
+          } else {
+            formDataToSend.append(key, formData[key]);
+          }
         }
       });
       
@@ -168,6 +176,12 @@ const OwnerDashboard = () => {
       }
       if (formData.resume_file instanceof File) {
         formDataToSend.append('resume_file', formData.resume_file);
+      }
+      if (formData.id_card_file instanceof File) {
+        formDataToSend.append('id_card_file', formData.id_card_file);
+      }
+      if (formData.family_cert_file instanceof File) {
+        formDataToSend.append('family_cert_file', formData.family_cert_file);
       }
 
       console.log('전송할 데이터:', Object.fromEntries(formDataToSend.entries()));

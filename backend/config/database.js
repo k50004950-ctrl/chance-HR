@@ -239,6 +239,17 @@ export const initDatabase = async () => {
         )
       `);
       
+      // workplace_id 컬럼 추가 (기존 테이블용)
+      try {
+        await pool.query(`
+          ALTER TABLE salary_info 
+          ADD COLUMN IF NOT EXISTS workplace_id INTEGER
+        `);
+        console.log('✅ salary_info 테이블에 workplace_id 컬럼 추가됨');
+      } catch (err) {
+        // 컬럼이 이미 존재하면 무시
+      }
+      
       // overtime_pay 컬럼 추가 (기존 테이블용)
       try {
         await pool.query(`

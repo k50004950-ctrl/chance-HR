@@ -229,6 +229,7 @@ const OwnerDashboard = () => {
         }
       });
 
+      // FormData 전송 디버그 로그 (2026-01-14 업데이트)
       console.log('전송할 데이터:', Object.fromEntries(formDataToSend.entries()));
 
       if (formData.id) {

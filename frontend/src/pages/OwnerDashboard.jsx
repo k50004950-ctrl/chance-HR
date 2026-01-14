@@ -1219,16 +1219,57 @@ const OwnerDashboard = () => {
 
               {formData.salary_type === 'hourly' && (
                 <div className="form-group">
-                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      name="weekly_holiday_pay"
-                      checked={formData.weekly_holiday_pay === 1 || formData.weekly_holiday_pay === '1'}
-                      onChange={(e) => setFormData({ ...formData, weekly_holiday_pay: e.target.checked ? 1 : 0 })}
-                      style={{ marginRight: '8px' }}
-                    />
-                    <span>주휴수당 적용</span>
-                  </label>
+                  <label className="form-label">주휴수당 설정</label>
+                  <div style={{ display: 'flex', gap: '20px', marginTop: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="weekly_holiday_type"
+                        value="included"
+                        checked={formData.weekly_holiday_type === 'included' || !formData.weekly_holiday_type}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          weekly_holiday_type: e.target.value,
+                          weekly_holiday_pay: 1 
+                        })}
+                        style={{ marginRight: '6px' }}
+                      />
+                      주휴수당 포함
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="weekly_holiday_type"
+                        value="separate"
+                        checked={formData.weekly_holiday_type === 'separate'}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          weekly_holiday_type: e.target.value,
+                          weekly_holiday_pay: 1 
+                        })}
+                        style={{ marginRight: '6px' }}
+                      />
+                      주휴수당 별도
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="weekly_holiday_type"
+                        value="none"
+                        checked={formData.weekly_holiday_type === 'none'}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          weekly_holiday_type: e.target.value,
+                          weekly_holiday_pay: 0 
+                        })}
+                        style={{ marginRight: '6px' }}
+                      />
+                      미적용
+                    </label>
+                  </div>
+                  <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '8px', display: 'block' }}>
+                    💡 포함: 시급에 주휴수당 포함 / 별도: 주휴수당 별도 계산 / 미적용: 주휴수당 없음
+                  </small>
                 </div>
               )}
 

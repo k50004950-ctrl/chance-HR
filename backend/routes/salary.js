@@ -57,11 +57,19 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
       calculatedSalary = totalWorkHours * salaryInfo.amount;
 
       // 주휴수당 계산 (주 15시간 이상 근무 시)
-      if (salaryInfo.weekly_holiday_pay && totalWorkHours >= 15) {
-        const weeks = Math.floor((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24 * 7));
-        const weeklyHolidayPay = (totalWorkHours / (weeks || 1)) * salaryInfo.amount * 0.2; // 주당 근무시간의 20%
+      const weeklyHolidayType = salaryInfo.weekly_holiday_type || 'included';
+      
+      if (weeklyHolidayType === 'separate' && totalWorkHours >= 15) {
+        // 주휴수당 별도 계산: 주당 평균 근무시간의 1일치 (8시간 기준)
+        const days = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
+        const weeks = Math.ceil(days / 7);
+        const avgWeeklyHours = totalWorkHours / (weeks || 1);
+        const weeklyHolidayHours = Math.min(avgWeeklyHours / 5, 8); // 주당 근무일수 5일 기준, 최대 8시간
+        const weeklyHolidayPay = weeklyHolidayHours * weeks * salaryInfo.amount;
         calculatedSalary += weeklyHolidayPay;
       }
+      // 'included': 시급에 이미 포함되어 있으므로 별도 계산 안함
+      // 'none': 주휴수당 미적용
     }
     // 월급 계산
     else if (salaryInfo.salary_type === 'monthly') {
@@ -155,9 +163,14 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         totalWorkHours = attendanceRecords.reduce((sum, record) => sum + (parseFloat(record.work_hours) || 0), 0);
         calculatedSalary = totalWorkHours * salaryInfo.amount;
 
-        if (salaryInfo.weekly_holiday_pay && totalWorkHours >= 15) {
-          const weeks = Math.floor((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24 * 7));
-          const weeklyHolidayPay = (totalWorkHours / (weeks || 1)) * salaryInfo.amount * 0.2;
+        const weeklyHolidayType = salaryInfo.weekly_holiday_type || 'included';
+        
+        if (weeklyHolidayType === 'separate' && totalWorkHours >= 15) {
+          const days = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
+          const weeks = Math.ceil(days / 7);
+          const avgWeeklyHours = totalWorkHours / (weeks || 1);
+          const weeklyHolidayHours = Math.min(avgWeeklyHours / 5, 8);
+          const weeklyHolidayPay = weeklyHolidayHours * weeks * salaryInfo.amount;
           calculatedSalary += weeklyHolidayPay;
         }
       } else if (salaryInfo.salary_type === 'monthly') {
@@ -181,9 +194,14 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       
       if (salaryInfo.salary_type === 'hourly') {
         baseSalaryAmount = totalWorkHours * salaryInfo.amount;
-        if (salaryInfo.weekly_holiday_pay && totalWorkHours >= 15) {
-          const weeks = Math.floor((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24 * 7));
-          weeklyHolidayPayAmount = (totalWorkHours / (weeks || 1)) * salaryInfo.amount * 0.2;
+        const weeklyHolidayType = salaryInfo.weekly_holiday_type || 'included';
+        
+        if (weeklyHolidayType === 'separate' && totalWorkHours >= 15) {
+          const days = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
+          const weeks = Math.ceil(days / 7);
+          const avgWeeklyHours = totalWorkHours / (weeks || 1);
+          const weeklyHolidayHours = Math.min(avgWeeklyHours / 5, 8);
+          weeklyHolidayPayAmount = weeklyHolidayHours * weeks * salaryInfo.amount;
         }
       } else {
         baseSalaryAmount = roundedSalary;

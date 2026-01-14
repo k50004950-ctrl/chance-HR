@@ -248,6 +248,16 @@ export const initDatabase = async () => {
       } catch (err) {
         // 컬럼이 이미 존재하면 무시
       }
+      
+      // weekly_holiday_type 컬럼 추가 (기존 테이블용)
+      try {
+        await pool.query(`
+          ALTER TABLE salary_info 
+          ADD COLUMN IF NOT EXISTS weekly_holiday_type VARCHAR(20) DEFAULT 'included'
+        `);
+      } catch (err) {
+        // 컬럼이 이미 존재하면 무시
+      }
 
       // Attendance 테이블
       await pool.query(`
@@ -417,6 +427,13 @@ export const initDatabase = async () => {
       // overtime_pay 컬럼 추가 (기존 테이블용)
       try {
         await run(`ALTER TABLE salary_info ADD COLUMN overtime_pay REAL DEFAULT 0`);
+      } catch (err) {
+        // 컬럼이 이미 존재하면 무시
+      }
+      
+      // weekly_holiday_type 컬럼 추가 (기존 테이블용)
+      try {
+        await run(`ALTER TABLE salary_info ADD COLUMN weekly_holiday_type TEXT DEFAULT 'included'`);
       } catch (err) {
         // 컬럼이 이미 존재하면 무시
       }

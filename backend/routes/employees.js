@@ -38,10 +38,12 @@ const upload = multer({
   }
 });
 
-// 여러 파일 업로드 (근로계약서, 이력서)
+// 여러 파일 업로드 (근로계약서, 이력서, 신분증, 등본)
 const uploadFiles = upload.fields([
   { name: 'contract_file', maxCount: 1 },
-  { name: 'resume_file', maxCount: 1 }
+  { name: 'resume_file', maxCount: 1 },
+  { name: 'id_card_file', maxCount: 1 },
+  { name: 'family_cert_file', maxCount: 1 }
 ]);
 
 // 사업장의 직원 목록 조회
@@ -121,7 +123,7 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
       emergency_contact, emergency_phone, workplace_id,
       hire_date, position, department, notes,
       work_start_time, work_end_time, work_days,
-      salary_type, amount, weekly_holiday_pay, overtime_pay, tax_type
+      salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type
     } = req.body;
 
     if (!username || !password || !name || !workplace_id) {
@@ -161,10 +163,11 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
     // 급여 정보 등록
     if (salary_type && amount) {
       const weeklyHolidayPayValue = weekly_holiday_pay === true || weekly_holiday_pay === 'true' || weekly_holiday_pay === 1 ? 1 : 0;
+      const weeklyHolidayTypeValue = weekly_holiday_type || 'included'; // 'included', 'separate', 'none'
       
       await run(
-        'INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, weekly_holiday_pay, overtime_pay, tax_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [userId, workplace_id, salary_type, amount, weeklyHolidayPayValue, overtime_pay || 0, tax_type || '4대보험']
+        'INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [userId, workplace_id, salary_type, amount, weeklyHolidayPayValue, weeklyHolidayTypeValue, overtime_pay || 0, tax_type || '4대보험']
       );
     }
 
@@ -189,7 +192,7 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       name, phone, email, ssn, address, emergency_contact, emergency_phone,
       hire_date, position, department, notes,
       work_start_time, work_end_time, work_days,
-      salary_type, amount, weekly_holiday_pay, overtime_pay, tax_type
+      salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type
     } = req.body;
 
     // 권한 확인
@@ -251,16 +254,17 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     
     if (salary_type && amount) {
       const weeklyHolidayPayValue = weekly_holiday_pay === true || weekly_holiday_pay === 'true' || weekly_holiday_pay === 1 ? 1 : 0;
+      const weeklyHolidayTypeValue = weekly_holiday_type || 'included';
       
       if (existingSalary) {
         await run(
-          'UPDATE salary_info SET salary_type = ?, amount = ?, weekly_holiday_pay = ?, overtime_pay = ?, tax_type = ? WHERE user_id = ?',
-          [salary_type, amount, weeklyHolidayPayValue, overtime_pay || 0, tax_type || '4대보험', employeeId]
+          'UPDATE salary_info SET salary_type = ?, amount = ?, weekly_holiday_pay = ?, weekly_holiday_type = ?, overtime_pay = ?, tax_type = ? WHERE user_id = ?',
+          [salary_type, amount, weeklyHolidayPayValue, weeklyHolidayTypeValue, overtime_pay || 0, tax_type || '4대보험', employeeId]
         );
       } else {
         await run(
-          'INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, weekly_holiday_pay, overtime_pay, tax_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [employeeId, employee.workplace_id, salary_type, amount, weeklyHolidayPayValue, overtime_pay || 0, tax_type || '4대보험']
+          'INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [employeeId, employee.workplace_id, salary_type, amount, weeklyHolidayPayValue, weeklyHolidayTypeValue, overtime_pay || 0, tax_type || '4대보험']
         );
       }
     } else if (existingSalary && tax_type) {

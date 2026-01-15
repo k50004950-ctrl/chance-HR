@@ -32,6 +32,22 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteOwner = async (ownerId, ownerName) => {
+    if (!window.confirm(`${ownerName} 사업주 계정을 삭제하면 해당 사업장의 직원/급여/출퇴근 데이터가 모두 삭제됩니다.\n정말 삭제하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      const response = await authAPI.deleteOwner(ownerId);
+      setMessage({ type: 'success', text: response.data.message });
+      loadOwners();
+      loadWorkplaces();
+    } catch (error) {
+      console.error('사업주 삭제 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '사업주 삭제 중 오류가 발생했습니다.' });
+    }
+  };
+
 
   const loadWorkplaces = async () => {
     try {
@@ -336,6 +352,19 @@ const AdminDashboard = () => {
                               ▶️ 활성화
                             </button>
                           )}
+                          <button
+                            className="btn btn-sm"
+                            style={{
+                              background: '#fff1f2',
+                              color: '#be123c',
+                              padding: '6px 12px',
+                              border: '1px solid #fecdd3',
+                              marginLeft: '8px'
+                            }}
+                            onClick={() => handleDeleteOwner(owner.id, owner.name)}
+                          >
+                            🗑️ 삭제
+                          </button>
                         </td>
                       </tr>
                     ))}

@@ -250,6 +250,53 @@ router.put('/owners/:id/toggle-status', authenticate, authorizeRole('admin'), as
   }
 });
 
+// 사업주 계정 삭제 (관리자만)
+router.delete('/owners/:id', authenticate, authorizeRole('admin'), async (req, res) => {
+  try {
+    const ownerId = req.params.id;
+
+    const owner = await get('SELECT id FROM users WHERE id = ? AND role = ?', [ownerId, 'owner']);
+    if (!owner) {
+      return res.status(404).json({ message: '사업주를 찾을 수 없습니다.' });
+    }
+
+    const workplaces = await query('SELECT id FROM workplaces WHERE owner_id = ?', [ownerId]);
+    const workplaceIds = workplaces.map((workplace) => workplace.id);
+
+    if (workplaceIds.length > 0) {
+      const workplacePlaceholders = workplaceIds.map(() => '?').join(',');
+      const employees = await query(
+        `SELECT id FROM users WHERE role = ? AND workplace_id IN (${workplacePlaceholders})`,
+        ['employee', ...workplaceIds]
+      );
+      const employeeIds = employees.map((employee) => employee.id);
+
+      if (employeeIds.length > 0) {
+        const employeePlaceholders = employeeIds.map(() => '?').join(',');
+        await run(`DELETE FROM attendance WHERE user_id IN (${employeePlaceholders})`, employeeIds);
+        await run(`DELETE FROM salary_history WHERE user_id IN (${employeePlaceholders})`, employeeIds);
+        await run(`DELETE FROM employee_past_payroll WHERE user_id IN (${employeePlaceholders})`, employeeIds);
+        await run(`DELETE FROM salary_info WHERE user_id IN (${employeePlaceholders})`, employeeIds);
+        await run(`DELETE FROM employee_details WHERE user_id IN (${employeePlaceholders})`, employeeIds);
+        await run(`DELETE FROM users WHERE id IN (${employeePlaceholders})`, employeeIds);
+      }
+
+      await run(`DELETE FROM past_employees WHERE workplace_id IN (${workplacePlaceholders})`, workplaceIds);
+      await run(`DELETE FROM attendance WHERE workplace_id IN (${workplacePlaceholders})`, workplaceIds);
+      await run(`DELETE FROM salary_info WHERE workplace_id IN (${workplacePlaceholders})`, workplaceIds);
+      await run(`DELETE FROM employee_details WHERE workplace_id IN (${workplacePlaceholders})`, workplaceIds);
+      await run(`DELETE FROM workplaces WHERE id IN (${workplacePlaceholders})`, workplaceIds);
+    }
+
+    await run('DELETE FROM users WHERE id = ? AND role = ?', [ownerId, 'owner']);
+
+    res.json({ message: '사업주 계정과 관련 데이터가 삭제되었습니다.' });
+  } catch (error) {
+    console.error('사업주 삭제 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 // 비밀번호 변경
 router.put('/change-password', authenticate, async (req, res) => {
   try {

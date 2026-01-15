@@ -186,7 +186,6 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       }
 
       const roundedSalary = Math.round(calculatedSalary);
-      totalSalary += roundedSalary;
 
       // 주휴수당 계산
       let weeklyHolidayPayAmount = 0;
@@ -207,6 +206,38 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         baseSalaryAmount = roundedSalary;
       }
 
+      // 월별 퇴직금 적립액 계산 (1년 이상 근무자)
+      let monthlySeverance = 0;
+      const employeeDetails = await get(
+        'SELECT hire_date FROM employee_details WHERE user_id = ?',
+        [employee.id]
+      );
+      
+      if (employeeDetails && employeeDetails.hire_date) {
+        const hireDate = new Date(employeeDetails.hire_date);
+        const today = new Date();
+        const yearsOfService = (today - hireDate) / (1000 * 60 * 60 * 24 * 365.25);
+        
+        if (yearsOfService >= 1) {
+          // 월 평균임금 계산
+          let monthlyAvgWage = 0;
+          if (salaryInfo.salary_type === 'monthly') {
+            monthlyAvgWage = salaryInfo.amount;
+          } else if (salaryInfo.salary_type === 'hourly') {
+            monthlyAvgWage = salaryInfo.amount * 209; // 월 209시간 기준
+          } else if (salaryInfo.salary_type === 'annual') {
+            monthlyAvgWage = salaryInfo.amount / 12;
+          }
+          
+          // 월 퇴직금 적립액 = 월평균임금 / 12
+          monthlySeverance = Math.round(monthlyAvgWage / 12);
+        }
+      }
+
+      // 퇴직금 포함한 총 급여
+      const totalWithSeverance = roundedSalary + monthlySeverance;
+      totalSalary += totalWithSeverance;
+
       salaryResults.push({
         employeeId: employee.id,
         employeeName: employee.name,
@@ -216,10 +247,12 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         taxType: salaryInfo.tax_type,
         totalWorkDays: attendanceRecords.length,
         totalWorkHours: totalWorkHours.toFixed(2),
-        calculatedSalary: roundedSalary,
+        calculatedSalary: totalWithSeverance,
+        baseSalary: roundedSalary,
         weeklyHolidayPay: salaryInfo.weekly_holiday_pay || 0,
         weeklyHolidayPayAmount: Math.round(weeklyHolidayPayAmount),
-        baseSalaryAmount: Math.round(baseSalaryAmount)
+        baseSalaryAmount: Math.round(baseSalaryAmount),
+        monthlySeverance: monthlySeverance
       });
     }
 

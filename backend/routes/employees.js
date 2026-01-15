@@ -533,7 +533,7 @@ router.get('/:id/employment-certificate', authenticate, async (req, res) => {
     }
 
     // 주민등록번호 마스킹 (뒤 7자리)
-    let maskedSSN = employeeInfo.ssn;
+    let maskedSSN = employeeInfo.ssn ? String(employeeInfo.ssn) : null;
     if (maskedSSN && maskedSSN.length >= 7) {
       maskedSSN = maskedSSN.substring(0, maskedSSN.length - 7) + '*******';
     }

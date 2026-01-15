@@ -37,6 +37,14 @@ const OwnerDashboard = () => {
     amount: '',
     notes: ''
   });
+  const [pastPayrollEnabled, setPastPayrollEnabled] = useState(false);
+  const [resignationForm, setResignationForm] = useState({
+    id: null,
+    name: '',
+    resignation_date: '',
+    separation_type: '',
+    separation_reason: ''
+  });
   const uploadBaseUrl =
     import.meta.env.VITE_API_URL?.replace('/api', '') ||
     (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
@@ -285,12 +293,16 @@ const OwnerDashboard = () => {
     };
     console.log('모달 열기 - formData:', newFormData);
     setFormData(newFormData);
+    if (type === 'employee') {
+      setPastPayrollEnabled(false);
+    }
     setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
     setFormData({});
+    setPastPayrollEnabled(false);
     setPastPayrollRecords([]);
     setPastPayrollForm({
       start_date: '',
@@ -340,8 +352,8 @@ const OwnerDashboard = () => {
         'username', 'password', 'name', 'phone', 'email', 'ssn', 'address',
         'emergency_contact', 'emergency_phone', 'hire_date', 'gender', 'birth_date',
         'career', 'job_type', 'employment_renewal_date', 'contract_start_date', 'contract_end_date',
-        'employment_notes', 'separation_type', 'separation_reason', 'position',
-        'department', 'notes', 'work_start_time', 'work_end_time', 'employment_status', 'resignation_date'
+        'employment_notes', 'position', 'department', 'notes', 'work_start_time',
+        'work_end_time', 'employment_status'
       ];
       
       textFields.forEach(field => {
@@ -423,6 +435,42 @@ const OwnerDashboard = () => {
     }
 
     setLoading(false);
+  };
+
+  const openResignationModal = (employee) => {
+    setResignationForm({
+      id: employee.id,
+      name: employee.name,
+      resignation_date: employee.resignation_date ? employee.resignation_date.split('T')[0] : '',
+      separation_type: employee.separation_type || '',
+      separation_reason: employee.separation_reason || ''
+    });
+    setModalType('resignation');
+    setShowModal(true);
+  };
+
+  const handleSaveResignation = async (e) => {
+    e.preventDefault();
+    if (!resignationForm.id || !resignationForm.resignation_date) {
+      setMessage({ type: 'error', text: '퇴사일을 입력해주세요.' });
+      return;
+    }
+
+    try {
+      const payload = {
+        employment_status: 'resigned',
+        resignation_date: resignationForm.resignation_date,
+        separation_type: resignationForm.separation_type,
+        separation_reason: resignationForm.separation_reason
+      };
+      await employeeAPI.update(resignationForm.id, payload);
+      setMessage({ type: 'success', text: '퇴사 정보가 저장되었습니다.' });
+      loadEmployees();
+      setShowModal(false);
+    } catch (error) {
+      console.error('퇴사 정보 저장 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '퇴사 정보 저장에 실패했습니다.' });
+    }
   };
 
   const handleDeleteEmployee = async (id) => {
@@ -623,6 +671,12 @@ const OwnerDashboard = () => {
                 📋 근로자 명부
               </button>
               <button
+                className={`nav-tab ${activeTab === 'resigned' ? 'active' : ''}`}
+                onClick={() => setActiveTab('resigned')}
+              >
+                🧾 퇴사
+              </button>
+              <button
                 className={`nav-tab ${activeTab === 'salary' ? 'active' : ''}`}
                 onClick={() => setActiveTab('salary')}
               >
@@ -663,13 +717,6 @@ const OwnerDashboard = () => {
                         onClick={() => setEmploymentStatusFilter('on_leave')}
                       >
                         휴직
-                      </button>
-                      <button
-                        className={`btn ${employmentStatusFilter === 'resigned' ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ padding: '6px 12px', fontSize: '12px' }}
-                        onClick={() => setEmploymentStatusFilter('resigned')}
-                      >
-                        퇴사
                       </button>
                     </div>
                   </div>
@@ -764,6 +811,15 @@ const OwnerDashboard = () => {
                               >
                                 수정
                               </button>
+                              {emp.employment_status !== 'resigned' && (
+                                <button
+                                  className="btn"
+                                  style={{ marginRight: '6px', padding: '6px 12px', fontSize: '12px', background: '#ef4444', color: 'white' }}
+                                  onClick={() => openResignationModal(emp)}
+                                >
+                                  퇴사 처리
+                                </button>
+                              )}
                               <button
                                 className="btn"
                                 style={{ marginRight: '6px', padding: '6px 12px', fontSize: '12px', background: '#f59e0b', color: 'white' }}
@@ -781,6 +837,67 @@ const OwnerDashboard = () => {
                             </td>
                           </tr>
                         ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'resigned' && (
+              <div className="card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ color: '#374151', marginBottom: '12px' }}>🧾 퇴사 직원</h3>
+                </div>
+
+                {employees.filter((emp) => emp.employment_status === 'resigned').length === 0 ? (
+                  <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
+                    퇴사한 직원이 없습니다.
+                  </p>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>이름</th>
+                          <th>입사일</th>
+                          <th>퇴사일</th>
+                          <th>구분</th>
+                          <th>사유</th>
+                          <th>관리</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {employees
+                          .filter((emp) => emp.employment_status === 'resigned')
+                          .map((emp) => (
+                            <tr key={emp.id}>
+                              <td style={{ fontWeight: '600' }}>{emp.name}</td>
+                              <td>{formatDate(emp.hire_date)}</td>
+                              <td>{formatDate(emp.resignation_date)}</td>
+                              <td>
+                                {emp.separation_type === 'dismissal'
+                                  ? '해고'
+                                  : emp.separation_type === 'death'
+                                  ? '사망'
+                                  : emp.separation_type === 'resignation'
+                                  ? '퇴직'
+                                  : '-'}
+                              </td>
+                              <td style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {emp.separation_reason || '-'}
+                              </td>
+                              <td>
+                                <button
+                                  className="btn btn-secondary"
+                                  style={{ padding: '6px 12px', fontSize: '12px' }}
+                                  onClick={() => openResignationModal(emp)}
+                                >
+                                  수정
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   </div>
@@ -1148,6 +1265,68 @@ const OwnerDashboard = () => {
         )}
       </div>
 
+      {showModal && modalType === 'resignation' && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div className="modal-header">퇴사 처리</div>
+
+            {message.text && (
+              <div className={`alert alert-${message.type}`} style={{ marginBottom: '16px' }}>
+                {message.text}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveResignation}>
+              <div className="form-group">
+                <label className="form-label">직원명</label>
+                <div>{resignationForm.name || '-'}</div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">퇴사일 *</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={resignationForm.resignation_date}
+                  onChange={(e) => setResignationForm({ ...resignationForm, resignation_date: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">해고/퇴직/사망 구분</label>
+                <select
+                  className="form-input"
+                  value={resignationForm.separation_type}
+                  onChange={(e) => setResignationForm({ ...resignationForm, separation_type: e.target.value })}
+                >
+                  <option value="">선택</option>
+                  <option value="dismissal">해고</option>
+                  <option value="resignation">퇴직</option>
+                  <option value="death">사망</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">해고/퇴직/사망 사유</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={resignationForm.separation_reason}
+                  onChange={(e) => setResignationForm({ ...resignationForm, separation_reason: e.target.value })}
+                  placeholder="사유를 입력하세요"
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+                <button type="button" className="btn btn-secondary" onClick={closeModal} style={{ flex: 1 }}>
+                  취소
+                </button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                  저장
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* 직원 등록/수정 모달 */}
       {showModal && modalType === 'employee' && (
         <div className="modal-overlay" onClick={closeModal}>
@@ -1356,34 +1535,6 @@ const OwnerDashboard = () => {
                 />
               </div>
 
-              <div className="grid grid-2">
-                <div className="form-group">
-                  <label className="form-label">해고/퇴직/사망 구분</label>
-                  <select
-                    name="separation_type"
-                    className="form-input"
-                    value={formData.separation_type || ''}
-                    onChange={handleInputChange}
-                  >
-                    <option value="">선택</option>
-                    <option value="dismissal">해고</option>
-                    <option value="resignation">퇴직</option>
-                    <option value="death">사망</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">해고/퇴직/사망 사유</label>
-                  <input
-                    type="text"
-                    name="separation_reason"
-                    className="form-input"
-                    value={formData.separation_reason || ''}
-                    onChange={handleInputChange}
-                    placeholder="사유를 입력하세요"
-                  />
-                </div>
-              </div>
-
               <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
                 비상 연락망
               </h4>
@@ -1439,21 +1590,8 @@ const OwnerDashboard = () => {
                   >
                     <option value="active">재직중</option>
                     <option value="on_leave">휴직</option>
-                    <option value="resigned">퇴사</option>
                   </select>
                 </div>
-                {formData.employment_status === 'resigned' && (
-                  <div className="form-group">
-                    <label className="form-label">퇴사일</label>
-                    <input
-                      type="date"
-                      name="resignation_date"
-                      className="form-input"
-                      value={formData.resignation_date || ''}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                )}
                 <div className="form-group">
                   <label className="form-label">직책</label>
                   <input
@@ -1786,107 +1924,133 @@ const OwnerDashboard = () => {
                     시스템 도입 이전에 이미 근무 중인 직원의 급여 이력을 입력합니다.
                   </p>
 
-                  <div className="grid grid-2" style={{ marginBottom: '12px' }}>
-                    <div className="form-group">
-                      <label className="form-label">시작일</label>
-                      <input
-                        type="date"
-                        className="form-input"
-                        value={pastPayrollForm.start_date}
-                        onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, start_date: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">종료일</label>
-                      <input
-                        type="date"
-                        className="form-input"
-                        value={pastPayrollForm.end_date}
-                        onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, end_date: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">급여 유형</label>
-                      <select
-                        className="form-input"
-                        value={pastPayrollForm.salary_type}
-                        onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, salary_type: e.target.value })}
+                  <div style={{ padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px', marginBottom: '16px', background: '#f9fafb' }}>
+                    <p style={{ fontSize: '13px', margin: 0, color: '#374151' }}>
+                      원래 근무하던 직원이 있고 그 직원의 정보를 저장하시겠습니까?
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                      <button
+                        type="button"
+                        className={`btn ${pastPayrollEnabled ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setPastPayrollEnabled(true)}
                       >
-                        <option value="hourly">시급</option>
-                        <option value="monthly">월급</option>
-                        <option value="annual">연봉</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">금액</label>
-                      <input
-                        type="number"
-                        className="form-input"
-                        placeholder="예: 2500000"
-                        value={pastPayrollForm.amount}
-                        onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, amount: e.target.value })}
-                      />
+                        예
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn ${!pastPayrollEnabled ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setPastPayrollEnabled(false)}
+                      >
+                        아니오
+                      </button>
                     </div>
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">비고</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="예: 시스템 도입 전 급여"
-                      value={pastPayrollForm.notes}
-                      onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, notes: e.target.value })}
-                    />
-                  </div>
+                  {pastPayrollEnabled && (
+                    <>
+                      <div className="grid grid-2" style={{ marginBottom: '12px' }}>
+                        <div className="form-group">
+                          <label className="form-label">시작일</label>
+                          <input
+                            type="date"
+                            className="form-input"
+                            value={pastPayrollForm.start_date}
+                            onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, start_date: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">종료일</label>
+                          <input
+                            type="date"
+                            className="form-input"
+                            value={pastPayrollForm.end_date}
+                            onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, end_date: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">급여 유형</label>
+                          <select
+                            className="form-input"
+                            value={pastPayrollForm.salary_type}
+                            onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, salary_type: e.target.value })}
+                          >
+                            <option value="hourly">시급</option>
+                            <option value="monthly">월급</option>
+                            <option value="annual">연봉</option>
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">금액</label>
+                          <input
+                            type="number"
+                            className="form-input"
+                            placeholder="예: 2500000"
+                            value={pastPayrollForm.amount}
+                            onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, amount: e.target.value })}
+                          />
+                        </div>
+                      </div>
 
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    style={{ marginBottom: '16px' }}
-                    onClick={() => handleAddPastPayroll(formData.id)}
-                  >
-                    + 과거 급여 기록 추가
-                  </button>
+                      <div className="form-group">
+                        <label className="form-label">비고</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="예: 시스템 도입 전 급여"
+                          value={pastPayrollForm.notes}
+                          onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, notes: e.target.value })}
+                        />
+                      </div>
 
-                  {pastPayrollRecords.length > 0 ? (
-                    <div style={{ overflowX: 'auto' }}>
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>기간</th>
-                            <th>급여유형</th>
-                            <th>금액</th>
-                            <th>비고</th>
-                            <th>관리</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {pastPayrollRecords.map((record) => (
-                            <tr key={record.id}>
-                              <td style={{ fontSize: '12px' }}>
-                                {formatDate(record.start_date)} ~ {formatDate(record.end_date)}
-                              </td>
-                              <td>{getSalaryTypeName(record.salary_type)}</td>
-                              <td>{Number(record.amount).toLocaleString()}원</td>
-                              <td style={{ fontSize: '12px', color: '#6b7280' }}>{record.notes || '-'}</td>
-                              <td>
-                                <button
-                                  type="button"
-                                  className="btn btn-danger"
-                                  style={{ padding: '6px 10px', fontSize: '12px' }}
-                                  onClick={() => handleDeletePastPayroll(formData.id, record.id)}
-                                >
-                                  삭제
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <p style={{ color: '#9ca3af', fontSize: '12px' }}>등록된 과거 급여 기록이 없습니다.</p>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ marginBottom: '16px' }}
+                        onClick={() => handleAddPastPayroll(formData.id)}
+                      >
+                        + 과거 급여 기록 추가
+                      </button>
+
+                      {pastPayrollRecords.length > 0 ? (
+                        <div style={{ overflowX: 'auto' }}>
+                          <table className="table">
+                            <thead>
+                              <tr>
+                                <th>기간</th>
+                                <th>급여유형</th>
+                                <th>금액</th>
+                                <th>비고</th>
+                                <th>관리</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {pastPayrollRecords.map((record) => (
+                                <tr key={record.id}>
+                                  <td style={{ fontSize: '12px' }}>
+                                    {formatDate(record.start_date)} ~ {formatDate(record.end_date)}
+                                  </td>
+                                  <td>{getSalaryTypeName(record.salary_type)}</td>
+                                  <td>{Number(record.amount).toLocaleString()}원</td>
+                                  <td style={{ fontSize: '12px', color: '#6b7280' }}>{record.notes || '-'}</td>
+                                  <td>
+                                    <button
+                                      type="button"
+                                      className="btn btn-danger"
+                                      style={{ padding: '6px 10px', fontSize: '12px' }}
+                                      onClick={() => handleDeletePastPayroll(formData.id, record.id)}
+                                    >
+                                      삭제
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p style={{ color: '#9ca3af', fontSize: '12px' }}>등록된 과거 급여 기록이 없습니다.</p>
+                      )}
+                    </>
                   )}
                 </div>
               )}

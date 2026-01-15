@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI } from '../services/api';
+import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
 
@@ -20,6 +20,7 @@ const OwnerDashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState('2025-12'); // 샘플 데이터를 위해 2025-12로 설정
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [employeesWithoutContract, setEmployeesWithoutContract] = useState([]);
+  const [pastEmployees, setPastEmployees] = useState([]);
 
   useEffect(() => {
     loadWorkplaces();
@@ -33,6 +34,9 @@ const OwnerDashboard = () => {
       }
       if (activeTab === 'salary') {
         loadSalary();
+      }
+      if (activeTab === 'past-employees') {
+        loadPastEmployees();
       }
     }
   }, [selectedWorkplace, activeTab, selectedMonth]);
@@ -132,6 +136,55 @@ const OwnerDashboard = () => {
       });
     } catch (error) {
       console.error('급여 계산 오류:', error);
+    }
+  };
+
+  const loadPastEmployees = async () => {
+    try {
+      const response = await pastEmployeeAPI.getAll();
+      setPastEmployees(response.data);
+    } catch (error) {
+      console.error('과거 직원 조회 오류:', error);
+    }
+  };
+
+  const handleSubmitPastEmployee = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      await pastEmployeeAPI.create(formData);
+      setMessage({ type: 'success', text: '과거 직원이 등록되었습니다.' });
+      
+      setTimeout(() => {
+        closeModal();
+        loadPastEmployees();
+      }, 1500);
+    } catch (error) {
+      console.error('과거 직원 등록 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '과거 직원 등록에 실패했습니다.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePastEmployee = async (id) => {
+    if (!window.confirm('이 과거 직원 기록을 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      await pastEmployeeAPI.delete(id);
+      setMessage({ type: 'success', text: '과거 직원 기록이 삭제되었습니다.' });
+      loadPastEmployees();
+      
+      setTimeout(() => {
+        setMessage({ type: '', text: '' });
+      }, 3000);
+    } catch (error) {
+      console.error('과거 직원 삭제 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '삭제에 실패했습니다.' });
     }
   };
 
@@ -478,6 +531,12 @@ const OwnerDashboard = () => {
                 onClick={() => setActiveTab('salary')}
               >
                 💰 급여 계산
+              </button>
+              <button
+                className={`nav-tab ${activeTab === 'past-employees' ? 'active' : ''}`}
+                onClick={() => setActiveTab('past-employees')}
+              >
+                📂 과거 직원
               </button>
             </div>
 
@@ -920,6 +979,75 @@ const OwnerDashboard = () => {
                       </div>
                     )}
                   </>
+                )}
+              </div>
+            )}
+
+            {/* 과거 직원 관리 */}
+            {activeTab === 'past-employees' && (
+              <div className="card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ color: '#374151' }}>📂 과거 직원 급여 기록</h3>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => openModal('pastEmployee', {})}
+                  >
+                    + 과거 직원 등록
+                  </button>
+                </div>
+
+                <p style={{ color: '#6b7280', marginBottom: '20px', fontSize: '14px' }}>
+                  퇴사한 직원의 급여 정보를 입력하고 퇴직금을 계산할 수 있습니다.
+                </p>
+
+                {pastEmployees && pastEmployees.length > 0 ? (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>이름</th>
+                          <th>입사일</th>
+                          <th>퇴사일</th>
+                          <th>근속기간</th>
+                          <th>평균 월급여</th>
+                          <th>퇴직금</th>
+                          <th>비고</th>
+                          <th>관리</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pastEmployees.map((emp) => {
+                          const years = ((new Date(emp.resignation_date) - new Date(emp.hire_date)) / (1000 * 60 * 60 * 24 * 365.25)).toFixed(1);
+                          return (
+                            <tr key={emp.id}>
+                              <td style={{ fontWeight: '600' }}>{emp.name}</td>
+                              <td>{formatDate(emp.hire_date)}</td>
+                              <td>{formatDate(emp.resignation_date)}</td>
+                              <td>{years}년</td>
+                              <td>{Number(emp.average_monthly_salary).toLocaleString()}원</td>
+                              <td style={{ color: emp.severance_pay > 0 ? '#f59e0b' : '#9ca3af', fontWeight: '600' }}>
+                                {emp.severance_pay > 0 ? `${Number(emp.severance_pay).toLocaleString()}원` : '1년 미만'}
+                              </td>
+                              <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.notes || '-'}</td>
+                              <td>
+                                <button
+                                  className="btn btn-danger"
+                                  style={{ padding: '6px 12px', fontSize: '12px' }}
+                                  onClick={() => handleDeletePastEmployee(emp.id)}
+                                >
+                                  삭제
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
+                    등록된 과거 직원이 없습니다.
+                  </p>
                 )}
               </div>
             )}
@@ -1510,6 +1638,100 @@ const OwnerDashboard = () => {
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
                   {loading ? '처리 중...' : '저장'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 과거 직원 등록 모달 */}
+      {showModal && modalType === 'pastEmployee' && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              과거 직원 등록
+            </div>
+
+            {message.text && (
+              <div className={`alert alert-${message.type}`} style={{ marginBottom: '16px' }}>
+                {message.text}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitPastEmployee}>
+              <div className="form-group">
+                <label className="form-label">이름 *</label>
+                <input
+                  type="text"
+                  name="name"
+                  className="form-input"
+                  value={formData.name || ''}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="직원 이름"
+                />
+              </div>
+
+              <div className="grid grid-2">
+                <div className="form-group">
+                  <label className="form-label">입사일 *</label>
+                  <input
+                    type="date"
+                    name="hire_date"
+                    className="form-input"
+                    value={formData.hire_date || ''}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">퇴사일 *</label>
+                  <input
+                    type="date"
+                    name="resignation_date"
+                    className="form-input"
+                    value={formData.resignation_date || ''}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">평균 월급여 *</label>
+                <input
+                  type="number"
+                  name="average_monthly_salary"
+                  className="form-input"
+                  value={formData.average_monthly_salary || ''}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="예: 2500000"
+                />
+                <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                  💡 퇴직금 계산에 사용됩니다
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">비고</label>
+                <textarea
+                  name="notes"
+                  className="form-input"
+                  value={formData.notes || ''}
+                  onChange={handleInputChange}
+                  rows="3"
+                  placeholder="추가 메모 (선택사항)"
+                />
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={closeModal}>
+                  취소
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? '등록 중...' : '등록'}
                 </button>
               </div>
             </form>

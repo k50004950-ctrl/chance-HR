@@ -291,6 +291,22 @@ export const initDatabase = async () => {
         )
       `);
 
+      // Past_employees 테이블 (과거 직원 기록)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS past_employees (
+          id SERIAL PRIMARY KEY,
+          workplace_id INTEGER NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          hire_date DATE NOT NULL,
+          resignation_date DATE NOT NULL,
+          average_monthly_salary DECIMAL(15, 2) NOT NULL,
+          severance_pay DECIMAL(15, 2),
+          notes TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
+        )
+      `);
+
       // 기본 관리자 계정 생성 (없을 경우)
       const adminExists = await pool.query(
         "SELECT * FROM users WHERE username = $1",
@@ -466,6 +482,22 @@ export const initDatabase = async () => {
           status TEXT DEFAULT 'incomplete',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
+        )
+      `);
+
+      // Past_employees 테이블 (과거 직원 기록)
+      await run(`
+        CREATE TABLE IF NOT EXISTS past_employees (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          workplace_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          hire_date DATE NOT NULL,
+          resignation_date DATE NOT NULL,
+          average_monthly_salary REAL NOT NULL,
+          severance_pay REAL,
+          notes TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);

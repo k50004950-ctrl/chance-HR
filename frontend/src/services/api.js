@@ -123,4 +123,11 @@ export const salaryAPI = {
   getSeverance: (employeeId) => api.get(`/salary/severance/${employeeId}`)
 };
 
+// 과거 직원 API
+export const pastEmployeeAPI = {
+  getAll: () => api.get('/past-employees'),
+  create: (data) => api.post('/past-employees', data),
+  delete: (id) => api.delete(`/past-employees/${id}`)
+};
+
 export default api;

@@ -518,12 +518,6 @@ const OwnerDashboard = () => {
                 📊 당월 출근현황
               </button>
               <button
-                className={`nav-tab ${activeTab === 'employees' ? 'active' : ''}`}
-                onClick={() => setActiveTab('employees')}
-              >
-                👥 직원 관리
-              </button>
-              <button
                 className={`nav-tab ${activeTab === 'roster' ? 'active' : ''}`}
                 onClick={() => setActiveTab('roster')}
               >
@@ -543,103 +537,12 @@ const OwnerDashboard = () => {
               </button>
             </div>
 
-            {/* 근로자 명부 */}
+            {/* 근로자 명부 (직원 관리 통합) */}
             {activeTab === 'roster' && (
               <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h3 style={{ color: '#374151' }}>📋 근로자 명부</h3>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => openModal('employee')}
-                  >
-                    + 직원 등록
-                  </button>
-                </div>
-                
-                <p style={{ color: '#6b7280', marginBottom: '20px', fontSize: '14px' }}>
-                  📌 등록된 모든 직원의 상세 정보를 한눈에 확인할 수 있습니다.
-                </p>
-
-                {employees.length === 0 ? (
-                  <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
-                    등록된 직원이 없습니다.
-                  </p>
-                ) : (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>이름</th>
-                          <th>주민번호</th>
-                          <th>전화번호</th>
-                          <th>주소</th>
-                          <th>직책</th>
-                          <th>입사일</th>
-                          <th>급여유형</th>
-                          <th>인건비 신고</th>
-                          <th>개인정보동의</th>
-                          <th>비상연락망</th>
-                          <th>상세</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {employees.map((emp) => (
-                          <tr key={emp.id}>
-                            <td style={{ fontWeight: '600' }}>{emp.name}</td>
-                            <td>{emp.ssn || '-'}</td>
-                            <td>{emp.phone || '-'}</td>
-                            <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {emp.address || '-'}
-                            </td>
-                            <td>{emp.position || '-'}</td>
-                            <td>{formatDate(emp.hire_date)}</td>
-                            <td>{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</td>
-                            <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.tax_type || '4대보험'}</td>
-                            <td style={{ textAlign: 'center' }}>
-                              {emp.privacy_consent && emp.location_consent ? (
-                                <div style={{ fontSize: '11px' }}>
-                                  <span style={{ color: '#10b981', fontSize: '16px' }}>✅</span>
-                                  <div style={{ color: '#6b7280', marginTop: '4px' }}>동의완료</div>
-                                </div>
-                              ) : (
-                                <div style={{ fontSize: '11px' }}>
-                                  <span style={{ color: '#dc2626', fontSize: '16px' }}>❌</span>
-                                  <div style={{ color: '#dc2626', marginTop: '4px' }}>미동의</div>
-                                </div>
-                              )}
-                            </td>
-                            <td>
-                              {emp.emergency_contact ? (
-                                <div style={{ fontSize: '12px' }}>
-                                  <div>{emp.emergency_contact}</div>
-                                  <div style={{ color: '#6b7280' }}>{emp.emergency_phone || '-'}</div>
-                                </div>
-                              ) : '-'}
-                            </td>
-                            <td>
-                              <button
-                                className="btn btn-secondary"
-                                style={{ padding: '6px 12px', fontSize: '12px' }}
-                                onClick={() => openModal('employee', emp)}
-                              >
-                                상세보기
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 직원 관리 */}
-            {activeTab === 'employees' && (
-              <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                   <div>
-                    <h3 style={{ color: '#374151', marginBottom: '12px' }}>직원 목록</h3>
+                    <h3 style={{ color: '#374151', marginBottom: '12px' }}>📋 근로자 명부</h3>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
                         className={`btn ${employmentStatusFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
@@ -678,6 +581,10 @@ const OwnerDashboard = () => {
                     + 직원 등록
                   </button>
                 </div>
+                
+                <p style={{ color: '#6b7280', marginBottom: '20px', fontSize: '14px' }}>
+                  📌 등록된 모든 직원의 상세 정보를 한눈에 확인할 수 있습니다.
+                </p>
 
                 {employees.length === 0 ? (
                   <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
@@ -689,22 +596,24 @@ const OwnerDashboard = () => {
                       <thead>
                         <tr>
                           <th>이름</th>
-                          <th>사용자명</th>
                           <th>상태</th>
-                          <th>개인정보동의</th>
-                          <th>직책</th>
-                          <th>급여유형</th>
-                          <th>인건비 신고</th>
-                          <th>급여</th>
+                          <th>주민번호</th>
                           <th>전화번호</th>
-                          <th>작업</th>
+                          <th>주소</th>
+                          <th>직책</th>
+                          <th>입사일</th>
+                          <th>급여유형</th>
+                          <th>급여</th>
+                          <th>인건비 신고</th>
+                          <th>개인정보동의</th>
+                          <th>비상연락망</th>
+                          <th>관리</th>
                         </tr>
                       </thead>
                       <tbody>
                         {employees.filter(emp => employmentStatusFilter === 'all' || emp.employment_status === employmentStatusFilter).map((emp) => (
                           <tr key={emp.id}>
                             <td style={{ fontWeight: '600' }}>{emp.name}</td>
-                            <td>{emp.username}</td>
                             <td>
                               <span style={{
                                 padding: '4px 8px',
@@ -717,18 +626,37 @@ const OwnerDashboard = () => {
                                 {emp.employment_status === 'active' ? '재직중' : emp.employment_status === 'on_leave' ? '휴직' : '퇴사'}
                               </span>
                             </td>
-                            <td>
-                              {emp.privacy_consent && emp.location_consent ? (
-                                <span style={{ color: '#10b981', fontSize: '16px' }} title="개인정보 및 위치정보 동의 완료">✅</span>
-                              ) : (
-                                <span style={{ color: '#dc2626', fontSize: '16px' }} title="동의 필요">❌</span>
-                              )}
+                            <td>{emp.ssn || '-'}</td>
+                            <td>{emp.phone || '-'}</td>
+                            <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {emp.address || '-'}
                             </td>
                             <td>{emp.position || '-'}</td>
+                            <td>{formatDate(emp.hire_date)}</td>
                             <td>{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</td>
-                            <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.tax_type || '4대보험'}</td>
                             <td>{emp.amount ? `${emp.amount.toLocaleString()}원` : '-'}</td>
-                            <td>{emp.phone || '-'}</td>
+                            <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.tax_type || '4대보험'}</td>
+                            <td style={{ textAlign: 'center' }}>
+                              {emp.privacy_consent && emp.location_consent ? (
+                                <div style={{ fontSize: '11px' }}>
+                                  <span style={{ color: '#10b981', fontSize: '16px' }}>✅</span>
+                                  <div style={{ color: '#6b7280', marginTop: '4px' }}>동의완료</div>
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '11px' }}>
+                                  <span style={{ color: '#dc2626', fontSize: '16px' }}>❌</span>
+                                  <div style={{ color: '#dc2626', marginTop: '4px' }}>미동의</div>
+                                </div>
+                              )}
+                            </td>
+                            <td>
+                              {emp.emergency_contact ? (
+                                <div style={{ fontSize: '12px' }}>
+                                  <div>{emp.emergency_contact}</div>
+                                  <div style={{ color: '#6b7280' }}>{emp.emergency_phone || '-'}</div>
+                                </div>
+                              ) : '-'}
+                            </td>
                             <td>
                               <button
                                 className="btn btn-secondary"

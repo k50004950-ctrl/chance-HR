@@ -18,6 +18,7 @@ const Signup = () => {
     email: '',
     address: '',
     additional_info: '',
+      sales_rep: '',
     latitude: '',
     longitude: '',
     radius: 100
@@ -271,6 +272,18 @@ const Signup = () => {
               onChange={handleChange}
               required
               placeholder="000-00-00000"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">담당 영업사원</label>
+            <input
+              type="text"
+              name="sales_rep"
+              className="form-input"
+              value={formData.sales_rep}
+              onChange={handleChange}
+              placeholder="담당 영업사원 이름"
             />
           </div>
 

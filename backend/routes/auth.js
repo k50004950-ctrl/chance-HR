@@ -77,7 +77,7 @@ router.post('/signup', async (req, res) => {
   try {
     const { 
       username, password, name, phone, email, address,
-      business_name, business_number, additional_info,
+      business_name, business_number, additional_info, sales_rep,
       latitude, longitude, radius
     } = req.body;
 
@@ -93,10 +93,10 @@ router.post('/signup', async (req, res) => {
     const result = await run(
       `INSERT INTO users (
         username, password, name, role, phone, email, address,
-        business_name, business_number, additional_info, approval_status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        business_name, business_number, additional_info, sales_rep, approval_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [username, hashedPassword, name, 'owner', phone, email, address, 
-       business_name, business_number, additional_info, 'approved']
+       business_name, business_number, additional_info, sales_rep, 'approved']
     );
 
     try {
@@ -157,7 +157,7 @@ router.get('/owners', authenticate, authorizeRole('admin'), async (req, res) => 
     const owners = await query(`
       SELECT 
         u.id, u.username, u.name, u.phone, u.email, u.address,
-        u.business_name, u.business_number, u.additional_info,
+        u.business_name, u.business_number, u.additional_info, u.sales_rep,
         u.approval_status, u.created_at,
         COUNT(DISTINCT w.id) as workplace_count,
         COUNT(DISTINCT e.id) as employee_count
@@ -181,7 +181,7 @@ router.get('/pending-owners', authenticate, authorizeRole('admin'), async (req, 
     const pendingOwners = await query(`
       SELECT 
         id, username, name, phone, email, address,
-        business_name, business_number, additional_info, created_at
+        business_name, business_number, additional_info, sales_rep, created_at
       FROM users
       WHERE role = 'owner' AND approval_status = 'pending'
       ORDER BY created_at DESC

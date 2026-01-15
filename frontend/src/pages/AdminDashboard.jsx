@@ -10,6 +10,7 @@ const AdminDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('');
   const [selectedOwner, setSelectedOwner] = useState(null);
+  const [ownerSearch, setOwnerSearch] = useState('');
 
   useEffect(() => {
     loadWorkplaces();
@@ -68,6 +69,29 @@ const AdminDashboard = () => {
     loadOwners();
     loadWorkplaces();
   };
+
+  const ownerCollator = new Intl.Collator('ko-KR', { sensitivity: 'base' });
+  const normalizedSearch = ownerSearch.trim().toLowerCase();
+  const filteredOwners = owners
+    .filter((owner) => {
+      if (!normalizedSearch) return true;
+      const fields = [
+        owner.name,
+        owner.business_name,
+        owner.username,
+        owner.phone,
+        owner.email,
+        owner.sales_rep
+      ];
+      return fields.some((value) =>
+        (value ?? '').toString().toLowerCase().includes(normalizedSearch)
+      );
+    })
+    .sort((a, b) => {
+      const nameCompare = ownerCollator.compare(a.name || '', b.name || '');
+      if (nameCompare !== 0) return nameCompare;
+      return ownerCollator.compare(a.business_name || '', b.business_name || '');
+    });
 
   return (
     <div>
@@ -175,17 +199,28 @@ const AdminDashboard = () => {
         {/* 사업주 관리 */}
         {activeTab === 'owners' && (
           <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <h3 style={{ color: '#374151' }}>사업주 목록</h3>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="이름/상호/사용자명/전화/이메일/영업사원 검색"
+                value={ownerSearch}
+                onChange={(e) => setOwnerSearch(e.target.value)}
+                style={{ maxWidth: '320px' }}
+              />
             </div>
             
             <p style={{ color: '#6b7280', marginBottom: '20px' }}>
               사업주를 등록하면 해당 사업주가 자신의 사업장과 직원을 관리할 수 있습니다.
             </p>
 
-            {owners.length === 0 ? (
+            {filteredOwners.length === 0 ? (
               <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
-                등록된 사업주가 없습니다.
+                {owners.length === 0 ? '등록된 사업주가 없습니다.' : '검색 결과가 없습니다.'}
               </p>
             ) : (
               <div style={{ overflowX: 'auto' }}>
@@ -197,6 +232,7 @@ const AdminDashboard = () => {
                       <th>사용자명</th>
                       <th>전화번호</th>
                       <th>이메일</th>
+                      <th>담당 영업사원</th>
                       <th>관리 사업장</th>
                       <th>직원 수</th>
                       <th>상태</th>
@@ -205,7 +241,7 @@ const AdminDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {owners.map((owner) => (
+                    {filteredOwners.map((owner) => (
                       <tr key={owner.id}>
                         <td style={{ fontWeight: '600' }}>
                           <button
@@ -227,6 +263,7 @@ const AdminDashboard = () => {
                         <td>{owner.username}</td>
                         <td>{owner.phone || '-'}</td>
                         <td>{owner.email || '-'}</td>
+                        <td>{owner.sales_rep || '-'}</td>
                         <td style={{ textAlign: 'center' }}>
                           <span style={{
                             padding: '4px 8px',
@@ -328,6 +365,10 @@ const AdminDashboard = () => {
             <div className="form-group">
               <label className="form-label">사업자등록번호</label>
               <div>{selectedOwner.business_number || '-'}</div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">담당 영업사원</label>
+              <div>{selectedOwner.sales_rep || '-'}</div>
             </div>
             <div className="form-group">
               <label className="form-label">전화번호</label>

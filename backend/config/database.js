@@ -153,6 +153,7 @@ export const initDatabase = async () => {
           business_number VARCHAR(255),
           approval_status VARCHAR(50) DEFAULT 'approved',
           additional_info TEXT,
+          sales_rep VARCHAR(255),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
@@ -369,6 +370,14 @@ export const initDatabase = async () => {
         // 컬럼이 이미 존재하면 무시
       }
 
+      // users 테이블에 sales_rep 컬럼 추가
+      try {
+        await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS sales_rep VARCHAR(255)');
+        console.log('✅ users 테이블에 sales_rep 컬럼 추가됨');
+      } catch (e) {
+        // 컬럼이 이미 존재하면 무시
+      }
+
       // employee_details 테이블에 resignation_date 컬럼 추가
       try {
         await pool.query('ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS resignation_date DATE');
@@ -412,6 +421,7 @@ export const initDatabase = async () => {
           business_number TEXT,
           approval_status TEXT DEFAULT 'approved',
           additional_info TEXT,
+          sales_rep TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
@@ -429,6 +439,9 @@ export const initDatabase = async () => {
       } catch (e) {}
       try {
         await run(`ALTER TABLE users ADD COLUMN additional_info TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE users ADD COLUMN sales_rep TEXT`);
       } catch (e) {}
       try {
         await run(`ALTER TABLE users ADD COLUMN employment_status TEXT DEFAULT 'active'`);

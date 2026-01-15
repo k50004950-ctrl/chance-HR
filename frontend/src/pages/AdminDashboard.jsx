@@ -89,8 +89,10 @@ const AdminDashboard = () => {
 
   const loadCalendarSummary = async () => {
     try {
+      const [year, month] = calendarMonth.split('-').map(Number);
+      const lastDay = new Date(year, month, 0).getDate();
       const startDate = `${calendarMonth}-01`;
-      const endDate = `${calendarMonth}-31`;
+      const endDate = `${calendarMonth}-${String(lastDay).padStart(2, '0')}`;
       const [employeeResponse, attendanceResponse] = await Promise.all([
         employeeAPI.getByWorkplace(calendarWorkplaceId),
         attendanceAPI.getByWorkplace(calendarWorkplaceId, { startDate, endDate })
@@ -100,6 +102,12 @@ const AdminDashboard = () => {
         (emp) => emp.employment_status !== 'resigned' && emp.employment_status !== 'on_leave'
       );
       const attendanceRecords = attendanceResponse.data;
+      const selectedWorkplace = workplaces.find(
+        (workplace) => workplace.id === calendarWorkplaceId
+      );
+      const defaultOffDays = selectedWorkplace?.default_off_days
+        ? selectedWorkplace.default_off_days.split(',').map((day) => day.trim()).filter(Boolean)
+        : [];
 
       const attendanceByKey = new Map();
       attendanceRecords.forEach((record) => {
@@ -107,31 +115,51 @@ const AdminDashboard = () => {
         attendanceByKey.set(key, record);
       });
 
-      const [year, month] = calendarMonth.split('-').map(Number);
-      const lastDay = new Date(year, month, 0).getDate();
       const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+      const formatDateKey = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      };
 
       const summary = [];
       for (let day = 1; day <= lastDay; day += 1) {
         const date = new Date(year, month - 1, day);
-        const dateKey = date.toISOString().split('T')[0];
+        const dateKey = formatDateKey(date);
         const weekday = dayKeys[date.getDay()];
 
         let expected = 0;
         let normal = 0;
         let late = 0;
         let absent = 0;
+        let annualLeave = 0;
+        let paidLeave = 0;
+        let unpaidLeave = 0;
+        const lateNames = [];
+        const absentNames = [];
 
         employees.forEach((emp) => {
           const workDays = emp.work_days ? emp.work_days.split(',') : [];
-          const isScheduled = workDays.length === 0 || workDays.includes(weekday);
+          const hasDefaultOff = defaultOffDays.length > 0;
+          const isScheduled = workDays.length > 0
+            ? workDays.includes(weekday)
+            : (hasDefaultOff ? !defaultOffDays.includes(weekday) : true);
           if (!isScheduled) return;
 
           expected += 1;
           const record = attendanceByKey.get(`${emp.id}-${dateKey}`);
 
+          if (record?.leave_type) {
+            if (record.leave_type === 'annual') annualLeave += 1;
+            if (record.leave_type === 'paid') paidLeave += 1;
+            if (record.leave_type === 'unpaid') unpaidLeave += 1;
+            return;
+          }
+
           if (!record || !record.check_in_time) {
             absent += 1;
+            absentNames.push(emp.name);
             return;
           }
 
@@ -152,6 +180,7 @@ const AdminDashboard = () => {
 
           if (lateCheckIn || earlyLeave) {
             late += 1;
+            lateNames.push(emp.name);
           } else {
             normal += 1;
           }
@@ -163,7 +192,12 @@ const AdminDashboard = () => {
           expected,
           normal,
           late,
-          absent
+          absent,
+          annualLeave,
+          paidLeave,
+          unpaidLeave,
+          lateNames,
+          absentNames
         });
       }
 
@@ -191,6 +225,13 @@ const AdminDashboard = () => {
   const handleRefresh = () => {
     loadOwners();
     loadWorkplaces();
+  };
+
+  const formatNameList = (names) => {
+    if (!names || names.length === 0) return '';
+    const display = names.slice(0, 3).join(', ');
+    const extra = names.length > 3 ? ` 외 ${names.length - 3}명` : '';
+    return `${display}${extra}`;
   };
 
   const ownerCollator = new Intl.Collator('ko-KR', { sensitivity: 'base' });
@@ -366,9 +407,12 @@ const AdminDashboard = () => {
                       <th>일자</th>
                       <th>요일</th>
                       <th>근무 예정</th>
-                      <th>정상</th>
-                      <th>지각</th>
+                      <th>정상 출퇴근</th>
+                      <th>지각/조퇴</th>
                       <th>결근</th>
+                      <th>연차</th>
+                      <th>유급휴가</th>
+                      <th>무급휴가</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -392,9 +436,28 @@ const AdminDashboard = () => {
                         </td>
                         <td style={{ color: row.late > 0 ? '#f97316' : '#6b7280' }}>
                           {row.late}명
+                          {row.late > 0 && (
+                            <div style={{ fontSize: '12px', color: '#9a3412', marginTop: '4px' }}>
+                              {formatNameList(row.lateNames)}
+                            </div>
+                          )}
                         </td>
                         <td style={{ color: row.absent > 0 ? '#dc2626' : '#6b7280' }}>
                           {row.absent}명
+                          {row.absent > 0 && (
+                            <div style={{ fontSize: '12px', color: '#b91c1c', marginTop: '4px' }}>
+                              {formatNameList(row.absentNames)}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ color: row.annualLeave > 0 ? '#2563eb' : '#6b7280' }}>
+                          {row.annualLeave}명
+                        </td>
+                        <td style={{ color: row.paidLeave > 0 ? '#0ea5e9' : '#6b7280' }}>
+                          {row.paidLeave}명
+                        </td>
+                        <td style={{ color: row.unpaidLeave > 0 ? '#8b5cf6' : '#6b7280' }}>
+                          {row.unpaidLeave}명
                         </td>
                       </tr>
                     ))}

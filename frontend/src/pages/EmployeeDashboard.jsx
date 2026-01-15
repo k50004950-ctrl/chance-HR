@@ -9,7 +9,12 @@ const EmployeeDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [attendanceRecords, setAttendanceRecords] = useState([]);
-  const [selectedMonth, setSelectedMonth] = useState('2025-12'); // 샘플 데이터를 위해 2025-12로 설정
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  });
   const [salaryInfo, setSalaryInfo] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -78,8 +83,10 @@ const EmployeeDashboard = () => {
 
   const loadAttendanceRecords = async () => {
     try {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const lastDay = new Date(year, month, 0).getDate();
       const startDate = `${selectedMonth}-01`;
-      const endDate = `${selectedMonth}-31`;
+      const endDate = `${selectedMonth}-${String(lastDay).padStart(2, '0')}`;
       const response = await attendanceAPI.getMy({ startDate, endDate });
       setAttendanceRecords(response.data);
     } catch (error) {
@@ -89,8 +96,10 @@ const EmployeeDashboard = () => {
 
   const loadSalaryInfo = async () => {
     try {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const lastDay = new Date(year, month, 0).getDate();
       const startDate = `${selectedMonth}-01`;
-      const endDate = `${selectedMonth}-31`;
+      const endDate = `${selectedMonth}-${String(lastDay).padStart(2, '0')}`;
       const response = await salaryAPI.calculate(user.id, { startDate, endDate });
       setSalaryInfo(response.data);
     } catch (error) {

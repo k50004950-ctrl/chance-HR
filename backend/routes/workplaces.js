@@ -15,6 +15,7 @@ router.get('/', authenticate, authorizeRole('admin'), async (req, res) => {
         w.latitude,
         w.longitude,
         w.radius,
+        w.default_off_days,
         w.owner_id,
         w.created_at,
         u.name as owner_name,
@@ -30,6 +31,7 @@ router.get('/', authenticate, authorizeRole('admin'), async (req, res) => {
         w.latitude,
         w.longitude,
         w.radius,
+        w.default_off_days,
         w.owner_id,
         w.created_at,
         u.name,
@@ -84,7 +86,7 @@ router.get('/:id', authenticate, async (req, res) => {
 // 사업장 등록
 router.post('/', authenticate, authorizeRole('admin', 'owner'), async (req, res) => {
   try {
-    const { name, address, latitude, longitude, radius, owner_id } = req.body;
+    const { name, address, latitude, longitude, radius, owner_id, default_off_days } = req.body;
 
     if (!name || !address || !latitude || !longitude) {
       return res.status(400).json({ message: '필수 정보를 입력해주세요.' });
@@ -93,8 +95,8 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), async (req, res)
     const finalOwnerId = req.user.role === 'admin' ? owner_id : req.user.id;
 
     const result = await run(
-      'INSERT INTO workplaces (name, address, latitude, longitude, radius, owner_id) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, address, latitude, longitude, radius || 100, finalOwnerId]
+      'INSERT INTO workplaces (name, address, latitude, longitude, radius, default_off_days, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name, address, latitude, longitude, radius || 100, default_off_days || '', finalOwnerId]
     );
 
     res.status(201).json({
@@ -110,7 +112,7 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), async (req, res)
 // 사업장 수정
 router.put('/:id', authenticate, authorizeRole('admin', 'owner'), async (req, res) => {
   try {
-    const { name, address, latitude, longitude, radius } = req.body;
+    const { name, address, latitude, longitude, radius, default_off_days } = req.body;
     const workplaceId = req.params.id;
 
     // 권한 확인
@@ -122,8 +124,8 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), async (req, re
     }
 
     await run(
-      'UPDATE workplaces SET name = ?, address = ?, latitude = ?, longitude = ?, radius = ? WHERE id = ?',
-      [name, address, latitude, longitude, radius, workplaceId]
+      'UPDATE workplaces SET name = ?, address = ?, latitude = ?, longitude = ?, radius = ?, default_off_days = ? WHERE id = ?',
+      [name, address, latitude, longitude, radius, default_off_days || '', workplaceId]
     );
 
     res.json({ message: '사업장 정보가 수정되었습니다.' });

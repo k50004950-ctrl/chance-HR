@@ -167,6 +167,7 @@ export const initDatabase = async () => {
           latitude DECIMAL(10, 8),
           longitude DECIMAL(11, 8),
           radius INTEGER DEFAULT 100,
+          default_off_days VARCHAR(50) DEFAULT '',
           owner_id INTEGER,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (owner_id) REFERENCES users(id)
@@ -178,6 +179,13 @@ export const initDatabase = async () => {
         await pool.query(`ALTER TABLE workplaces ADD COLUMN IF NOT EXISTS radius INTEGER DEFAULT 100`);
       } catch (e) {
         console.log('radius 컬럼은 이미 존재합니다.');
+      }
+
+      // 기존 workplaces 테이블에 default_off_days 컬럼 추가 (마이그레이션)
+      try {
+        await pool.query(`ALTER TABLE workplaces ADD COLUMN IF NOT EXISTS default_off_days VARCHAR(50) DEFAULT ''`);
+      } catch (e) {
+        console.log('default_off_days 컬럼은 이미 존재합니다.');
       }
 
       // Employee_details 테이블
@@ -327,11 +335,19 @@ export const initDatabase = async () => {
           check_out_lng DECIMAL(11, 8),
           work_hours DECIMAL(5, 2),
           status VARCHAR(50) DEFAULT 'incomplete',
+          leave_type VARCHAR(20),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id),
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
+
+      // 기존 attendance 테이블에 leave_type 컬럼 추가 (마이그레이션)
+      try {
+        await pool.query(`ALTER TABLE attendance ADD COLUMN IF NOT EXISTS leave_type VARCHAR(20)`);
+      } catch (e) {
+        console.log('leave_type 컬럼은 이미 존재합니다.');
+      }
 
       // Past_employees 테이블 (과거 직원 기록)
       await pool.query(`
@@ -497,6 +513,7 @@ export const initDatabase = async () => {
           latitude REAL,
           longitude REAL,
           radius INTEGER DEFAULT 100,
+          default_off_days TEXT,
           owner_id INTEGER,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (owner_id) REFERENCES users(id)
@@ -506,6 +523,10 @@ export const initDatabase = async () => {
       // 기존 workplaces 테이블에 radius 컬럼 추가 (마이그레이션)
       try {
         await run(`ALTER TABLE workplaces ADD COLUMN radius INTEGER DEFAULT 100`);
+      } catch (e) {}
+      // 기존 workplaces 테이블에 default_off_days 컬럼 추가 (마이그레이션)
+      try {
+        await run(`ALTER TABLE workplaces ADD COLUMN default_off_days TEXT`);
       } catch (e) {}
 
       // Employee_details 테이블
@@ -650,11 +671,17 @@ export const initDatabase = async () => {
           check_out_lng REAL,
           work_hours REAL,
           status TEXT DEFAULT 'incomplete',
+          leave_type TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id),
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
+
+      // 기존 attendance 테이블에 leave_type 컬럼 추가 (마이그레이션)
+      try {
+        await run(`ALTER TABLE attendance ADD COLUMN leave_type TEXT`);
+      } catch (e) {}
 
       // Past_employees 테이블 (과거 직원 기록)
       await run(`

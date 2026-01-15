@@ -10,6 +10,8 @@ const OwnerDashboard = () => {
   const [activeTab, setActiveTab] = useState('attendance');
   const [workplaces, setWorkplaces] = useState([]);
   const [selectedWorkplace, setSelectedWorkplace] = useState(null);
+  const [defaultOffDays, setDefaultOffDays] = useState([]);
+  const [defaultOffDaysSaving, setDefaultOffDaysSaving] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [salaryData, setSalaryData] = useState(null);
@@ -55,6 +57,16 @@ const OwnerDashboard = () => {
 
   useEffect(() => {
     if (selectedWorkplace) {
+      const currentWorkplace = workplaces.find((wp) => wp.id === selectedWorkplace);
+      if (currentWorkplace?.default_off_days) {
+        const days = currentWorkplace.default_off_days
+          .split(',')
+          .map((day) => day.trim())
+          .filter(Boolean);
+        setDefaultOffDays(days);
+      } else {
+        setDefaultOffDays([]);
+      }
       loadEmployees();
       if (activeTab === 'attendance') {
         loadAttendance();
@@ -67,6 +79,32 @@ const OwnerDashboard = () => {
       }
     }
   }, [selectedWorkplace, activeTab, selectedMonth]);
+
+  const handleSaveDefaultOffDays = async () => {
+    if (!selectedWorkplace) return;
+    const workplace = workplaces.find((wp) => wp.id === selectedWorkplace);
+    if (!workplace) return;
+
+    try {
+      setDefaultOffDaysSaving(true);
+      const payload = {
+        name: workplace.name,
+        address: workplace.address,
+        latitude: workplace.latitude,
+        longitude: workplace.longitude,
+        radius: workplace.radius,
+        default_off_days: defaultOffDays.join(',')
+      };
+      await workplaceAPI.update(selectedWorkplace, payload);
+      setMessage({ type: 'success', text: '기본 휴무일이 저장되었습니다.' });
+      loadWorkplaces();
+    } catch (error) {
+      console.error('기본 휴무일 저장 오류:', error);
+      setMessage({ type: 'error', text: '기본 휴무일 저장에 실패했습니다.' });
+    } finally {
+      setDefaultOffDaysSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (showModal && modalType === 'employee') {
@@ -492,7 +530,8 @@ const OwnerDashboard = () => {
     try {
       await attendanceAPI.update(formData.id, {
         check_in_time: formData.check_in_time,
-        check_out_time: formData.check_out_time || null
+        check_out_time: formData.check_out_time || null,
+        leave_type: formData.leave_type || null
       });
       setMessage({ type: 'success', text: '근무시간이 수정되었습니다.' });
       closeModal();
@@ -618,6 +657,64 @@ const OwnerDashboard = () => {
                 </option>
               ))}
             </select>
+          </div>
+        )}
+
+        {selectedWorkplace && (
+          <div className="card" style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ color: '#374151' }}>기본 휴무일 설정</h3>
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={handleSaveDefaultOffDays}
+                disabled={defaultOffDaysSaving}
+              >
+                {defaultOffDaysSaving ? '저장 중...' : '저장'}
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '12px' }}>
+              {['월', '화', '수', '목', '금', '토', '일'].map((day, index) => {
+                const dayValue = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'][index];
+                const isChecked = defaultOffDays.includes(dayValue);
+                return (
+                  <label
+                    key={dayValue}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: isChecked ? '2px solid #0ea5e9' : '2px solid #e5e7eb',
+                      background: isChecked ? '#e0f2fe' : 'white',
+                      cursor: 'pointer',
+                      fontWeight: isChecked ? '600' : '400',
+                      color: isChecked ? '#0284c7' : '#6b7280'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        let next = [...defaultOffDays];
+                        if (e.target.checked) {
+                          if (!next.includes(dayValue)) next.push(dayValue);
+                        } else {
+                          next = next.filter((item) => item !== dayValue);
+                        }
+                        setDefaultOffDays(next);
+                      }}
+                      style={{ marginRight: '6px' }}
+                    />
+                    {day}
+                  </label>
+                );
+              })}
+            </div>
+            <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '8px', display: 'block' }}>
+              💡 직원별 근무 요일을 설정하지 않은 경우, 이 기본 휴무일을 적용합니다.
+            </small>
           </div>
         )}
 
@@ -1069,16 +1166,39 @@ const OwnerDashboard = () => {
                               <td>{formatTime(record.check_out_time)}</td>
                               <td style={{ fontWeight: '600' }}>{record.work_hours ? `${Number(record.work_hours).toFixed(1)}h` : '-'}</td>
                               <td>
-                                <span style={{
-                                  padding: '4px 8px',
-                                  borderRadius: '4px',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
-                                  background: record.status === 'completed' ? '#d1fae5' : '#fee2e2',
-                                  color: record.status === 'completed' ? '#065f46' : '#991b1b'
-                                }}>
-                                  {record.status === 'completed' ? '✓ 완료' : '⏱ 미완료'}
-                                </span>
+                                {record.leave_type ? (
+                                  <span style={{
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    background: record.leave_type === 'annual'
+                                      ? '#dbeafe'
+                                      : record.leave_type === 'paid'
+                                        ? '#e0f2fe'
+                                        : '#ede9fe',
+                                    color: record.leave_type === 'annual'
+                                      ? '#1d4ed8'
+                                      : record.leave_type === 'paid'
+                                        ? '#0284c7'
+                                        : '#6d28d9'
+                                  }}>
+                                    {record.leave_type === 'annual' && '연차'}
+                                    {record.leave_type === 'paid' && '유급휴가'}
+                                    {record.leave_type === 'unpaid' && '무급휴가'}
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    background: record.status === 'completed' ? '#d1fae5' : '#fee2e2',
+                                    color: record.status === 'completed' ? '#065f46' : '#991b1b'
+                                  }}>
+                                    {record.status === 'completed' ? '✓ 완료' : '⏱ 미완료'}
+                                  </span>
+                                )}
                               </td>
                               <td>
                                 <button
@@ -2390,6 +2510,24 @@ const OwnerDashboard = () => {
               </div>
 
               <div className="form-group">
+                <label className="form-label">휴가 유형</label>
+                <select
+                  className="form-select"
+                  name="leave_type"
+                  value={formData.leave_type || ''}
+                  onChange={handleInputChange}
+                >
+                  <option value="">근무</option>
+                  <option value="annual">연차</option>
+                  <option value="paid">유급휴가</option>
+                  <option value="unpaid">무급휴가</option>
+                </select>
+                <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                  휴가를 선택하면 출퇴근 시간은 저장하지 않습니다.
+                </small>
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">출근 시간 *</label>
                 <input
                   type="datetime-local"
@@ -2397,7 +2535,8 @@ const OwnerDashboard = () => {
                   className="form-input"
                   value={formData.check_in_time ? formData.check_in_time.slice(0, 16) : ''}
                   onChange={handleInputChange}
-                  required
+                  required={!formData.leave_type}
+                  disabled={!!formData.leave_type}
                 />
               </div>
 
@@ -2409,6 +2548,7 @@ const OwnerDashboard = () => {
                   className="form-input"
                   value={formData.check_out_time ? formData.check_out_time.slice(0, 16) : ''}
                   onChange={handleInputChange}
+                  disabled={!!formData.leave_type}
                 />
                 <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
                   퇴근 시간을 비워두면 미완료 상태로 저장됩니다.

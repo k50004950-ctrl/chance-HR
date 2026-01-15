@@ -68,13 +68,13 @@ router.post('/check-in', authenticate, async (req, res) => {
     
     if (existingRecord) {
       await run(
-        'UPDATE attendance SET check_in_time = ?, check_in_lat = ?, check_in_lng = ? WHERE id = ?',
-        [now, latitude, longitude, existingRecord.id]
+        'UPDATE attendance SET check_in_time = ?, check_in_lat = ?, check_in_lng = ?, leave_type = ? WHERE id = ?',
+        [now, latitude, longitude, null, existingRecord.id]
       );
     } else {
       await run(
-        'INSERT INTO attendance (user_id, workplace_id, date, check_in_time, check_in_lat, check_in_lng) VALUES (?, ?, ?, ?, ?, ?)',
-        [userId, workplaceId, today, now, latitude, longitude]
+        'INSERT INTO attendance (user_id, workplace_id, date, check_in_time, check_in_lat, check_in_lng, leave_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [userId, workplaceId, today, now, latitude, longitude, null]
       );
     }
 
@@ -158,10 +158,10 @@ router.post('/check-out', authenticate, async (req, res) => {
 
     // 퇴근 기록
     const now = new Date().toISOString();
-    await run(
-      'UPDATE attendance SET check_out_time = ?, check_out_lat = ?, check_out_lng = ?, work_hours = ?, status = ? WHERE id = ?',
-      [now, latitude, longitude, workHours.toFixed(2), 'completed', existingRecord.id]
-    );
+      await run(
+        'UPDATE attendance SET check_out_time = ?, check_out_lat = ?, check_out_lng = ?, work_hours = ?, status = ?, leave_type = ? WHERE id = ?',
+        [now, latitude, longitude, workHours.toFixed(2), 'completed', null, existingRecord.id]
+      );
 
     notifyAttendance({
       type: 'check-out',
@@ -307,7 +307,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
 router.put('/:id', authenticate, async (req, res) => {
   try {
     const attendanceId = req.params.id;
-    const { check_in_time, check_out_time } = req.body;
+    const { check_in_time, check_out_time, leave_type } = req.body;
 
     // 사업주만 수정 가능
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
@@ -328,6 +328,15 @@ router.put('/:id', authenticate, async (req, res) => {
       }
     }
 
+    // 휴가 처리
+    if (leave_type) {
+      await run(
+        'UPDATE attendance SET check_in_time = ?, check_out_time = ?, work_hours = ?, status = ?, leave_type = ? WHERE id = ?',
+        [null, null, null, 'leave', leave_type, attendanceId]
+      );
+      return res.json({ message: '휴가 정보가 저장되었습니다.' });
+    }
+
     // 근무 시간 계산
     let workHours = null;
     let status = record.status;
@@ -343,8 +352,8 @@ router.put('/:id', authenticate, async (req, res) => {
 
     // 업데이트
     await run(
-      'UPDATE attendance SET check_in_time = ?, check_out_time = ?, work_hours = ?, status = ? WHERE id = ?',
-      [check_in_time, check_out_time, workHours ? workHours.toFixed(2) : null, status, attendanceId]
+      'UPDATE attendance SET check_in_time = ?, check_out_time = ?, work_hours = ?, status = ?, leave_type = ? WHERE id = ?',
+      [check_in_time, check_out_time, workHours ? workHours.toFixed(2) : null, status, null, attendanceId]
     );
 
     res.json({ 

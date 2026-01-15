@@ -2,6 +2,7 @@ import express from 'express';
 import { query, run, get } from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
 import { isWithinWorkplace } from '../utils/location.js';
+import { notifyAttendance } from '../services/kakaoTalk.js';
 
 const router = express.Router();
 
@@ -64,17 +65,26 @@ router.post('/check-in', authenticate, async (req, res) => {
     
     if (existingRecord) {
       await run(
-        'UPDATE attendance SET check_in_time = ?, check_in_latitude = ?, check_in_longitude = ? WHERE id = ?',
+        'UPDATE attendance SET check_in_time = ?, check_in_lat = ?, check_in_lng = ? WHERE id = ?',
         [now, latitude, longitude, existingRecord.id]
       );
     } else {
       await run(
-        'INSERT INTO attendance (user_id, workplace_id, date, check_in_time, check_in_latitude, check_in_longitude) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO attendance (user_id, workplace_id, date, check_in_time, check_in_lat, check_in_lng) VALUES (?, ?, ?, ?, ?, ?)',
         [userId, workplaceId, today, now, latitude, longitude]
       );
     }
 
-    res.json({ 
+    notifyAttendance({
+      type: 'check-in',
+      userName: req.user.name,
+      timestamp: now,
+      workplaceName: workplace?.name
+    }).catch((error) => {
+      console.error('카카오 출근 알림 실패:', error);
+    });
+
+    res.json({
       message: '출근이 기록되었습니다.',
       checkInTime: now
     });
@@ -146,11 +156,20 @@ router.post('/check-out', authenticate, async (req, res) => {
     // 퇴근 기록
     const now = new Date().toISOString();
     await run(
-      'UPDATE attendance SET check_out_time = ?, check_out_latitude = ?, check_out_longitude = ?, work_hours = ?, status = ? WHERE id = ?',
+      'UPDATE attendance SET check_out_time = ?, check_out_lat = ?, check_out_lng = ?, work_hours = ?, status = ? WHERE id = ?',
       [now, latitude, longitude, workHours.toFixed(2), 'completed', existingRecord.id]
     );
 
-    res.json({ 
+    notifyAttendance({
+      type: 'check-out',
+      userName: req.user.name,
+      timestamp: now,
+      workplaceName: workplace?.name
+    }).catch((error) => {
+      console.error('카카오 퇴근 알림 실패:', error);
+    });
+
+    res.json({
       message: '퇴근이 기록되었습니다.',
       checkOutTime: now,
       workHours: workHours.toFixed(2)

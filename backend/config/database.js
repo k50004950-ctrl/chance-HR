@@ -346,6 +346,22 @@ export const initDatabase = async () => {
         // 컬럼이 이미 존재하면 무시
       }
 
+      // users 테이블에 employment_status 컬럼 추가
+      try {
+        await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_status VARCHAR(20) DEFAULT \'active\'');
+        console.log('✅ users 테이블에 employment_status 컬럼 추가됨');
+      } catch (e) {
+        // 컬럼이 이미 존재하면 무시
+      }
+
+      // employee_details 테이블에 resignation_date 컬럼 추가
+      try {
+        await pool.query('ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS resignation_date DATE');
+        console.log('✅ employee_details 테이블에 resignation_date 컬럼 추가됨');
+      } catch (e) {
+        // 컬럼이 이미 존재하면 무시
+      }
+
       console.log('PostgreSQL 데이터베이스 초기화 완료');
     } else {
       // SQLite 초기화 (기존 코드)
@@ -387,6 +403,9 @@ export const initDatabase = async () => {
       } catch (e) {}
       try {
         await run(`ALTER TABLE users ADD COLUMN additional_info TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE users ADD COLUMN employment_status TEXT DEFAULT 'active'`);
       } catch (e) {}
 
       // Workplaces 테이블
@@ -445,6 +464,9 @@ export const initDatabase = async () => {
       } catch (e) {}
       try {
         await run(`ALTER TABLE employee_details ADD COLUMN family_cert_file TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN resignation_date DATE`);
       } catch (e) {}
       try {
         await run(`ALTER TABLE salary_info ADD COLUMN tax_type TEXT DEFAULT '4대보험'`);

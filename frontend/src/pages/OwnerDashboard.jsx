@@ -22,6 +22,7 @@ const OwnerDashboard = () => {
   const [employeesWithoutContract, setEmployeesWithoutContract] = useState([]);
   const [pastEmployees, setPastEmployees] = useState([]);
   const [salaryHistory, setSalaryHistory] = useState(null);
+  const [employmentStatusFilter, setEmploymentStatusFilter] = useState('all');
 
   useEffect(() => {
     loadWorkplaces();
@@ -622,7 +623,39 @@ const OwnerDashboard = () => {
             {activeTab === 'employees' && (
               <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h3 style={{ color: '#374151' }}>직원 목록</h3>
+                  <div>
+                    <h3 style={{ color: '#374151', marginBottom: '12px' }}>직원 목록</h3>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        className={`btn ${employmentStatusFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        onClick={() => setEmploymentStatusFilter('all')}
+                      >
+                        전체
+                      </button>
+                      <button
+                        className={`btn ${employmentStatusFilter === 'active' ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        onClick={() => setEmploymentStatusFilter('active')}
+                      >
+                        재직중
+                      </button>
+                      <button
+                        className={`btn ${employmentStatusFilter === 'on_leave' ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        onClick={() => setEmploymentStatusFilter('on_leave')}
+                      >
+                        휴직
+                      </button>
+                      <button
+                        className={`btn ${employmentStatusFilter === 'resigned' ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        onClick={() => setEmploymentStatusFilter('resigned')}
+                      >
+                        퇴사
+                      </button>
+                    </div>
+                  </div>
                   <button
                     className="btn btn-primary"
                     onClick={() => openModal('employee')}
@@ -642,6 +675,7 @@ const OwnerDashboard = () => {
                         <tr>
                           <th>이름</th>
                           <th>사용자명</th>
+                          <th>상태</th>
                           <th>직책</th>
                           <th>급여유형</th>
                           <th>인건비 신고</th>
@@ -651,10 +685,22 @@ const OwnerDashboard = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {employees.map((emp) => (
+                        {employees.filter(emp => employmentStatusFilter === 'all' || emp.employment_status === employmentStatusFilter).map((emp) => (
                           <tr key={emp.id}>
                             <td style={{ fontWeight: '600' }}>{emp.name}</td>
                             <td>{emp.username}</td>
+                            <td>
+                              <span style={{
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                background: emp.employment_status === 'active' ? '#d1fae5' : emp.employment_status === 'on_leave' ? '#fef3c7' : '#fee2e2',
+                                color: emp.employment_status === 'active' ? '#065f46' : emp.employment_status === 'on_leave' ? '#92400e' : '#991b1b'
+                              }}>
+                                {emp.employment_status === 'active' ? '재직중' : emp.employment_status === 'on_leave' ? '휴직' : '퇴사'}
+                              </span>
+                            </td>
                             <td>{emp.position || '-'}</td>
                             <td>{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</td>
                             <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.tax_type || '4대보험'}</td>
@@ -1203,6 +1249,31 @@ const OwnerDashboard = () => {
                     placeholder="입사일을 선택하세요"
                   />
                 </div>
+                <div className="form-group">
+                  <label className="form-label">재직 상태</label>
+                  <select
+                    name="employment_status"
+                    className="form-input"
+                    value={formData.employment_status || 'active'}
+                    onChange={handleInputChange}
+                  >
+                    <option value="active">재직중</option>
+                    <option value="on_leave">휴직</option>
+                    <option value="resigned">퇴사</option>
+                  </select>
+                </div>
+                {formData.employment_status === 'resigned' && (
+                  <div className="form-group">
+                    <label className="form-label">퇴사일</label>
+                    <input
+                      type="date"
+                      name="resignation_date"
+                      className="form-input"
+                      value={formData.resignation_date || ''}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="form-label">직책</label>
                   <input

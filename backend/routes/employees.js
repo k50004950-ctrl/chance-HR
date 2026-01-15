@@ -62,9 +62,10 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
   const employees = await query(`
     SELECT 
       u.id, u.username, u.name, u.phone, u.email, u.ssn, u.address,
-      u.emergency_contact, u.emergency_phone,
+      u.emergency_contact, u.emergency_phone, u.employment_status,
       ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file,
       ed.work_start_time, ed.work_end_time, ed.work_days, ed.id_card_file, ed.family_cert_file,
+      ed.resignation_date,
       si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
     FROM users u
     LEFT JOIN employee_details ed ON u.id = ed.user_id
@@ -86,9 +87,10 @@ router.get('/:id', authenticate, async (req, res) => {
     const employee = await get(`
       SELECT 
         u.id, u.username, u.name, u.phone, u.email, u.ssn, u.address,
-        u.emergency_contact, u.emergency_phone, u.workplace_id,
+        u.emergency_contact, u.emergency_phone, u.workplace_id, u.employment_status,
         ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file, ed.notes,
         ed.work_start_time, ed.work_end_time, ed.work_days, ed.id_card_file, ed.family_cert_file,
+        ed.resignation_date,
         si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
       FROM users u
       LEFT JOIN employee_details ed ON u.id = ed.user_id
@@ -123,7 +125,8 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
       emergency_contact, emergency_phone, workplace_id,
       hire_date, position, department, notes,
       work_start_time, work_end_time, work_days,
-      salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type
+      salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type,
+      employment_status, resignation_date
     } = req.body;
     
     // work_days가 JSON 문자열이면 파싱
@@ -152,8 +155,8 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
 
     // 사용자 등록
     const userResult = await run(
-      'INSERT INTO users (username, password, name, role, phone, email, ssn, address, emergency_contact, emergency_phone, workplace_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [username, hashedPassword, name, 'employee', phone, email, ssn, address, emergency_contact, emergency_phone, workplace_id]
+      'INSERT INTO users (username, password, name, role, phone, email, ssn, address, emergency_contact, emergency_phone, workplace_id, employment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [username, hashedPassword, name, 'employee', phone, email, ssn, address, emergency_contact, emergency_phone, workplace_id, employment_status || 'active']
     );
 
     const userId = userResult.id;
@@ -166,8 +169,8 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
 
     // 직원 상세정보 등록
     await run(
-      'INSERT INTO employee_details (user_id, workplace_id, hire_date, position, department, contract_file, resume_file, id_card_file, family_cert_file, notes, work_start_time, work_end_time, work_days) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, workplace_id, hire_date, position, department, contractFile, resumeFile, idCardFile, familyCertFile, notes, work_start_time, work_end_time, work_days]
+      'INSERT INTO employee_details (user_id, workplace_id, hire_date, position, department, contract_file, resume_file, id_card_file, family_cert_file, notes, work_start_time, work_end_time, work_days, resignation_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, workplace_id, hire_date, position, department, contractFile, resumeFile, idCardFile, familyCertFile, notes, work_start_time, work_end_time, work_days, resignation_date || null]
     );
 
     // 급여 정보 등록
@@ -208,7 +211,8 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       name, phone, email, ssn, address, emergency_contact, emergency_phone,
       hire_date, position, department, notes,
       work_start_time, work_end_time, work_days,
-      salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type
+      salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type,
+      employment_status, resignation_date
     } = req.body;
     
     // work_days가 JSON 문자열이면 파싱
@@ -269,6 +273,10 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       userUpdateFields.push(' emergency_phone = ?');
       userUpdateParams.push(emergency_phone);
     }
+    if (employment_status !== undefined) {
+      userUpdateFields.push(' employment_status = ?');
+      userUpdateParams.push(employment_status);
+    }
     
     if (userUpdateFields.length > 0) {
       userUpdateQuery += userUpdateFields.join(',');
@@ -284,8 +292,8 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     const familyCertFile = req.files && req.files['family_cert_file'] ? req.files['family_cert_file'][0].filename : undefined;
 
     // 직원 상세정보 수정
-    let updateQuery = 'UPDATE employee_details SET hire_date = ?, position = ?, department = ?, notes = ?, work_start_time = ?, work_end_time = ?, work_days = ?';
-    let updateParams = [hire_date, position, department, notes, work_start_time, work_end_time, work_days];
+    let updateQuery = 'UPDATE employee_details SET hire_date = ?, position = ?, department = ?, notes = ?, work_start_time = ?, work_end_time = ?, work_days = ?, resignation_date = ?';
+    let updateParams = [hire_date, position, department, notes, work_start_time, work_end_time, work_days, resignation_date || null];
     
     if (contractFile) {
       updateQuery += ', contract_file = ?';

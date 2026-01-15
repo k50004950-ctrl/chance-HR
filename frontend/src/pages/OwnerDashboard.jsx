@@ -18,7 +18,12 @@ const OwnerDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('');
   const [formData, setFormData] = useState({});
-  const [selectedMonth, setSelectedMonth] = useState('2025-12'); // 샘플 데이터를 위해 2025-12로 설정
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  });
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [employeesWithoutContract, setEmployeesWithoutContract] = useState([]);
   const [pastEmployees, setPastEmployees] = useState([]);

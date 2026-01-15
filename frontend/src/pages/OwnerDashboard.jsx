@@ -32,6 +32,9 @@ const OwnerDashboard = () => {
     amount: '',
     notes: ''
   });
+  const uploadBaseUrl =
+    import.meta.env.VITE_API_URL?.replace('/api', '') ||
+    (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
 
   useEffect(() => {
     loadWorkplaces();
@@ -1436,7 +1439,7 @@ const OwnerDashboard = () => {
                       <small style={{ color: '#6b7280' }}>현재 파일: {formData.contract_file}</small>
                       <button
                         type="button"
-                        onClick={() => window.open(`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.contract_file}`, '_blank')}
+                        onClick={() => window.open(`${uploadBaseUrl}/uploads/${formData.contract_file}`, '_blank')}
                         style={{
                           padding: '4px 8px',
                           fontSize: '12px',
@@ -1450,7 +1453,7 @@ const OwnerDashboard = () => {
                         보기
                       </button>
                       <a
-                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.contract_file}`}
+                        href={`${uploadBaseUrl}/uploads/${formData.contract_file}`}
                         download
                         style={{
                           padding: '4px 8px',
@@ -1482,7 +1485,7 @@ const OwnerDashboard = () => {
                       <small style={{ color: '#6b7280' }}>현재 파일: {formData.resume_file}</small>
                       <button
                         type="button"
-                        onClick={() => window.open(`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.resume_file}`, '_blank')}
+                        onClick={() => window.open(`${uploadBaseUrl}/uploads/${formData.resume_file}`, '_blank')}
                         style={{
                           padding: '4px 8px',
                           fontSize: '12px',
@@ -1496,7 +1499,7 @@ const OwnerDashboard = () => {
                         보기
                       </button>
                       <a
-                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.resume_file}`}
+                        href={`${uploadBaseUrl}/uploads/${formData.resume_file}`}
                         download
                         style={{
                           padding: '4px 8px',
@@ -1528,7 +1531,7 @@ const OwnerDashboard = () => {
                       <small style={{ color: '#6b7280' }}>현재 파일: {formData.id_card_file}</small>
                       <button
                         type="button"
-                        onClick={() => window.open(`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.id_card_file}`, '_blank')}
+                        onClick={() => window.open(`${uploadBaseUrl}/uploads/${formData.id_card_file}`, '_blank')}
                         style={{
                           padding: '4px 8px',
                           fontSize: '12px',
@@ -1542,7 +1545,7 @@ const OwnerDashboard = () => {
                         보기
                       </button>
                       <a
-                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.id_card_file}`}
+                        href={`${uploadBaseUrl}/uploads/${formData.id_card_file}`}
                         download
                         style={{
                           padding: '4px 8px',
@@ -1574,7 +1577,7 @@ const OwnerDashboard = () => {
                       <small style={{ color: '#6b7280' }}>현재 파일: {formData.family_cert_file}</small>
                       <button
                         type="button"
-                        onClick={() => window.open(`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.family_cert_file}`, '_blank')}
+                        onClick={() => window.open(`${uploadBaseUrl}/uploads/${formData.family_cert_file}`, '_blank')}
                         style={{
                           padding: '4px 8px',
                           fontSize: '12px',
@@ -1588,7 +1591,7 @@ const OwnerDashboard = () => {
                         보기
                       </button>
                       <a
-                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${formData.family_cert_file}`}
+                        href={`${uploadBaseUrl}/uploads/${formData.family_cert_file}`}
                         download
                         style={{
                           padding: '4px 8px',

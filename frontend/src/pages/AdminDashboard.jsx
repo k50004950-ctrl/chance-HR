@@ -15,6 +15,22 @@ const AdminDashboard = () => {
     loadWorkplaces();
     loadOwners();
   }, []);
+  const handleToggleOwnerStatus = async (ownerId, ownerName) => {
+    const owner = owners.find((item) => item.id === ownerId);
+    const action = owner?.approval_status === 'approved' ? '일시 중지' : '활성화';
+
+    if (!window.confirm(`${ownerName} 사업주를 ${action}하시겠습니까?`)) return;
+
+    try {
+      const response = await authAPI.toggleOwnerStatus(ownerId);
+      setMessage({ type: 'success', text: response.data.message });
+      loadOwners();
+    } catch (error) {
+      console.error('상태 변경 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '상태 변경 중 오류가 발생했습니다.' });
+    }
+  };
+
 
   const loadWorkplaces = async () => {
     try {
@@ -48,11 +64,21 @@ const AdminDashboard = () => {
   const getOwnerWorkplaces = (ownerId) =>
     workplaces.filter((workplace) => workplace.owner_id === ownerId);
 
+  const handleRefresh = () => {
+    loadOwners();
+    loadWorkplaces();
+  };
+
   return (
     <div>
       <Header />
       <div className="container">
-        <h2 style={{ marginBottom: '24px', color: '#374151' }}>관리자 대시보드</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h2 style={{ color: '#374151' }}>관리자 대시보드</h2>
+          <button className="btn btn-secondary" onClick={handleRefresh}>
+            ↻ 새로고침
+          </button>
+        </div>
 
         {message.text && (
           <div className={`alert alert-${message.type}`} style={{ marginBottom: '20px' }}>
@@ -172,8 +198,10 @@ const AdminDashboard = () => {
                       <th>전화번호</th>
                       <th>이메일</th>
                       <th>관리 사업장</th>
+                      <th>직원 수</th>
                       <th>상태</th>
                       <th>등록일</th>
+                      <th>작업</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -215,6 +243,18 @@ const AdminDashboard = () => {
                           <span style={{
                             padding: '4px 8px',
                             borderRadius: '4px',
+                            background: owner.employee_count > 0 ? '#dcfce7' : '#f3f4f6',
+                            color: owner.employee_count > 0 ? '#166534' : '#6b7280',
+                            fontWeight: '600',
+                            fontSize: '12px'
+                          }}>
+                            {owner.employee_count || 0}명
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
                             fontWeight: '600',
                             fontSize: '12px',
                             background: 
@@ -235,6 +275,31 @@ const AdminDashboard = () => {
                           </span>
                         </td>
                         <td>{new Date(owner.created_at).toLocaleDateString('ko-KR')}</td>
+                        <td>
+                          {owner.approval_status === 'approved' && (
+                            <button
+                              className="btn btn-sm"
+                              style={{
+                                background: '#fee2e2',
+                                color: '#991b1b',
+                                padding: '6px 12px',
+                                border: '1px solid #fecaca'
+                              }}
+                              onClick={() => handleToggleOwnerStatus(owner.id, owner.name)}
+                            >
+                              ⏸️ 일시 중지
+                            </button>
+                          )}
+                          {owner.approval_status === 'suspended' && (
+                            <button
+                              className="btn btn-sm btn-primary"
+                              style={{ padding: '6px 12px' }}
+                              onClick={() => handleToggleOwnerStatus(owner.id, owner.name)}
+                            >
+                              ▶️ 활성화
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -308,6 +373,10 @@ const AdminDashboard = () => {
                   ))}
                 </div>
               )}
+            </div>
+            <div className="form-group">
+              <label className="form-label">직원 수</label>
+              <div>{selectedOwner.employee_count || 0}명</div>
             </div>
 
             <div className="modal-footer">

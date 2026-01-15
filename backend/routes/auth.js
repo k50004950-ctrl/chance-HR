@@ -159,9 +159,11 @@ router.get('/owners', authenticate, authorizeRole('admin'), async (req, res) => 
         u.id, u.username, u.name, u.phone, u.email, u.address,
         u.business_name, u.business_number, u.additional_info,
         u.approval_status, u.created_at,
-        COUNT(DISTINCT w.id) as workplace_count
+        COUNT(DISTINCT w.id) as workplace_count,
+        COUNT(DISTINCT e.id) as employee_count
       FROM users u
       LEFT JOIN workplaces w ON u.id = w.owner_id
+      LEFT JOIN users e ON e.workplace_id = w.id AND e.role = 'employee'
       WHERE u.role = 'owner'
       GROUP BY u.id
       ORDER BY u.created_at DESC

@@ -117,6 +117,44 @@ router.get('/:id', authenticate, async (req, res) => {
   }
 });
 
+// 직원 개인정보/위치정보 동의 업데이트 (직원 본인)
+router.put('/:id/consent', authenticate, async (req, res) => {
+  try {
+    const employeeId = req.params.id;
+
+    if (req.user.role !== 'employee' || req.user.id !== parseInt(employeeId, 10)) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const { privacy_consent, privacy_consent_date, location_consent, location_consent_date } = req.body;
+
+    const privacyConsentValue = privacy_consent === true || privacy_consent === '1' || privacy_consent === 1;
+    const locationConsentValue = location_consent === true || location_consent === '1' || location_consent === 1;
+
+    if (!privacyConsentValue || !locationConsentValue) {
+      return res.status(400).json({ message: '모든 동의 항목이 필요합니다.' });
+    }
+
+    await run(
+      `UPDATE employee_details 
+       SET privacy_consent = ?, privacy_consent_date = ?, location_consent = ?, location_consent_date = ?
+       WHERE user_id = ?`,
+      [
+        privacyConsentValue ? 1 : 0,
+        privacy_consent_date || new Date().toISOString(),
+        locationConsentValue ? 1 : 0,
+        location_consent_date || new Date().toISOString(),
+        employeeId
+      ]
+    );
+
+    res.json({ message: '동의 기록이 저장되었습니다.' });
+  } catch (error) {
+    console.error('동의 업데이트 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 // 직원 등록
 router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, async (req, res) => {
   try {

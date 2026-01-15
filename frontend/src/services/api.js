@@ -64,6 +64,7 @@ export const employeeAPI = {
   getByWorkplace: (workplaceId) => api.get(`/employees/workplace/${workplaceId}`),
   getById: (id) => api.get(`/employees/${id}`),
   getEmploymentCertificate: (id) => api.get(`/employees/${id}/employment-certificate`),
+  updateConsent: (id, data) => api.put(`/employees/${id}/consent`, data),
   create: (data) => {
     // 이미 FormData인 경우 그대로 사용
     if (data instanceof FormData) {

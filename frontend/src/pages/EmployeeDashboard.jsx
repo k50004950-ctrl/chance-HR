@@ -46,13 +46,12 @@ const EmployeeDashboard = () => {
 
     try {
       setLoading(true);
-      const formData = new FormData();
-      formData.append('privacy_consent', '1');
-      formData.append('privacy_consent_date', new Date().toISOString());
-      formData.append('location_consent', '1');
-      formData.append('location_consent_date', new Date().toISOString());
-
-      await employeeAPI.update(user.id, formData);
+      await employeeAPI.updateConsent(user.id, {
+        privacy_consent: true,
+        privacy_consent_date: new Date().toISOString(),
+        location_consent: true,
+        location_consent_date: new Date().toISOString()
+      });
       setShowConsentModal(false);
       setMessage({ type: 'success', text: '동의가 완료되었습니다.' });
     } catch (error) {

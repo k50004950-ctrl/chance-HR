@@ -6,6 +6,9 @@ import { notifyAttendance } from '../services/kakaoTalk.js';
 
 const router = express.Router();
 
+const getKstDateString = () =>
+  new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
+
 // 출근 체크
 router.post('/check-in', authenticate, async (req, res) => {
   try {
@@ -47,8 +50,8 @@ router.post('/check-in', authenticate, async (req, res) => {
       });
     }
 
-    // 오늘 날짜
-    const today = new Date().toISOString().split('T')[0];
+    // 오늘 날짜 (KST 기준)
+    const today = getKstDateString();
 
     // 이미 출근 체크했는지 확인
     const existingRecord = await get(
@@ -131,8 +134,8 @@ router.post('/check-out', authenticate, async (req, res) => {
       });
     }
 
-    // 오늘 날짜
-    const today = new Date().toISOString().split('T')[0];
+    // 오늘 날짜 (KST 기준)
+    const today = getKstDateString();
 
     // 출근 기록 확인
     const existingRecord = await get(
@@ -208,7 +211,7 @@ router.get('/my', authenticate, async (req, res) => {
 router.get('/today', authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getKstDateString();
 
     const record = await get(
       'SELECT * FROM attendance WHERE user_id = ? AND date = ?',

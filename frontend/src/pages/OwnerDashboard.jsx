@@ -3,6 +3,7 @@ import Header from '../components/Header';
 import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
+import ConsentInfo from '../components/ConsentInfo';
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
@@ -576,6 +577,7 @@ const OwnerDashboard = () => {
                           <th>입사일</th>
                           <th>급여유형</th>
                           <th>인건비 신고</th>
+                          <th>개인정보동의</th>
                           <th>비상연락망</th>
                           <th>상세</th>
                         </tr>
@@ -593,6 +595,19 @@ const OwnerDashboard = () => {
                             <td>{formatDate(emp.hire_date)}</td>
                             <td>{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</td>
                             <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.tax_type || '4대보험'}</td>
+                            <td style={{ textAlign: 'center' }}>
+                              {emp.privacy_consent && emp.location_consent ? (
+                                <div style={{ fontSize: '11px' }}>
+                                  <span style={{ color: '#10b981', fontSize: '16px' }}>✅</span>
+                                  <div style={{ color: '#6b7280', marginTop: '4px' }}>동의완료</div>
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '11px' }}>
+                                  <span style={{ color: '#dc2626', fontSize: '16px' }}>❌</span>
+                                  <div style={{ color: '#dc2626', marginTop: '4px' }}>미동의</div>
+                                </div>
+                              )}
+                            </td>
                             <td>
                               {emp.emergency_contact ? (
                                 <div style={{ fontSize: '12px' }}>
@@ -676,6 +691,7 @@ const OwnerDashboard = () => {
                           <th>이름</th>
                           <th>사용자명</th>
                           <th>상태</th>
+                          <th>개인정보동의</th>
                           <th>직책</th>
                           <th>급여유형</th>
                           <th>인건비 신고</th>
@@ -700,6 +716,13 @@ const OwnerDashboard = () => {
                               }}>
                                 {emp.employment_status === 'active' ? '재직중' : emp.employment_status === 'on_leave' ? '휴직' : '퇴사'}
                               </span>
+                            </td>
+                            <td>
+                              {emp.privacy_consent && emp.location_consent ? (
+                                <span style={{ color: '#10b981', fontSize: '16px' }} title="개인정보 및 위치정보 동의 완료">✅</span>
+                              ) : (
+                                <span style={{ color: '#dc2626', fontSize: '16px' }} title="동의 필요">❌</span>
+                              )}
                             </td>
                             <td>{emp.position || '-'}</td>
                             <td>{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</td>
@@ -1580,11 +1603,22 @@ const OwnerDashboard = () => {
                 </div>
               </div>
 
-              <div style={{ padding: '12px', background: '#fffbeb', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fbbf24' }}>
-                <p style={{ fontSize: '13px', color: '#92400e', margin: 0 }}>
-                  💡 <strong>개인정보 수집 동의</strong>는 직원이 최초 로그인 시 직접 진행합니다.
-                </p>
-              </div>
+              {formData.id && (
+                <ConsentInfo 
+                  privacyConsent={formData.privacy_consent}
+                  locationConsent={formData.location_consent}
+                  privacyConsentDate={formData.privacy_consent_date}
+                  locationConsentDate={formData.location_consent_date}
+                />
+              )}
+
+              {!formData.id && (
+                <div style={{ padding: '12px', background: '#fffbeb', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fbbf24' }}>
+                  <p style={{ fontSize: '13px', color: '#92400e', margin: 0 }}>
+                    💡 <strong>개인정보 수집 동의</strong>는 직원이 최초 로그인 시 직접 진행합니다.
+                  </p>
+                </div>
+              )}
 
               <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151' }}>급여 정보</h4>
               

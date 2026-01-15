@@ -126,7 +126,8 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
       hire_date, position, department, notes,
       work_start_time, work_end_time, work_days,
       salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type,
-      employment_status, resignation_date
+      employment_status, resignation_date,
+      privacy_consent, privacy_consent_date, location_consent, location_consent_date
     } = req.body;
     
     // work_days가 JSON 문자열이면 파싱
@@ -169,8 +170,8 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
 
     // 직원 상세정보 등록
     await run(
-      'INSERT INTO employee_details (user_id, workplace_id, hire_date, position, department, contract_file, resume_file, id_card_file, family_cert_file, notes, work_start_time, work_end_time, work_days, resignation_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, workplace_id, hire_date, position, department, contractFile, resumeFile, idCardFile, familyCertFile, notes, work_start_time, work_end_time, work_days, resignation_date || null]
+      'INSERT INTO employee_details (user_id, workplace_id, hire_date, position, department, contract_file, resume_file, id_card_file, family_cert_file, notes, work_start_time, work_end_time, work_days, resignation_date, privacy_consent, privacy_consent_date, location_consent, location_consent_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, workplace_id, hire_date, position, department, contractFile, resumeFile, idCardFile, familyCertFile, notes, work_start_time, work_end_time, work_days, resignation_date || null, privacy_consent || 0, privacy_consent_date || null, location_consent || 0, location_consent_date || null]
     );
 
     // 급여 정보 등록

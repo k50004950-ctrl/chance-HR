@@ -362,6 +362,17 @@ export const initDatabase = async () => {
         // 컬럼이 이미 존재하면 무시
       }
 
+      // employee_details 테이블에 개인정보 동의 컬럼 추가
+      try {
+        await pool.query('ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS privacy_consent BOOLEAN DEFAULT false');
+        await pool.query('ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS privacy_consent_date TIMESTAMP');
+        await pool.query('ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS location_consent BOOLEAN DEFAULT false');
+        await pool.query('ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS location_consent_date TIMESTAMP');
+        console.log('✅ employee_details 테이블에 개인정보 동의 컬럼 추가됨');
+      } catch (e) {
+        // 컬럼이 이미 존재하면 무시
+      }
+
       console.log('PostgreSQL 데이터베이스 초기화 완료');
     } else {
       // SQLite 초기화 (기존 코드)
@@ -467,6 +478,18 @@ export const initDatabase = async () => {
       } catch (e) {}
       try {
         await run(`ALTER TABLE employee_details ADD COLUMN resignation_date DATE`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN privacy_consent INTEGER DEFAULT 0`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN privacy_consent_date DATETIME`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN location_consent INTEGER DEFAULT 0`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN location_consent_date DATETIME`);
       } catch (e) {}
       try {
         await run(`ALTER TABLE salary_info ADD COLUMN tax_type TEXT DEFAULT '4대보험'`);

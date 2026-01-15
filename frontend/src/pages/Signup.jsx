@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
+import { searchAddress, getCoordinatesFromAddress, getGoogleMapsLink } from '../utils/addressSearch';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -73,6 +74,34 @@ const Signup = () => {
     }
 
     setLoading(false);
+  };
+
+  const handleSearchAddress = async () => {
+    try {
+      const result = await searchAddress();
+      setFormData((prev) => ({
+        ...prev,
+        address: result.address
+      }));
+
+      setMessage({ type: 'info', text: '좌표를 검색하는 중...' });
+      const coords = await getCoordinatesFromAddress(result.address);
+
+      setFormData((prev) => ({
+        ...prev,
+        address: result.address,
+        latitude: coords.latitude,
+        longitude: coords.longitude
+      }));
+
+      if (coords.success) {
+        setMessage({ type: 'success', text: '주소와 좌표가 자동으로 입력되었습니다!' });
+      } else {
+        setMessage({ type: 'info', text: coords.message });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || '주소 검색에 실패했습니다.' });
+    }
   };
 
   const handleUseCurrentLocation = () => {
@@ -247,14 +276,30 @@ const Signup = () => {
 
           <div className="form-group">
             <label className="form-label">주소 *</label>
-            <input
-              type="text"
-              name="address"
-              className="form-input"
-              value={formData.address}
-              onChange={handleChange}
-              placeholder="사업장 주소"
-            />
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                name="address"
+                className="form-input"
+                value={formData.address}
+                onChange={handleChange}
+                onClick={handleSearchAddress}
+                readOnly
+                placeholder="주소 검색 버튼을 클릭하세요"
+                style={{ flex: '1 1 260px' }}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleSearchAddress}
+                style={{ whiteSpace: 'nowrap', minWidth: '140px', flex: '0 0 auto' }}
+              >
+                🔍 주소 검색
+              </button>
+            </div>
+            <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+              주소 검색(다음/카카오)으로 정확한 주소를 선택하면 좌표가 자동 입력됩니다.
+            </p>
           </div>
 
           <div className="grid grid-2">
@@ -296,6 +341,17 @@ const Signup = () => {
             >
               {locating ? '위치 확인 중...' : '📍 현재 위치 사용'}
             </button>
+            {formData.latitude && formData.longitude && (
+              <a
+                href={getGoogleMapsLink(formData.latitude, formData.longitude)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secondary"
+                style={{ flex: 1, textDecoration: 'none', textAlign: 'center' }}
+              >
+                🗺️ 지도에서 확인
+              </a>
+            )}
           </div>
 
           <div className="form-group">

@@ -1,7 +1,32 @@
 // 주소 검색 및 좌표 변환 유틸리티
 
+let daumScriptPromise = null;
+
+const ensureDaumPostcodeLoaded = () => {
+  if (window.daum && window.daum.Postcode) {
+    return Promise.resolve();
+  }
+
+  if (daumScriptPromise) {
+    return daumScriptPromise;
+  }
+
+  daumScriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Daum 우편번호 스크립트를 로드할 수 없습니다.'));
+    document.head.appendChild(script);
+  });
+
+  return daumScriptPromise;
+};
+
 // Daum 우편번호 서비스를 사용한 주소 검색
-export const searchAddress = () => {
+export const searchAddress = async () => {
+  await ensureDaumPostcodeLoaded();
+
   return new Promise((resolve, reject) => {
     if (!window.daum || !window.daum.Postcode) {
       reject(new Error('Daum 우편번호 서비스를 로드할 수 없습니다.'));

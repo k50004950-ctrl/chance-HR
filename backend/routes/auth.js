@@ -77,11 +77,15 @@ router.post('/signup', async (req, res) => {
   try {
     const { 
       username, password, name, phone, email, address,
-      business_name, business_number, additional_info 
+      business_name, business_number, additional_info,
+      latitude, longitude, radius
     } = req.body;
 
     if (!username || !password || !name || !business_name || !business_number || !phone) {
       return res.status(400).json({ message: '필수 정보를 모두 입력해주세요.' });
+    }
+    if (!address || !latitude || !longitude) {
+      return res.status(400).json({ message: '사업장 주소와 좌표를 입력해주세요.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -92,11 +96,21 @@ router.post('/signup', async (req, res) => {
         business_name, business_number, additional_info, approval_status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [username, hashedPassword, name, 'owner', phone, email, address, 
-       business_name, business_number, additional_info, 'pending']
+       business_name, business_number, additional_info, 'approved']
     );
 
+    try {
+      await run(
+        'INSERT INTO workplaces (name, address, latitude, longitude, radius, owner_id) VALUES (?, ?, ?, ?, ?, ?)',
+        [business_name, address, latitude, longitude, radius || 100, result.id]
+      );
+    } catch (workplaceError) {
+      await run('DELETE FROM users WHERE id = ?', [result.id]);
+      throw workplaceError;
+    }
+
     res.status(201).json({
-      message: '회원가입이 완료되었습니다. 관리자 승인 후 이용 가능합니다.',
+      message: '회원가입이 완료되었습니다.',
       userId: result.id
     });
   } catch (error) {
@@ -142,8 +156,9 @@ router.get('/owners', authenticate, authorizeRole('admin'), async (req, res) => 
   try {
     const owners = await query(`
       SELECT 
-        u.id, u.username, u.name, u.phone, u.email, u.business_name, 
-        u.business_number, u.approval_status, u.created_at,
+        u.id, u.username, u.name, u.phone, u.email, u.address,
+        u.business_name, u.business_number, u.additional_info,
+        u.approval_status, u.created_at,
         COUNT(DISTINCT w.id) as workplace_count
       FROM users u
       LEFT JOIN workplaces w ON u.id = w.owner_id

@@ -16,8 +16,12 @@ const Signup = () => {
     phone: '',
     email: '',
     address: '',
-    additional_info: ''
+    additional_info: '',
+    latitude: '',
+    longitude: '',
+    radius: 100
   });
+  const [locating, setLocating] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -40,6 +44,10 @@ const Signup = () => {
     if (!formData.username || !formData.password || !formData.name || 
         !formData.business_name || !formData.business_number || !formData.phone) {
       setMessage({ type: 'error', text: '필수 항목을 모두 입력해주세요.' });
+      return;
+    }
+    if (!formData.address || !formData.latitude || !formData.longitude) {
+      setMessage({ type: 'error', text: '사업장 주소와 좌표를 입력해주세요.' });
       return;
     }
 
@@ -65,6 +73,35 @@ const Signup = () => {
     }
 
     setLoading(false);
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setMessage({ type: 'error', text: '현재 브라우저에서는 위치 기능을 사용할 수 없습니다.' });
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData((prev) => ({
+          ...prev,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        }));
+        setMessage({ type: 'success', text: '현재 위치가 입력되었습니다.' });
+        setLocating(false);
+      },
+      (error) => {
+        const messageMap = {
+          1: '위치 권한이 필요합니다.',
+          2: '위치 정보를 가져올 수 없습니다.',
+          3: '위치 요청 시간이 초과되었습니다.'
+        };
+        setMessage({ type: 'error', text: messageMap[error.code] || '위치 정보를 가져오지 못했습니다.' });
+        setLocating(false);
+      }
+    );
   };
 
   return (
@@ -209,7 +246,7 @@ const Signup = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">주소</label>
+            <label className="form-label">주소 *</label>
             <input
               type="text"
               name="address"
@@ -217,6 +254,59 @@ const Signup = () => {
               value={formData.address}
               onChange={handleChange}
               placeholder="사업장 주소"
+            />
+          </div>
+
+          <div className="grid grid-2">
+            <div className="form-group">
+              <label className="form-label">위도 *</label>
+              <input
+                type="number"
+                step="any"
+                name="latitude"
+                className="form-input"
+                value={formData.latitude}
+                onChange={handleChange}
+                required
+                placeholder="예: 37.5665"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">경도 *</label>
+              <input
+                type="number"
+                step="any"
+                name="longitude"
+                className="form-input"
+                value={formData.longitude}
+                onChange={handleChange}
+                required
+                placeholder="예: 126.9780"
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleUseCurrentLocation}
+              style={{ flex: 1 }}
+              disabled={locating}
+            >
+              {locating ? '위치 확인 중...' : '📍 현재 위치 사용'}
+            </button>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">반경 (미터)</label>
+            <input
+              type="number"
+              name="radius"
+              className="form-input"
+              value={formData.radius}
+              onChange={handleChange}
+              placeholder="100"
             />
           </div>
 

@@ -208,6 +208,23 @@ const AdminDashboard = () => {
     }
   };
 
+  const fixedHolidayMap = {
+    '01-01': '신정',
+    '03-01': '삼일절',
+    '05-05': '어린이날',
+    '06-06': '현충일',
+    '08-15': '광복절',
+    '10-03': '개천절',
+    '10-09': '한글날',
+    '12-25': '성탄절'
+  };
+
+  const getHolidayName = (dateKey) => {
+    if (!dateKey) return '';
+    const monthDay = dateKey.slice(5, 10);
+    return fixedHolidayMap[monthDay] || '';
+  };
+
   const openModal = (type, data = null) => {
     setModalType(type);
     setSelectedOwner(data);
@@ -406,6 +423,7 @@ const AdminDashboard = () => {
                     <tr>
                       <th>일자</th>
                       <th>요일</th>
+                      <th>공휴일</th>
                       <th>근무 예정</th>
                       <th>정상 출퇴근</th>
                       <th>지각/조퇴</th>
@@ -429,6 +447,9 @@ const AdminDashboard = () => {
                             sat: '토',
                             sun: '일'
                           }[row.weekday]}
+                        </td>
+                        <td style={{ color: getHolidayName(row.date) ? '#dc2626' : '#6b7280' }}>
+                          {getHolidayName(row.date) || '-'}
                         </td>
                         <td>{row.expected}명</td>
                         <td style={{ color: row.normal > 0 ? '#16a34a' : '#6b7280' }}>

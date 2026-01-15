@@ -841,6 +841,7 @@ const OwnerDashboard = () => {
                           <th>이름</th>
                           <th>상태</th>
                           <th>주민번호</th>
+                          <th>생일</th>
                           <th>전화번호</th>
                           <th>주소</th>
                           <th>직책</th>
@@ -870,6 +871,7 @@ const OwnerDashboard = () => {
                               </span>
                             </td>
                             <td>{emp.ssn || '-'}</td>
+                            <td>{formatDate(emp.birth_date)}</td>
                             <td>{emp.phone || '-'}</td>
                             <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {emp.address || '-'}

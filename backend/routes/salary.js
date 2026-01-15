@@ -234,9 +234,8 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         }
       }
 
-      // 퇴직금 포함한 총 급여
-      const totalWithSeverance = roundedSalary + severancePay;
-      totalSalary += totalWithSeverance;
+      // 퇴직금은 별도 표시 (총 급여에 포함하지 않음)
+      totalSalary += roundedSalary;
 
       salaryResults.push({
         employeeId: employee.id,
@@ -247,7 +246,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         taxType: salaryInfo.tax_type,
         totalWorkDays: attendanceRecords.length,
         totalWorkHours: totalWorkHours.toFixed(2),
-        calculatedSalary: totalWithSeverance,
+        calculatedSalary: roundedSalary,
         baseSalary: roundedSalary,
         weeklyHolidayPay: salaryInfo.weekly_holiday_pay || 0,
         weeklyHolidayPayAmount: Math.round(weeklyHolidayPayAmount),

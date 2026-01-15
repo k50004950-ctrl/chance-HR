@@ -9,14 +9,31 @@ router.get('/', authenticate, authorizeRole('admin'), async (req, res) => {
   try {
     const workplaces = await query(`
       SELECT 
-        w.*,
+        w.id,
+        w.name,
+        w.address,
+        w.latitude,
+        w.longitude,
+        w.radius,
+        w.owner_id,
+        w.created_at,
         u.name as owner_name,
         u.phone as owner_phone,
         COUNT(DISTINCT e.id) as employee_count
       FROM workplaces w
       LEFT JOIN users u ON w.owner_id = u.id
       LEFT JOIN users e ON e.workplace_id = w.id AND e.role = 'employee'
-      GROUP BY w.id
+      GROUP BY 
+        w.id,
+        w.name,
+        w.address,
+        w.latitude,
+        w.longitude,
+        w.radius,
+        w.owner_id,
+        w.created_at,
+        u.name,
+        u.phone
       ORDER BY w.created_at DESC
     `);
     res.json(workplaces);

@@ -206,8 +206,8 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         baseSalaryAmount = roundedSalary;
       }
 
-      // 월별 퇴직금 적립액 계산 (1년 이상 근무자)
-      let monthlySeverance = 0;
+      // 당일 퇴사 시 지급해야 할 퇴직금 계산 (1년 이상 근무자)
+      let severancePay = 0;
       const employeeDetails = await get(
         'SELECT hire_date FROM employee_details WHERE user_id = ?',
         [employee.id]
@@ -228,14 +228,14 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
           } else if (salaryInfo.salary_type === 'annual') {
             monthlyAvgWage = salaryInfo.amount / 12;
           }
-          
-          // 월 퇴직금 적립액 = 월평균임금 / 12
-          monthlySeverance = Math.round(monthlyAvgWage / 12);
+
+          // 당일 퇴사 시 지급 퇴직금 = 월평균임금 × 근속연수
+          severancePay = Math.round(monthlyAvgWage * yearsOfService);
         }
       }
 
       // 퇴직금 포함한 총 급여
-      const totalWithSeverance = roundedSalary + monthlySeverance;
+      const totalWithSeverance = roundedSalary + severancePay;
       totalSalary += totalWithSeverance;
 
       salaryResults.push({
@@ -252,7 +252,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         weeklyHolidayPay: salaryInfo.weekly_holiday_pay || 0,
         weeklyHolidayPayAmount: Math.round(weeklyHolidayPayAmount),
         baseSalaryAmount: Math.round(baseSalaryAmount),
-        monthlySeverance: monthlySeverance
+        severancePay: severancePay
       });
     }
 

@@ -493,7 +493,7 @@ const OwnerDashboard = () => {
       '근무시간': emp.totalWorkHours,
       '기본급여': emp.baseSalaryAmount || emp.baseSalary || emp.calculatedSalary,
       '주휴수당': emp.weeklyHolidayPayAmount || 0,
-      '월퇴직금적립': emp.monthlySeverance || 0,
+      '퇴직금(당일퇴사)': emp.severancePay || 0,
       '총지급액': emp.calculatedSalary
     }));
 
@@ -508,7 +508,7 @@ const OwnerDashboard = () => {
       '근무시간': '',
       '기본급여': '',
       '주휴수당': salaryData.employees.reduce((sum, emp) => sum + (emp.weeklyHolidayPayAmount || 0), 0),
-      '월퇴직금적립': salaryData.employees.reduce((sum, emp) => sum + (emp.monthlySeverance || 0), 0),
+      '퇴직금(당일퇴사)': salaryData.employees.reduce((sum, emp) => sum + (emp.severancePay || 0), 0),
       '총지급액': salaryData.totalSalary
     };
     excelData.push(totalRow);
@@ -527,7 +527,7 @@ const OwnerDashboard = () => {
       { wch: 10 }, // 근무시간
       { wch: 12 }, // 기본급여
       { wch: 12 }, // 주휴수당
-      { wch: 14 }, // 월퇴직금적립
+      { wch: 16 }, // 퇴직금(당일퇴사)
       { wch: 14 }  // 총지급액
     ];
 
@@ -1042,7 +1042,7 @@ const OwnerDashboard = () => {
                               <th>근무시간</th>
                               <th>기본 급여</th>
                               <th>주휴수당</th>
-                              <th>월 퇴직금 적립</th>
+                              <th>퇴직금(당일퇴사)</th>
                               <th>총 지급액</th>
                             </tr>
                           </thead>
@@ -1059,8 +1059,8 @@ const OwnerDashboard = () => {
                                 <td style={{ color: emp.weeklyHolidayPayAmount > 0 ? '#10b981' : '#9ca3af' }}>
                                   {emp.weeklyHolidayPayAmount > 0 ? `+${emp.weeklyHolidayPayAmount.toLocaleString()}원` : '-'}
                                 </td>
-                                <td style={{ color: emp.monthlySeverance > 0 ? '#f59e0b' : '#9ca3af', fontWeight: emp.monthlySeverance > 0 ? '600' : '400' }}>
-                                  {emp.monthlySeverance > 0 ? `+${emp.monthlySeverance.toLocaleString()}원` : '1년 미만'}
+                                <td style={{ color: emp.severancePay > 0 ? '#f59e0b' : '#9ca3af', fontWeight: emp.severancePay > 0 ? '600' : '400' }}>
+                                  {emp.severancePay > 0 ? `+${emp.severancePay.toLocaleString()}원` : '1년 미만'}
                                 </td>
                                 <td style={{ fontWeight: '700', color: '#667eea' }}>
                                   {emp.calculatedSalary.toLocaleString()}원

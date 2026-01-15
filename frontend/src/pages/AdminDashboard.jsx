@@ -102,12 +102,6 @@ const AdminDashboard = () => {
         (emp) => emp.employment_status !== 'resigned' && emp.employment_status !== 'on_leave'
       );
       const attendanceRecords = attendanceResponse.data;
-      const selectedWorkplace = workplaces.find(
-        (workplace) => workplace.id === calendarWorkplaceId
-      );
-      const defaultOffDays = selectedWorkplace?.default_off_days
-        ? selectedWorkplace.default_off_days.split(',').map((day) => day.trim()).filter(Boolean)
-        : [];
 
       const attendanceByKey = new Map();
       attendanceRecords.forEach((record) => {
@@ -141,10 +135,7 @@ const AdminDashboard = () => {
 
         employees.forEach((emp) => {
           const workDays = emp.work_days ? emp.work_days.split(',') : [];
-          const hasDefaultOff = defaultOffDays.length > 0;
-          const isScheduled = workDays.length > 0
-            ? workDays.includes(weekday)
-            : (hasDefaultOff ? !defaultOffDays.includes(weekday) : true);
+          const isScheduled = workDays.length === 0 || workDays.includes(weekday);
           if (!isScheduled) return;
 
           expected += 1;

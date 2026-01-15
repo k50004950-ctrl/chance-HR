@@ -10,8 +10,6 @@ const OwnerDashboard = () => {
   const [activeTab, setActiveTab] = useState('attendance');
   const [workplaces, setWorkplaces] = useState([]);
   const [selectedWorkplace, setSelectedWorkplace] = useState(null);
-  const [defaultOffDays, setDefaultOffDays] = useState([]);
-  const [defaultOffDaysSaving, setDefaultOffDaysSaving] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [salaryData, setSalaryData] = useState(null);
@@ -79,32 +77,6 @@ const OwnerDashboard = () => {
       }
     }
   }, [selectedWorkplace, activeTab, selectedMonth]);
-
-  const handleSaveDefaultOffDays = async () => {
-    if (!selectedWorkplace) return;
-    const workplace = workplaces.find((wp) => wp.id === selectedWorkplace);
-    if (!workplace) return;
-
-    try {
-      setDefaultOffDaysSaving(true);
-      const payload = {
-        name: workplace.name,
-        address: workplace.address,
-        latitude: workplace.latitude,
-        longitude: workplace.longitude,
-        radius: workplace.radius,
-        default_off_days: defaultOffDays.join(',')
-      };
-      await workplaceAPI.update(selectedWorkplace, payload);
-      setMessage({ type: 'success', text: '기본 휴무일이 저장되었습니다.' });
-      loadWorkplaces();
-    } catch (error) {
-      console.error('기본 휴무일 저장 오류:', error);
-      setMessage({ type: 'error', text: '기본 휴무일 저장에 실패했습니다.' });
-    } finally {
-      setDefaultOffDaysSaving(false);
-    }
-  };
 
   useEffect(() => {
     if (showModal && modalType === 'employee') {
@@ -660,63 +632,6 @@ const OwnerDashboard = () => {
           </div>
         )}
 
-        {selectedWorkplace && (
-          <div className="card" style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ color: '#374151' }}>기본 휴무일 설정</h3>
-              <button
-                className="btn btn-primary"
-                type="button"
-                onClick={handleSaveDefaultOffDays}
-                disabled={defaultOffDaysSaving}
-              >
-                {defaultOffDaysSaving ? '저장 중...' : '저장'}
-              </button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '12px' }}>
-              {['월', '화', '수', '목', '금', '토', '일'].map((day, index) => {
-                const dayValue = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'][index];
-                const isChecked = defaultOffDays.includes(dayValue);
-                return (
-                  <label
-                    key={dayValue}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '10px',
-                      borderRadius: '8px',
-                      border: isChecked ? '2px solid #0ea5e9' : '2px solid #e5e7eb',
-                      background: isChecked ? '#e0f2fe' : 'white',
-                      cursor: 'pointer',
-                      fontWeight: isChecked ? '600' : '400',
-                      color: isChecked ? '#0284c7' : '#6b7280'
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={(e) => {
-                        let next = [...defaultOffDays];
-                        if (e.target.checked) {
-                          if (!next.includes(dayValue)) next.push(dayValue);
-                        } else {
-                          next = next.filter((item) => item !== dayValue);
-                        }
-                        setDefaultOffDays(next);
-                      }}
-                      style={{ marginRight: '6px' }}
-                    />
-                    {day}
-                  </label>
-                );
-              })}
-            </div>
-            <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '8px', display: 'block' }}>
-              💡 직원별 근무 요일을 설정하지 않은 경우, 이 기본 휴무일을 적용합니다.
-            </small>
-          </div>
-        )}
 
         {!selectedWorkplace ? (
           <div className="card">

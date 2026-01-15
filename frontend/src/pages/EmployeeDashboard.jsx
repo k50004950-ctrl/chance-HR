@@ -212,6 +212,56 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const fixedHolidayMap = {
+    '01-01': '신정',
+    '03-01': '삼일절',
+    '05-05': '어린이날',
+    '06-06': '현충일',
+    '08-15': '광복절',
+    '10-03': '개천절',
+    '10-09': '한글날',
+    '12-25': '성탄절'
+  };
+
+  const getHolidayName = (dateKey) => {
+    if (!dateKey) return '';
+    const monthDay = dateKey.slice(5, 10);
+    return fixedHolidayMap[monthDay] || '';
+  };
+
+  const buildCalendarDays = () => {
+    if (!selectedMonth) return [];
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const firstWeekday = firstDay.getDay();
+    const lastDay = new Date(year, month, 0).getDate();
+
+    const attendanceByDate = new Map();
+    attendanceRecords.forEach((record) => {
+      if (record.date) {
+        attendanceByDate.set(record.date, record);
+      }
+    });
+
+    const days = [];
+    for (let i = 0; i < firstWeekday; i += 1) {
+      days.push({ empty: true, key: `empty-${i}` });
+    }
+
+    for (let day = 1; day <= lastDay; day += 1) {
+      const dayString = String(day).padStart(2, '0');
+      const dateKey = `${selectedMonth}-${dayString}`;
+      days.push({
+        key: dateKey,
+        dateKey,
+        day,
+        holiday: getHolidayName(dateKey),
+        record: attendanceByDate.get(dateKey) || null
+      });
+    }
+    return days;
+  };
+
   const handleGetCertificate = async () => {
     try {
       setLoading(true);
@@ -447,6 +497,82 @@ const EmployeeDashboard = () => {
             />
           </div>
 
+          <div style={{ marginBottom: '20px', padding: '12px', background: '#f9fafb', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '12px', color: '#6b7280' }}>
+              <span>✅ 완료</span>
+              <span>⏱ 미완료</span>
+              <span style={{ color: '#2563eb' }}>연차</span>
+              <span style={{ color: '#0ea5e9' }}>유급휴가</span>
+              <span style={{ color: '#8b5cf6' }}>무급휴가</span>
+              <span style={{ color: '#dc2626' }}>공휴일</span>
+            </div>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+            gap: '8px',
+            marginBottom: '24px'
+          }}>
+            {['일', '월', '화', '수', '목', '금', '토'].map((label) => (
+              <div
+                key={label}
+                style={{ textAlign: 'center', fontSize: '12px', color: '#6b7280', fontWeight: '600' }}
+              >
+                {label}
+              </div>
+            ))}
+            {buildCalendarDays().map((day) => {
+              if (day.empty) {
+                return <div key={day.key} style={{ height: '84px' }} />;
+              }
+              const record = day.record;
+              const holiday = day.holiday;
+              const leaveType = record?.leave_type || '';
+              const isCompleted = record?.status === 'completed';
+              const statusLabel = leaveType
+                ? (leaveType === 'annual' ? '연차' : leaveType === 'paid' ? '유급휴가' : '무급휴가')
+                : (record ? (isCompleted ? '완료' : '미완료') : '');
+
+              const statusColor = leaveType === 'annual'
+                ? '#2563eb'
+                : leaveType === 'paid'
+                  ? '#0ea5e9'
+                  : leaveType === 'unpaid'
+                    ? '#8b5cf6'
+                    : isCompleted
+                      ? '#16a34a'
+                      : '#f97316';
+
+              return (
+                <div
+                  key={day.key}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    minHeight: '84px',
+                    background: holiday ? '#fef2f2' : 'white'
+                  }}
+                >
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: holiday ? '#dc2626' : '#374151' }}>
+                    {day.day}
+                  </div>
+                  {holiday && (
+                    <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '4px' }}>
+                      {holiday}
+                    </div>
+                  )}
+                  {statusLabel && (
+                    <div style={{ fontSize: '11px', color: statusColor, marginTop: '6px', fontWeight: '600' }}>
+                      {statusLabel}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
           {attendanceRecords.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 20px', background: '#f9fafb', borderRadius: '8px' }}>
               <p style={{ fontSize: '48px', marginBottom: '16px' }}>📭</p>
@@ -491,6 +617,7 @@ const EmployeeDashboard = () => {
                   <thead>
                     <tr>
                       <th>날짜</th>
+                      <th>공휴일</th>
                       <th>출근</th>
                       <th>퇴근</th>
                       <th>근무시간</th>
@@ -501,22 +628,48 @@ const EmployeeDashboard = () => {
                     {attendanceRecords.map((record) => (
                       <tr key={record.id}>
                         <td style={{ fontWeight: '600' }}>{formatDate(record.date)}</td>
+                        <td style={{ color: getHolidayName(record.date) ? '#dc2626' : '#6b7280' }}>
+                          {getHolidayName(record.date) || '-'}
+                        </td>
                         <td>{formatTime(record.check_in_time)}</td>
                         <td>{formatTime(record.check_out_time)}</td>
                         <td style={{ fontWeight: '600', color: '#667eea' }}>
                           {record.work_hours ? `${Number(record.work_hours).toFixed(1)}h` : '-'}
                         </td>
                         <td>
-                          <span style={{
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            background: record.status === 'completed' ? '#d1fae5' : '#fee2e2',
-                            color: record.status === 'completed' ? '#065f46' : '#991b1b'
-                          }}>
-                            {record.status === 'completed' ? '✓ 완료' : '⏱ 미완료'}
-                          </span>
+                          {record.leave_type ? (
+                            <span style={{
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              background: record.leave_type === 'annual'
+                                ? '#dbeafe'
+                                : record.leave_type === 'paid'
+                                  ? '#e0f2fe'
+                                  : '#ede9fe',
+                              color: record.leave_type === 'annual'
+                                ? '#1d4ed8'
+                                : record.leave_type === 'paid'
+                                  ? '#0284c7'
+                                  : '#6d28d9'
+                            }}>
+                              {record.leave_type === 'annual' && '연차'}
+                              {record.leave_type === 'paid' && '유급휴가'}
+                              {record.leave_type === 'unpaid' && '무급휴가'}
+                            </span>
+                          ) : (
+                            <span style={{
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              background: record.status === 'completed' ? '#d1fae5' : '#fee2e2',
+                              color: record.status === 'completed' ? '#065f46' : '#991b1b'
+                            }}>
+                              {record.status === 'completed' ? '✓ 완료' : '⏱ 미완료'}
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))}

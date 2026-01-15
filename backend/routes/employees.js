@@ -511,7 +511,7 @@ router.get('/:id/employment-certificate', authenticate, async (req, res) => {
       `SELECT u.id, u.username, u.name, u.created_at, u.workplace_id,
               u.ssn, u.address, ed.hire_date, ed.position, ed.department,
               w.name as workplace_name, w.address as workplace_address,
-              owner.business_number as business_number,
+              owner.name as owner_name, owner.business_number as business_number,
               si.salary_type, si.amount
        FROM users u
        LEFT JOIN employee_details ed ON u.id = ed.user_id
@@ -552,6 +552,7 @@ router.get('/:id/employment-certificate', authenticate, async (req, res) => {
       businessNumber: employeeInfo.business_number,
       salaryType: employeeInfo.salary_type,
       amount: employeeInfo.amount,
+      ownerName: employeeInfo.owner_name || null,
       issueDate: new Date().toISOString().split('T')[0]
     });
   } catch (error) {

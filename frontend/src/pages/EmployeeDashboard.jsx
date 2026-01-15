@@ -638,8 +638,24 @@ const EmployeeDashboard = () => {
                     <div style={{ fontSize: '24px', fontWeight: '700' }}>
                       {certificateData.workplaceName}
                     </div>
-                    <div style={{ marginTop: '20px', fontSize: '18px' }}>
-                      (인)
+                    <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
+                      <div style={{
+                        width: '120px',
+                        height: '120px',
+                        borderRadius: '50%',
+                        border: '2px solid #b91c1c',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#b91c1c',
+                        fontWeight: '700',
+                        fontSize: '14px',
+                        lineHeight: '1.4'
+                      }}>
+                        <div>{certificateData.ownerName ? `대표 ${certificateData.ownerName}` : '대표자'}</div>
+                        <div style={{ fontSize: '16px' }}>(인)</div>
+                      </div>
                     </div>
                   </div>
                 </div>

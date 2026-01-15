@@ -510,11 +510,13 @@ router.get('/:id/employment-certificate', authenticate, async (req, res) => {
     const employeeInfo = await get(
       `SELECT u.id, u.username, u.name, u.created_at, u.workplace_id,
               u.ssn, u.address, ed.hire_date, ed.position, ed.department,
-              w.name as workplace_name, w.address as workplace_address, w.business_number,
+              w.name as workplace_name, w.address as workplace_address,
+              owner.business_number as business_number,
               si.salary_type, si.amount
        FROM users u
        LEFT JOIN employee_details ed ON u.id = ed.user_id
        LEFT JOIN workplaces w ON u.workplace_id = w.id
+       LEFT JOIN users owner ON w.owner_id = owner.id
        LEFT JOIN salary_info si ON u.id = si.user_id
        WHERE u.id = ? AND u.role = 'employee'`,
       [employeeId]

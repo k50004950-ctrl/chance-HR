@@ -15,11 +15,53 @@ const EmployeeDashboard = () => {
   const [locationLoading, setLocationLoading] = useState(false);
   const [showCertificateModal, setShowCertificateModal] = useState(false);
   const [certificateData, setCertificateData] = useState(null);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [consentData, setConsentData] = useState({ privacy_consent: false, location_consent: false });
 
   useEffect(() => {
+    checkConsent();
     loadTodayStatus();
     loadAttendanceRecords();
   }, []);
+
+  const checkConsent = async () => {
+    try {
+      const response = await employeeAPI.getById(user.id);
+      const employee = response.data;
+      
+      // 동의하지 않은 경우 모달 표시
+      if (!employee.privacy_consent || !employee.location_consent) {
+        setShowConsentModal(true);
+      }
+    } catch (error) {
+      console.error('동의 여부 확인 오류:', error);
+    }
+  };
+
+  const handleConsent = async () => {
+    if (!consentData.privacy_consent || !consentData.location_consent) {
+      setMessage({ type: 'error', text: '모든 동의 항목에 체크해주세요.' });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append('privacy_consent', '1');
+      formData.append('privacy_consent_date', new Date().toISOString());
+      formData.append('location_consent', '1');
+      formData.append('location_consent_date', new Date().toISOString());
+
+      await employeeAPI.update(user.id, formData);
+      setShowConsentModal(false);
+      setMessage({ type: 'success', text: '동의가 완료되었습니다.' });
+    } catch (error) {
+      console.error('동의 처리 오류:', error);
+      setMessage({ type: 'error', text: '동의 처리에 실패했습니다.' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadAttendanceRecords();
@@ -589,6 +631,138 @@ const EmployeeDashboard = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 개인정보 동의 모달 */}
+        {showConsentModal && (
+          <div className="modal-overlay" style={{ zIndex: 9999 }}>
+            <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
+              <div className="modal-header" style={{ background: '#667eea', color: 'white' }}>
+                🔒 개인정보 수집·이용 동의 (필수)
+              </div>
+
+              <div style={{ padding: '20px' }}>
+                <div style={{ marginBottom: '24px', padding: '16px', background: '#fef3c7', borderRadius: '8px', border: '2px solid #fbbf24' }}>
+                  <p style={{ fontSize: '14px', color: '#92400e', margin: 0, lineHeight: '1.6' }}>
+                    <strong>⚠️ 안내</strong><br/>
+                    서비스를 이용하시려면 아래 개인정보 및 위치정보 수집·이용에 대한 동의가 필요합니다.<br/>
+                    동의하지 않으시면 시스템을 이용하실 수 없습니다.
+                  </p>
+                </div>
+
+                {/* 개인정보 동의서 */}
+                <div style={{ padding: '20px', background: '#f9fafb', borderRadius: '8px', marginBottom: '20px', fontSize: '13px', lineHeight: '1.8', border: '2px solid #e5e7eb' }}>
+                  <h5 style={{ color: '#374151', marginBottom: '16px', fontSize: '16px', fontWeight: '700', borderBottom: '2px solid #d1d5db', paddingBottom: '8px' }}>
+                    📋 개인정보 수집·이용 동의서
+                  </h5>
+                  <div style={{ marginBottom: '12px' }}>
+                    <strong>■ 수집하는 개인정보 항목</strong><br/>
+                    이름, 주민등록번호, 연락처(전화번호), 이메일, 주소, 비상연락처
+                  </div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <strong>■ 수집·이용 목적</strong><br/>
+                    • 인사관리 및 근로계약 관리<br/>
+                    • 급여계산 및 4대보험 가입·관리<br/>
+                    • 근태관리 및 출퇴근 기록 관리<br/>
+                    • 긴급 상황 시 연락
+                  </div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <strong>■ 보유 및 이용 기간</strong><br/>
+                    근로관계 종료 후 5년 (근로기준법 제42조)
+                  </div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <strong>■ 동의를 거부할 권리 및 불이익</strong><br/>
+                    귀하는 개인정보 수집·이용에 대한 동의를 거부할 권리가 있습니다.<br/>
+                    다만, 동의를 거부하실 경우 근로계약 체결 및 시스템 이용이 불가능합니다.
+                  </div>
+                </div>
+
+                {/* 위치정보 동의서 */}
+                <div style={{ padding: '20px', background: '#eff6ff', borderRadius: '8px', marginBottom: '24px', fontSize: '13px', lineHeight: '1.8', border: '3px solid #3b82f6' }}>
+                  <h5 style={{ color: '#1e40af', marginBottom: '16px', fontSize: '16px', fontWeight: '700', borderBottom: '2px solid #93c5fd', paddingBottom: '8px' }}>
+                    📍 위치정보 수집·이용 동의서
+                  </h5>
+                  <div style={{ marginBottom: '12px' }}>
+                    <strong>■ 수집하는 위치정보</strong><br/>
+                    GPS 좌표 (위도, 경도)
+                  </div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <strong>■ 수집·이용 목적</strong><br/>
+                    <span style={{ color: '#dc2626', fontWeight: '600' }}>출퇴근 체크 시 근무지 확인 용도 전용</span>
+                  </div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <strong>■ 보유 및 이용 기간</strong><br/>
+                    출퇴근 기록과 함께 5년
+                  </div>
+                  <div style={{ background: '#fef3c7', padding: '16px', borderRadius: '6px', marginTop: '16px', border: '2px solid #fbbf24' }}>
+                    <strong style={{ color: '#92400e', fontSize: '14px' }}>⚠️ 중요 안내사항</strong>
+                    <div style={{ color: '#78350f', marginTop: '12px', lineHeight: '1.8' }}>
+                      1. 위치정보는 <strong style={{ background: '#fde68a', padding: '2px 6px', borderRadius: '4px' }}>출퇴근 확인 목적으로만</strong> 사용됩니다.<br/>
+                      2. 근무 시간 외 위치 추적은 <strong style={{ background: '#fde68a', padding: '2px 6px', borderRadius: '4px' }}>절대 하지 않습니다</strong>.<br/>
+                      3. 수집된 위치정보는 <strong style={{ background: '#fde68a', padding: '2px 6px', borderRadius: '4px' }}>목적 외 사용이 엄격히 금지</strong>됩니다.<br/>
+                      4. 본인의 동의 없이 제3자에게 제공되지 않습니다.
+                    </div>
+                  </div>
+                </div>
+
+                {/* 동의 체크박스 */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', cursor: 'pointer', padding: '16px', background: '#f0fdf4', borderRadius: '8px', border: '2px solid #86efac' }}>
+                    <input
+                      type="checkbox"
+                      checked={consentData.privacy_consent}
+                      onChange={(e) => setConsentData({ ...consentData, privacy_consent: e.target.checked })}
+                      style={{ marginTop: '4px', marginRight: '12px', width: '20px', height: '20px', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '14px', lineHeight: '1.6', color: '#065f46' }}>
+                      <strong>[필수]</strong> 위 개인정보 수집·이용에 대한 내용을 충분히 읽었으며, 이에 동의합니다.
+                    </span>
+                  </label>
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', cursor: 'pointer', padding: '16px', background: '#eff6ff', borderRadius: '8px', border: '2px solid #93c5fd' }}>
+                    <input
+                      type="checkbox"
+                      checked={consentData.location_consent}
+                      onChange={(e) => setConsentData({ ...consentData, location_consent: e.target.checked })}
+                      style={{ marginTop: '4px', marginRight: '12px', width: '20px', height: '20px', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '14px', lineHeight: '1.6', color: '#1e40af' }}>
+                      <strong>[필수]</strong> 위 위치정보 수집·이용에 대한 내용을 충분히 읽었으며, 출퇴근 확인 목적에 한하여 위치정보 수집·이용에 동의합니다.
+                    </span>
+                  </label>
+                </div>
+
+                {message.text && (
+                  <div className={`alert alert-${message.type}`} style={{ marginBottom: '16px' }}>
+                    {message.text}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleConsent}
+                    disabled={loading || !consentData.privacy_consent || !consentData.location_consent}
+                    style={{
+                      padding: '14px 40px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      opacity: (!consentData.privacy_consent || !consentData.location_consent) ? 0.5 : 1
+                    }}
+                  >
+                    {loading ? '처리 중...' : '동의하고 시작하기'}
+                  </button>
+                </div>
+
+                <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px', color: '#6b7280' }}>
+                  * 동의일: {new Date().toLocaleDateString('ko-KR')}
+                </p>
               </div>
             </div>
           </div>

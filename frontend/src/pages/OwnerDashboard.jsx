@@ -288,23 +288,6 @@ const OwnerDashboard = () => {
       formDataToSend.append('work_days', JSON.stringify(workDaysArray));
       console.log('work_days from DOM:', JSON.stringify(workDaysArray));
       
-      // 개인정보 동의 처리
-      const privacyConsentElement = form.querySelector('input[name="privacy_consent"]');
-      if (privacyConsentElement) {
-        formDataToSend.append('privacy_consent', privacyConsentElement.checked ? '1' : '0');
-        if (privacyConsentElement.checked && !formData.id) {
-          formDataToSend.append('privacy_consent_date', new Date().toISOString());
-        }
-      }
-      
-      const locationConsentElement = form.querySelector('input[name="location_consent"]');
-      if (locationConsentElement) {
-        formDataToSend.append('location_consent', locationConsentElement.checked ? '1' : '0');
-        if (locationConsentElement.checked && !formData.id) {
-          formDataToSend.append('location_consent_date', new Date().toISOString());
-        }
-      }
-      
       // 파일 추가
       const fileFields = ['contract_file', 'resume_file', 'id_card_file', 'family_cert_file'];
       fileFields.forEach(field => {
@@ -1597,77 +1580,10 @@ const OwnerDashboard = () => {
                 </div>
               </div>
 
-              <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
-                개인정보 수집·이용 동의
-              </h4>
-
-              <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '8px', marginBottom: '20px', fontSize: '13px', lineHeight: '1.8' }}>
-                <h5 style={{ color: '#374151', marginBottom: '12px', fontSize: '14px', fontWeight: '600' }}>📋 개인정보 수집·이용 안내</h5>
-                <div style={{ marginBottom: '12px' }}>
-                  <strong>수집 항목:</strong> 이름, 주민등록번호, 연락처, 이메일, 주소, 비상연락처
-                </div>
-                <div style={{ marginBottom: '12px' }}>
-                  <strong>수집 목적:</strong> 인사관리, 급여계산, 4대보험 가입, 근태관리
-                </div>
-                <div style={{ marginBottom: '12px' }}>
-                  <strong>보유 기간:</strong> 근로관계 종료 후 5년 (근로기준법)
-                </div>
-                <div style={{ color: '#dc2626', fontSize: '12px' }}>
-                  ※ 동의를 거부할 권리가 있으나, 거부 시 근로계약 체결이 불가능합니다.
-                </div>
-              </div>
-
-              <div style={{ padding: '16px', background: '#eff6ff', borderRadius: '8px', marginBottom: '20px', fontSize: '13px', lineHeight: '1.8', border: '2px solid #3b82f6' }}>
-                <h5 style={{ color: '#1e40af', marginBottom: '12px', fontSize: '14px', fontWeight: '600' }}>📍 위치정보 수집·이용 안내</h5>
-                <div style={{ marginBottom: '12px' }}>
-                  <strong>수집 항목:</strong> GPS 좌표 (위도, 경도)
-                </div>
-                <div style={{ marginBottom: '12px' }}>
-                  <strong>수집 목적:</strong> 출퇴근 체크 시 근무지 확인 <span style={{ color: '#dc2626', fontWeight: '600' }}>전용</span>
-                </div>
-                <div style={{ marginBottom: '12px' }}>
-                  <strong>보유 기간:</strong> 출퇴근 기록과 함께 5년
-                </div>
-                <div style={{ background: '#fef3c7', padding: '12px', borderRadius: '6px', marginTop: '12px' }}>
-                  <strong style={{ color: '#92400e' }}>⚠️ 중요 안내</strong>
-                  <div style={{ color: '#78350f', marginTop: '8px' }}>
-                    • 위치정보는 <strong>출퇴근 확인 목적으로만</strong> 사용됩니다.<br/>
-                    • 근무 시간 외 위치 추적은 <strong>절대 하지 않습니다</strong>.<br/>
-                    • 수집된 위치정보는 <strong>목적 외 사용이 금지</strong>됩니다.
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '2px solid #86efac' }}>
-                  <input
-                    type="checkbox"
-                    name="privacy_consent"
-                    checked={formData.privacy_consent || false}
-                    onChange={(e) => setFormData({ ...formData, privacy_consent: e.target.checked })}
-                    required
-                    style={{ marginRight: '12px', width: '18px', height: '18px', cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#065f46' }}>
-                    [필수] 개인정보 수집·이용에 동의합니다
-                  </span>
-                </label>
-              </div>
-
-              <div className="form-group">
-                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '12px', background: '#eff6ff', borderRadius: '8px', border: '2px solid #93c5fd' }}>
-                  <input
-                    type="checkbox"
-                    name="location_consent"
-                    checked={formData.location_consent || false}
-                    onChange={(e) => setFormData({ ...formData, location_consent: e.target.checked })}
-                    required
-                    style={{ marginRight: '12px', width: '18px', height: '18px', cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e40af' }}>
-                    [필수] 위치정보 수집·이용에 동의합니다 (출퇴근 확인 전용)
-                  </span>
-                </label>
+              <div style={{ padding: '12px', background: '#fffbeb', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fbbf24' }}>
+                <p style={{ fontSize: '13px', color: '#92400e', margin: 0 }}>
+                  💡 <strong>개인정보 수집 동의</strong>는 직원이 최초 로그인 시 직접 진행합니다.
+                </p>
               </div>
 
               <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151' }}>급여 정보</h4>

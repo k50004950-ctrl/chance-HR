@@ -65,7 +65,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       u.emergency_contact, u.emergency_phone, u.employment_status,
       ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file,
       ed.work_start_time, ed.work_end_time, ed.work_days, ed.id_card_file, ed.family_cert_file,
-      ed.resignation_date,
+      ed.resignation_date, ed.privacy_consent, ed.location_consent,
       si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
     FROM users u
     LEFT JOIN employee_details ed ON u.id = ed.user_id
@@ -90,7 +90,7 @@ router.get('/:id', authenticate, async (req, res) => {
         u.emergency_contact, u.emergency_phone, u.workplace_id, u.employment_status,
         ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file, ed.notes,
         ed.work_start_time, ed.work_end_time, ed.work_days, ed.id_card_file, ed.family_cert_file,
-        ed.resignation_date,
+        ed.resignation_date, ed.privacy_consent, ed.location_consent,
         si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
       FROM users u
       LEFT JOIN employee_details ed ON u.id = ed.user_id
@@ -168,10 +168,10 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
     const idCardFile = req.files && req.files['id_card_file'] ? req.files['id_card_file'][0].filename : null;
     const familyCertFile = req.files && req.files['family_cert_file'] ? req.files['family_cert_file'][0].filename : null;
 
-    // 직원 상세정보 등록
+    // 직원 상세정보 등록 (동의는 직원이 직접 진행)
     await run(
       'INSERT INTO employee_details (user_id, workplace_id, hire_date, position, department, contract_file, resume_file, id_card_file, family_cert_file, notes, work_start_time, work_end_time, work_days, resignation_date, privacy_consent, privacy_consent_date, location_consent, location_consent_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, workplace_id, hire_date, position, department, contractFile, resumeFile, idCardFile, familyCertFile, notes, work_start_time, work_end_time, work_days, resignation_date || null, privacy_consent || 0, privacy_consent_date || null, location_consent || 0, location_consent_date || null]
+      [userId, workplace_id, hire_date, position, department, contractFile, resumeFile, idCardFile, familyCertFile, notes, work_start_time, work_end_time, work_days, resignation_date || null, 0, null, 0, null]
     );
 
     // 급여 정보 등록
@@ -314,6 +314,27 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     if (familyCertFile) {
       updateQuery += ', family_cert_file = ?';
       updateParams.push(familyCertFile);
+    }
+    
+    // 동의 정보 업데이트 (직원이 직접 동의한 경우)
+    if (privacy_consent !== undefined) {
+      updateQuery += ', privacy_consent = ?';
+      updateParams.push(privacy_consent);
+    }
+    
+    if (privacy_consent_date !== undefined) {
+      updateQuery += ', privacy_consent_date = ?';
+      updateParams.push(privacy_consent_date);
+    }
+    
+    if (location_consent !== undefined) {
+      updateQuery += ', location_consent = ?';
+      updateParams.push(location_consent);
+    }
+    
+    if (location_consent_date !== undefined) {
+      updateQuery += ', location_consent_date = ?';
+      updateParams.push(location_consent_date);
     }
     
     updateQuery += ' WHERE user_id = ?';

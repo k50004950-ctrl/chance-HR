@@ -278,13 +278,24 @@ const EmployeeDashboard = () => {
             </div>
           )}
           
-          <div className="grid grid-2" style={{ marginBottom: '20px' }}>
+          {(() => {
+            const hasCheckInLocation = todayStatus?.record?.check_in_lat !== null
+              && todayStatus?.record?.check_in_lat !== undefined
+              || todayStatus?.record?.check_in_latitude !== null
+              && todayStatus?.record?.check_in_latitude !== undefined;
+            const hasCheckOutLocation = todayStatus?.record?.check_out_lat !== null
+              && todayStatus?.record?.check_out_lat !== undefined
+              || todayStatus?.record?.check_out_latitude !== null
+              && todayStatus?.record?.check_out_latitude !== undefined;
+
+            return (
+              <div className="grid grid-2" style={{ marginBottom: '20px' }}>
             <div style={{ padding: '20px', background: '#f0fdf4', borderRadius: '12px', border: '2px solid #d1fae5' }}>
               <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>🏢 출근 시간</div>
               <div style={{ fontSize: '24px', fontWeight: '700', color: '#10b981' }}>
                 {todayStatus?.record?.check_in_time ? formatTime(todayStatus.record.check_in_time) : '미체크'}
               </div>
-              {todayStatus?.record?.check_in_latitude && (
+              {hasCheckInLocation && (
                 <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
                   위치 기록됨 ✓
                 </div>
@@ -295,13 +306,15 @@ const EmployeeDashboard = () => {
               <div style={{ fontSize: '24px', fontWeight: '700', color: '#f59e0b' }}>
                 {todayStatus?.record?.check_out_time ? formatTime(todayStatus.record.check_out_time) : '미체크'}
               </div>
-              {todayStatus?.record?.check_out_latitude && (
+              {hasCheckOutLocation && (
                 <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
                   위치 기록됨 ✓
                 </div>
               )}
             </div>
-          </div>
+              </div>
+            );
+          })()}
 
           <div style={{
             padding: '16px',

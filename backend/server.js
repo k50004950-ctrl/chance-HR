@@ -19,6 +19,7 @@ import salaryRoutes from './routes/salary.js';
 import seedRoutes from './routes/seed.js';
 import pastEmployeesRoutes from './routes/pastEmployees.js';
 import salaryHistoryRoutes from './routes/salaryHistory.js';
+import pastPayrollRoutes from './routes/pastPayroll.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -67,6 +68,7 @@ app.use('/api/salary', salaryRoutes);
 app.use('/api/seed', seedRoutes);
 app.use('/api/past-employees', pastEmployeesRoutes);
 app.use('/api/salary-history', salaryHistoryRoutes);
+app.use('/api/past-payroll', pastPayrollRoutes);
 
 // 기본 라우트
 app.get('/', (req, res) => {

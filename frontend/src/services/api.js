@@ -131,6 +131,13 @@ export const pastEmployeeAPI = {
   delete: (id) => api.delete(`/past-employees/${id}`)
 };
 
+// 과거 급여 기록 API (시스템 도입 전)
+export const pastPayrollAPI = {
+  getByEmployee: (employeeId) => api.get(`/past-payroll/${employeeId}`),
+  create: (employeeId, data) => api.post(`/past-payroll/${employeeId}`, data),
+  delete: (employeeId, recordId) => api.delete(`/past-payroll/${employeeId}/${recordId}`)
+};
+
 // 급여 변경 이력 API
 export const salaryHistoryAPI = {
   getHistory: (employeeId) => api.get(`/salary-history/${employeeId}`)

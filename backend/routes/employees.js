@@ -65,7 +65,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       u.emergency_contact, u.emergency_phone, u.employment_status,
       ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file,
       ed.work_start_time, ed.work_end_time, ed.work_days, ed.id_card_file, ed.family_cert_file,
-      ed.resignation_date, ed.privacy_consent, ed.location_consent,
+      ed.resignation_date, ed.privacy_consent, ed.privacy_consent_date, ed.location_consent, ed.location_consent_date,
       si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
     FROM users u
     LEFT JOIN employee_details ed ON u.id = ed.user_id

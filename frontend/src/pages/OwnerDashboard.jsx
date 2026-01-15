@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI } from '../services/api';
+import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
 import ConsentInfo from '../components/ConsentInfo';
@@ -24,6 +24,14 @@ const OwnerDashboard = () => {
   const [pastEmployees, setPastEmployees] = useState([]);
   const [salaryHistory, setSalaryHistory] = useState(null);
   const [employmentStatusFilter, setEmploymentStatusFilter] = useState('all');
+  const [pastPayrollRecords, setPastPayrollRecords] = useState([]);
+  const [pastPayrollForm, setPastPayrollForm] = useState({
+    start_date: '',
+    end_date: '',
+    salary_type: 'monthly',
+    amount: '',
+    notes: ''
+  });
 
   useEffect(() => {
     loadWorkplaces();
@@ -43,6 +51,16 @@ const OwnerDashboard = () => {
       }
     }
   }, [selectedWorkplace, activeTab, selectedMonth]);
+
+  useEffect(() => {
+    if (showModal && modalType === 'employee') {
+      if (formData.id) {
+        loadPastPayroll(formData.id);
+      } else {
+        setPastPayrollRecords([]);
+      }
+    }
+  }, [showModal, modalType, formData.id]);
 
   const loadWorkplaces = async () => {
     try {
@@ -174,6 +192,57 @@ const OwnerDashboard = () => {
     }
   };
 
+  const loadPastPayroll = async (employeeId) => {
+    try {
+      const response = await pastPayrollAPI.getByEmployee(employeeId);
+      setPastPayrollRecords(response.data);
+    } catch (error) {
+      console.error('과거 급여 기록 조회 오류:', error);
+      setPastPayrollRecords([]);
+    }
+  };
+
+  const handleAddPastPayroll = async (employeeId) => {
+    if (!pastPayrollForm.start_date || !pastPayrollForm.end_date || !pastPayrollForm.amount) {
+      setMessage({ type: 'error', text: '기간과 금액을 입력해주세요.' });
+      return;
+    }
+
+    try {
+      await pastPayrollAPI.create(employeeId, {
+        ...pastPayrollForm,
+        amount: Number(pastPayrollForm.amount)
+      });
+      setMessage({ type: 'success', text: '과거 급여 기록이 등록되었습니다.' });
+      setPastPayrollForm({
+        start_date: '',
+        end_date: '',
+        salary_type: 'monthly',
+        amount: '',
+        notes: ''
+      });
+      loadPastPayroll(employeeId);
+    } catch (error) {
+      console.error('과거 급여 기록 등록 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '등록에 실패했습니다.' });
+    }
+  };
+
+  const handleDeletePastPayroll = async (employeeId, recordId) => {
+    if (!window.confirm('이 과거 급여 기록을 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      await pastPayrollAPI.delete(employeeId, recordId);
+      setMessage({ type: 'success', text: '과거 급여 기록이 삭제되었습니다.' });
+      loadPastPayroll(employeeId);
+    } catch (error) {
+      console.error('과거 급여 기록 삭제 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '삭제에 실패했습니다.' });
+    }
+  };
+
   const handleViewSalaryHistory = async (employeeId, employeeName) => {
     try {
       const response = await salaryHistoryAPI.getHistory(employeeId);
@@ -202,6 +271,14 @@ const OwnerDashboard = () => {
   const closeModal = () => {
     setShowModal(false);
     setFormData({});
+    setPastPayrollRecords([]);
+    setPastPayrollForm({
+      start_date: '',
+      end_date: '',
+      salary_type: 'monthly',
+      amount: '',
+      notes: ''
+    });
   };
 
   const handleInputChange = (e) => {
@@ -1545,6 +1622,120 @@ const OwnerDashboard = () => {
                   <p style={{ fontSize: '13px', color: '#92400e', margin: 0 }}>
                     💡 <strong>개인정보 수집 동의</strong>는 직원이 최초 로그인 시 직접 진행합니다.
                   </p>
+                </div>
+              )}
+
+              {formData.id && (
+                <div style={{ marginBottom: '24px' }}>
+                  <h4 style={{ marginBottom: '12px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
+                    🧾 시스템 도입 전 과거 급여 기록
+                  </h4>
+                  <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '12px' }}>
+                    시스템 도입 이전에 이미 근무 중인 직원의 급여 이력을 입력합니다.
+                  </p>
+
+                  <div className="grid grid-2" style={{ marginBottom: '12px' }}>
+                    <div className="form-group">
+                      <label className="form-label">시작일</label>
+                      <input
+                        type="date"
+                        className="form-input"
+                        value={pastPayrollForm.start_date}
+                        onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, start_date: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">종료일</label>
+                      <input
+                        type="date"
+                        className="form-input"
+                        value={pastPayrollForm.end_date}
+                        onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, end_date: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">급여 유형</label>
+                      <select
+                        className="form-input"
+                        value={pastPayrollForm.salary_type}
+                        onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, salary_type: e.target.value })}
+                      >
+                        <option value="hourly">시급</option>
+                        <option value="monthly">월급</option>
+                        <option value="annual">연봉</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">금액</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        placeholder="예: 2500000"
+                        value={pastPayrollForm.amount}
+                        onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, amount: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">비고</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="예: 시스템 도입 전 급여"
+                      value={pastPayrollForm.notes}
+                      onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, notes: e.target.value })}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ marginBottom: '16px' }}
+                    onClick={() => handleAddPastPayroll(formData.id)}
+                  >
+                    + 과거 급여 기록 추가
+                  </button>
+
+                  {pastPayrollRecords.length > 0 ? (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>기간</th>
+                            <th>급여유형</th>
+                            <th>금액</th>
+                            <th>비고</th>
+                            <th>관리</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pastPayrollRecords.map((record) => (
+                            <tr key={record.id}>
+                              <td style={{ fontSize: '12px' }}>
+                                {formatDate(record.start_date)} ~ {formatDate(record.end_date)}
+                              </td>
+                              <td>{getSalaryTypeName(record.salary_type)}</td>
+                              <td>{Number(record.amount).toLocaleString()}원</td>
+                              <td style={{ fontSize: '12px', color: '#6b7280' }}>{record.notes || '-'}</td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="btn btn-danger"
+                                  style={{ padding: '6px 10px', fontSize: '12px' }}
+                                  onClick={() => handleDeletePastPayroll(formData.id, record.id)}
+                                >
+                                  삭제
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p style={{ color: '#9ca3af', fontSize: '12px' }}>등록된 과거 급여 기록이 없습니다.</p>
+                  )}
                 </div>
               )}
 

@@ -187,6 +187,16 @@ export const initDatabase = async () => {
           user_id INTEGER UNIQUE NOT NULL,
           workplace_id INTEGER,
           hire_date DATE,
+          gender VARCHAR(10),
+          birth_date DATE,
+          career TEXT,
+          job_type VARCHAR(255),
+          employment_renewal_date DATE,
+          contract_start_date DATE,
+          contract_end_date DATE,
+          employment_notes TEXT,
+          separation_type VARCHAR(50),
+          separation_reason TEXT,
           position VARCHAR(255),
           department VARCHAR(255),
           contract_file VARCHAR(500),
@@ -209,6 +219,37 @@ export const initDatabase = async () => {
           console.error('Error adding work_days column to employee_details:', e);
         }
       }
+
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN gender VARCHAR(10)`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN birth_date DATE`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN career TEXT`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN job_type VARCHAR(255)`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN employment_renewal_date DATE`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN contract_start_date DATE`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN contract_end_date DATE`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN employment_notes TEXT`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN separation_type VARCHAR(50)`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN separation_reason TEXT`);
+      } catch (e) {}
       
       // Add id_card_file and family_cert_file columns if they don't exist
       try {
@@ -474,6 +515,16 @@ export const initDatabase = async () => {
             user_id INTEGER UNIQUE NOT NULL,
             workplace_id INTEGER,
             hire_date DATE,
+          gender TEXT,
+          birth_date DATE,
+          career TEXT,
+          job_type TEXT,
+          employment_renewal_date DATE,
+          contract_start_date DATE,
+          contract_end_date DATE,
+          employment_notes TEXT,
+          separation_type TEXT,
+          separation_reason TEXT,
             position TEXT,
             department TEXT,
             contract_file TEXT,
@@ -497,6 +548,36 @@ export const initDatabase = async () => {
       } catch (e) {}
       try {
         await run(`ALTER TABLE employee_details ADD COLUMN work_days TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN gender TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN birth_date DATE`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN career TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN job_type TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN employment_renewal_date DATE`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN contract_start_date DATE`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN contract_end_date DATE`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN employment_notes TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN separation_type TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN separation_reason TEXT`);
       } catch (e) {}
       try {
         await run(`ALTER TABLE employee_details ADD COLUMN id_card_file TEXT`);

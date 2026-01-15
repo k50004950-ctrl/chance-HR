@@ -63,7 +63,10 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
     SELECT 
       u.id, u.username, u.name, u.phone, u.email, u.ssn, u.address,
       u.emergency_contact, u.emergency_phone, u.employment_status,
-      ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file,
+      ed.hire_date, ed.gender, ed.birth_date, ed.career, ed.job_type,
+      ed.employment_renewal_date, ed.contract_start_date, ed.contract_end_date,
+      ed.employment_notes, ed.separation_type, ed.separation_reason,
+      ed.position, ed.department, ed.contract_file, ed.resume_file,
       ed.work_start_time, ed.work_end_time, ed.work_days, ed.id_card_file, ed.family_cert_file,
       ed.resignation_date, ed.privacy_consent, ed.privacy_consent_date, ed.location_consent, ed.location_consent_date,
       si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
@@ -88,7 +91,10 @@ router.get('/:id', authenticate, async (req, res) => {
       SELECT 
         u.id, u.username, u.name, u.phone, u.email, u.ssn, u.address,
         u.emergency_contact, u.emergency_phone, u.workplace_id, u.employment_status,
-        ed.hire_date, ed.position, ed.department, ed.contract_file, ed.resume_file, ed.notes,
+        ed.hire_date, ed.gender, ed.birth_date, ed.career, ed.job_type,
+        ed.employment_renewal_date, ed.contract_start_date, ed.contract_end_date,
+        ed.employment_notes, ed.separation_type, ed.separation_reason,
+        ed.position, ed.department, ed.contract_file, ed.resume_file, ed.notes,
         ed.work_start_time, ed.work_end_time, ed.work_days, ed.id_card_file, ed.family_cert_file,
         ed.resignation_date, ed.privacy_consent, ed.location_consent,
         si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
@@ -161,7 +167,9 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
     let {
       username, password, name, phone, email, ssn, address,
       emergency_contact, emergency_phone, workplace_id,
-      hire_date, position, department, notes,
+      hire_date, gender, birth_date, career, job_type, employment_renewal_date,
+      contract_start_date, contract_end_date, employment_notes, separation_type, separation_reason,
+      position, department, notes,
       work_start_time, work_end_time, work_days,
       salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type,
       employment_status, resignation_date,
@@ -208,8 +216,22 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
 
     // 직원 상세정보 등록 (동의는 직원이 직접 진행)
     await run(
-      'INSERT INTO employee_details (user_id, workplace_id, hire_date, position, department, contract_file, resume_file, id_card_file, family_cert_file, notes, work_start_time, work_end_time, work_days, resignation_date, privacy_consent, privacy_consent_date, location_consent, location_consent_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, workplace_id, hire_date, position, department, contractFile, resumeFile, idCardFile, familyCertFile, notes, work_start_time, work_end_time, work_days, resignation_date || null, 0, null, 0, null]
+      `INSERT INTO employee_details (
+        user_id, workplace_id, hire_date, gender, birth_date, career, job_type,
+        employment_renewal_date, contract_start_date, contract_end_date,
+        employment_notes, separation_type, separation_reason,
+        position, department, contract_file, resume_file, id_card_file, family_cert_file,
+        notes, work_start_time, work_end_time, work_days, resignation_date,
+        privacy_consent, privacy_consent_date, location_consent, location_consent_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId, workplace_id, hire_date, gender, birth_date, career, job_type,
+        employment_renewal_date, contract_start_date, contract_end_date,
+        employment_notes, separation_type, separation_reason,
+        position, department, contractFile, resumeFile, idCardFile, familyCertFile,
+        notes, work_start_time, work_end_time, work_days, resignation_date || null,
+        0, null, 0, null
+      ]
     );
 
     // 급여 정보 등록
@@ -248,7 +270,9 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     
     let {
       name, phone, email, ssn, address, emergency_contact, emergency_phone,
-      hire_date, position, department, notes,
+      hire_date, gender, birth_date, career, job_type, employment_renewal_date,
+      contract_start_date, contract_end_date, employment_notes, separation_type, separation_reason,
+      position, department, notes,
       work_start_time, work_end_time, work_days,
       salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type,
       employment_status, resignation_date,
@@ -332,8 +356,17 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     const familyCertFile = req.files && req.files['family_cert_file'] ? req.files['family_cert_file'][0].filename : undefined;
 
     // 직원 상세정보 수정
-    let updateQuery = 'UPDATE employee_details SET hire_date = ?, position = ?, department = ?, notes = ?, work_start_time = ?, work_end_time = ?, work_days = ?, resignation_date = ?';
-    let updateParams = [hire_date, position, department, notes, work_start_time, work_end_time, work_days, resignation_date || null];
+    let updateQuery = `UPDATE employee_details SET 
+      hire_date = ?, gender = ?, birth_date = ?, career = ?, job_type = ?,
+      employment_renewal_date = ?, contract_start_date = ?, contract_end_date = ?,
+      employment_notes = ?, separation_type = ?, separation_reason = ?,
+      position = ?, department = ?, notes = ?, work_start_time = ?, work_end_time = ?, work_days = ?, resignation_date = ?`;
+    let updateParams = [
+      hire_date, gender, birth_date, career, job_type,
+      employment_renewal_date, contract_start_date, contract_end_date,
+      employment_notes, separation_type, separation_reason,
+      position, department, notes, work_start_time, work_end_time, work_days, resignation_date || null
+    ];
     
     if (contractFile) {
       updateQuery += ', contract_file = ?';

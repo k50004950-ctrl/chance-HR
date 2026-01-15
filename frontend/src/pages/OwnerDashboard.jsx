@@ -271,6 +271,10 @@ const OwnerDashboard = () => {
     const newFormData = {
       ...data,
       hire_date: normalizeDate(data.hire_date),
+      birth_date: normalizeDate(data.birth_date),
+      employment_renewal_date: normalizeDate(data.employment_renewal_date),
+      contract_start_date: normalizeDate(data.contract_start_date),
+      contract_end_date: normalizeDate(data.contract_end_date),
       resignation_date: normalizeDate(data.resignation_date),
       workplace_id: selectedWorkplace
     };
@@ -329,7 +333,9 @@ const OwnerDashboard = () => {
       // 모든 텍스트 필드를 DOM에서 직접 읽기
       const textFields = [
         'username', 'password', 'name', 'phone', 'email', 'ssn', 'address',
-        'emergency_contact', 'emergency_phone', 'hire_date', 'position',
+        'emergency_contact', 'emergency_phone', 'hire_date', 'gender', 'birth_date',
+        'career', 'job_type', 'employment_renewal_date', 'contract_start_date', 'contract_end_date',
+        'employment_notes', 'separation_type', 'separation_reason', 'position',
         'department', 'notes', 'work_start_time', 'work_end_time', 'employment_status', 'resignation_date'
       ];
       
@@ -1241,6 +1247,136 @@ const OwnerDashboard = () => {
                   onChange={handleInputChange}
                   placeholder="전체 주소를 입력하세요 (예: 서울시 강남구 테헤란로 123)"
                 />
+              </div>
+
+              <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
+                근로자 명부 필수사항
+              </h4>
+
+              <div className="grid grid-2">
+                <div className="form-group">
+                  <label className="form-label">성별</label>
+                  <select
+                    name="gender"
+                    className="form-input"
+                    value={formData.gender || ''}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">선택</option>
+                    <option value="male">남</option>
+                    <option value="female">여</option>
+                    <option value="other">기타</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">생년월일</label>
+                  <input
+                    type="date"
+                    name="birth_date"
+                    className="form-input"
+                    value={formData.birth_date || ''}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">이력</label>
+                <textarea
+                  name="career"
+                  className="form-input"
+                  value={formData.career || ''}
+                  onChange={handleInputChange}
+                  rows="3"
+                  placeholder="주요 이력 사항을 입력하세요"
+                />
+              </div>
+
+              <div className="grid grid-2">
+                <div className="form-group">
+                  <label className="form-label">종사하는 업무의 종류</label>
+                  <input
+                    type="text"
+                    name="job_type"
+                    className="form-input"
+                    value={formData.job_type || ''}
+                    onChange={handleInputChange}
+                    placeholder="예: 홀서빙, 바리스타"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">고용/고용갱신 연월일</label>
+                  <input
+                    type="date"
+                    name="employment_renewal_date"
+                    className="form-input"
+                    value={formData.employment_renewal_date || ''}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-2">
+                <div className="form-group">
+                  <label className="form-label">계약 시작일</label>
+                  <input
+                    type="date"
+                    name="contract_start_date"
+                    className="form-input"
+                    value={formData.contract_start_date || ''}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">계약 종료일</label>
+                  <input
+                    type="date"
+                    name="contract_end_date"
+                    className="form-input"
+                    value={formData.contract_end_date || ''}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">그 밖의 고용에 관한 사항</label>
+                <textarea
+                  name="employment_notes"
+                  className="form-input"
+                  value={formData.employment_notes || ''}
+                  onChange={handleInputChange}
+                  rows="2"
+                  placeholder="고용 관련 참고 사항을 입력하세요"
+                />
+              </div>
+
+              <div className="grid grid-2">
+                <div className="form-group">
+                  <label className="form-label">해고/퇴직/사망 구분</label>
+                  <select
+                    name="separation_type"
+                    className="form-input"
+                    value={formData.separation_type || ''}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">선택</option>
+                    <option value="dismissal">해고</option>
+                    <option value="resignation">퇴직</option>
+                    <option value="death">사망</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">해고/퇴직/사망 사유</label>
+                  <input
+                    type="text"
+                    name="separation_reason"
+                    className="form-input"
+                    value={formData.separation_reason || ''}
+                    onChange={handleInputChange}
+                    placeholder="사유를 입력하세요"
+                  />
+                </div>
               </div>
 
               <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>

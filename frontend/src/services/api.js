@@ -130,4 +130,9 @@ export const pastEmployeeAPI = {
   delete: (id) => api.delete(`/past-employees/${id}`)
 };
 
+// 급여 변경 이력 API
+export const salaryHistoryAPI = {
+  getHistory: (employeeId) => api.get(`/salary-history/${employeeId}`)
+};
+
 export default api;

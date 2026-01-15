@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI } from '../services/api';
+import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
 
@@ -21,6 +21,7 @@ const OwnerDashboard = () => {
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [employeesWithoutContract, setEmployeesWithoutContract] = useState([]);
   const [pastEmployees, setPastEmployees] = useState([]);
+  const [salaryHistory, setSalaryHistory] = useState(null);
 
   useEffect(() => {
     loadWorkplaces();
@@ -168,6 +169,20 @@ const OwnerDashboard = () => {
     } catch (error) {
       console.error('과거 직원 삭제 오류:', error);
       setMessage({ type: 'error', text: error.response?.data?.message || '삭제에 실패했습니다.' });
+    }
+  };
+
+  const handleViewSalaryHistory = async (employeeId, employeeName) => {
+    try {
+      const response = await salaryHistoryAPI.getHistory(employeeId);
+      setSalaryHistory({
+        employeeName,
+        ...response.data
+      });
+      openModal('salaryHistory', {});
+    } catch (error) {
+      console.error('급여 이력 조회 오류:', error);
+      setMessage({ type: 'error', text: '급여 이력 조회에 실패했습니다.' });
     }
   };
 
@@ -648,14 +663,21 @@ const OwnerDashboard = () => {
                             <td>
                               <button
                                 className="btn btn-secondary"
-                                style={{ marginRight: '8px', padding: '6px 12px' }}
+                                style={{ marginRight: '6px', padding: '6px 12px', fontSize: '12px' }}
                                 onClick={() => openModal('employee', emp)}
                               >
                                 수정
                               </button>
                               <button
+                                className="btn"
+                                style={{ marginRight: '6px', padding: '6px 12px', fontSize: '12px', background: '#f59e0b', color: 'white' }}
+                                onClick={() => handleViewSalaryHistory(emp.id, emp.name)}
+                              >
+                                이력
+                              </button>
+                              <button
                                 className="btn btn-danger"
-                                style={{ padding: '6px 12px' }}
+                                style={{ padding: '6px 12px', fontSize: '12px' }}
                                 onClick={() => handleDeleteEmployee(emp.id)}
                               >
                                 삭제
@@ -1710,6 +1732,95 @@ const OwnerDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 급여 변경 이력 모달 */}
+      {showModal && modalType === 'salaryHistory' && salaryHistory && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+            <div className="modal-header">
+              💰 {salaryHistory.employeeName} - 급여 변경 이력
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{ color: '#374151', marginBottom: '12px' }}>현재 급여</h4>
+              {salaryHistory.current ? (
+                <div style={{ padding: '16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>급여 유형</div>
+                      <div style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>
+                        {getSalaryTypeName(salaryHistory.current.salary_type)}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>금액</div>
+                      <div style={{ fontSize: '16px', fontWeight: '600', color: '#10b981' }}>
+                        {Number(salaryHistory.current.amount).toLocaleString()}원
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ color: '#6b7280' }}>급여 정보가 없습니다.</p>
+              )}
+            </div>
+
+            <div>
+              <h4 style={{ color: '#374151', marginBottom: '12px' }}>변경 이력</h4>
+              {salaryHistory.history && salaryHistory.history.length > 0 ? (
+                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>변경일</th>
+                        <th>이전 유형</th>
+                        <th>이전 금액</th>
+                        <th>→</th>
+                        <th>변경 유형</th>
+                        <th>변경 금액</th>
+                        <th>비고</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {salaryHistory.history.map((record) => (
+                        <tr key={record.id}>
+                          <td style={{ fontSize: '12px' }}>{formatDate(record.change_date)}</td>
+                          <td style={{ fontSize: '12px', color: '#9ca3af' }}>
+                            {getSalaryTypeName(record.old_salary_type)}
+                          </td>
+                          <td style={{ fontSize: '12px', color: '#9ca3af' }}>
+                            {Number(record.old_amount).toLocaleString()}원
+                          </td>
+                          <td style={{ textAlign: 'center' }}>→</td>
+                          <td style={{ fontSize: '12px', color: '#10b981', fontWeight: '600' }}>
+                            {getSalaryTypeName(record.new_salary_type)}
+                          </td>
+                          <td style={{ fontSize: '12px', color: '#10b981', fontWeight: '600' }}>
+                            {Number(record.new_amount).toLocaleString()}원
+                          </td>
+                          <td style={{ fontSize: '11px', color: '#6b7280' }}>
+                            {record.notes || '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p style={{ textAlign: 'center', color: '#6b7280', padding: '20px 0' }}>
+                  변경 이력이 없습니다.
+                </p>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={closeModal}>
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       )}

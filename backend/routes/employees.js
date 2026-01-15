@@ -316,6 +316,27 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     const existingSalary = await get('SELECT * FROM salary_info WHERE user_id = ?', [employeeId]);
     
     if (existingSalary) {
+      // 급여 변경 이력 저장 (금액이나 유형이 변경된 경우)
+      const salaryChanged = (salary_type && salary_type !== existingSalary.salary_type) || 
+                           (amount && parseFloat(amount) !== parseFloat(existingSalary.amount));
+      
+      if (salaryChanged) {
+        const today = new Date().toISOString().split('T')[0];
+        await run(
+          `INSERT INTO salary_history (user_id, old_salary_type, old_amount, new_salary_type, new_amount, change_date, notes) 
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            employeeId,
+            existingSalary.salary_type,
+            existingSalary.amount,
+            salary_type || existingSalary.salary_type,
+            amount || existingSalary.amount,
+            today,
+            '급여 정보 변경'
+          ]
+        );
+      }
+      
       // 기존 급여 정보가 있으면 업데이트
       let salaryUpdateQuery = 'UPDATE salary_info SET';
       let salaryUpdateParams = [];

@@ -307,6 +307,22 @@ export const initDatabase = async () => {
         )
       `);
 
+      // Salary_history 테이블 (급여 변경 이력)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS salary_history (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          old_salary_type VARCHAR(50),
+          old_amount DECIMAL(15, 2),
+          new_salary_type VARCHAR(50) NOT NULL,
+          new_amount DECIMAL(15, 2) NOT NULL,
+          change_date DATE NOT NULL,
+          notes TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `);
+
       // 기본 관리자 계정 생성 (없을 경우)
       const adminExists = await pool.query(
         "SELECT * FROM users WHERE username = $1",
@@ -499,6 +515,22 @@ export const initDatabase = async () => {
           notes TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
+        )
+      `);
+
+      // Salary_history 테이블 (급여 변경 이력)
+      await run(`
+        CREATE TABLE IF NOT EXISTS salary_history (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          old_salary_type TEXT,
+          old_amount REAL,
+          new_salary_type TEXT NOT NULL,
+          new_amount REAL NOT NULL,
+          change_date DATE NOT NULL,
+          notes TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id)
         )
       `);
 

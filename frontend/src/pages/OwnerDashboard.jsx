@@ -55,16 +55,6 @@ const OwnerDashboard = () => {
 
   useEffect(() => {
     if (selectedWorkplace) {
-      const currentWorkplace = workplaces.find((wp) => wp.id === selectedWorkplace);
-      if (currentWorkplace?.default_off_days) {
-        const days = currentWorkplace.default_off_days
-          .split(',')
-          .map((day) => day.trim())
-          .filter(Boolean);
-        setDefaultOffDays(days);
-      } else {
-        setDefaultOffDays([]);
-      }
       loadEmployees();
       if (activeTab === 'attendance') {
         loadAttendance();

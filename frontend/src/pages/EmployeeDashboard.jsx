@@ -223,8 +223,25 @@ const EmployeeDashboard = () => {
     '12-25': '성탄절'
   };
 
+  const lunarHolidayMap = {
+    '2025-01-27': '설날 연휴',
+    '2025-01-28': '설날 연휴',
+    '2025-01-29': '설날',
+    '2025-01-30': '설날 연휴',
+    '2025-10-05': '추석 연휴',
+    '2025-10-06': '추석',
+    '2025-10-07': '추석 연휴',
+    '2026-02-16': '설날 연휴',
+    '2026-02-17': '설날',
+    '2026-02-18': '설날 연휴',
+    '2026-09-24': '추석 연휴',
+    '2026-09-25': '추석',
+    '2026-09-26': '추석 연휴'
+  };
+
   const getHolidayName = (dateKey) => {
     if (!dateKey) return '';
+    if (lunarHolidayMap[dateKey]) return lunarHolidayMap[dateKey];
     const monthDay = dateKey.slice(5, 10);
     return fixedHolidayMap[monthDay] || '';
   };

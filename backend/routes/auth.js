@@ -338,4 +338,32 @@ router.put('/change-password', authenticate, async (req, res) => {
   }
 });
 
+// 관리자 비밀번호 초기화
+router.put('/reset-password', authenticate, authorizeRole('admin'), async (req, res) => {
+  try {
+    const { username, newPassword } = req.body;
+
+    if (!username || !newPassword) {
+      return res.status(400).json({ message: '사용자명과 새 비밀번호를 입력해주세요.' });
+    }
+
+    if (newPassword.length < 4) {
+      return res.status(400).json({ message: '새 비밀번호는 최소 4자 이상이어야 합니다.' });
+    }
+
+    const user = await get('SELECT id FROM users WHERE username = ?', [username]);
+    if (!user) {
+      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, user.id]);
+
+    res.json({ message: '비밀번호가 초기화되었습니다.' });
+  } catch (error) {
+    console.error('비밀번호 초기화 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 export default router;

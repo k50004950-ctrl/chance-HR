@@ -51,7 +51,8 @@ export const authAPI = {
   approveOwner: (id, action) => api.post(`/auth/approve-owner/${id}`, { action }),
   toggleOwnerStatus: (id) => api.put(`/auth/owners/${id}/toggle-status`),
   deleteOwner: (id) => api.delete(`/auth/owners/${id}`),
-  changePassword: (data) => api.put('/auth/change-password', data)
+  changePassword: (data) => api.put('/auth/change-password', data),
+  resetPassword: (data) => api.put('/auth/reset-password', data)
 };
 
 // 사업장 API

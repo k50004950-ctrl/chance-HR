@@ -11,6 +11,9 @@ const AdminDashboard = () => {
   const [modalType, setModalType] = useState('');
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [ownerSearch, setOwnerSearch] = useState('');
+  const [resetUsername, setResetUsername] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -250,6 +253,30 @@ const AdminDashboard = () => {
   const handleRefresh = () => {
     loadOwners();
     loadWorkplaces();
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!resetUsername || !resetPassword) {
+      setMessage({ type: 'error', text: '사용자명과 새 비밀번호를 입력해주세요.' });
+      return;
+    }
+
+    try {
+      setResetLoading(true);
+      const response = await authAPI.resetPassword({
+        username: resetUsername,
+        newPassword: resetPassword
+      });
+      setMessage({ type: 'success', text: response.data.message });
+      setResetUsername('');
+      setResetPassword('');
+    } catch (error) {
+      console.error('비밀번호 초기화 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '비밀번호 초기화에 실패했습니다.' });
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const formatNameList = (names) => {
@@ -513,6 +540,34 @@ const AdminDashboard = () => {
                 onChange={(e) => setOwnerSearch(e.target.value)}
                 style={{ maxWidth: '320px' }}
               />
+            </div>
+
+            <div className="card" style={{ marginBottom: '20px', padding: '16px', background: '#f8fafc' }}>
+              <h4 style={{ margin: '0 0 12px', color: '#374151' }}>비밀번호 초기화</h4>
+              <form onSubmit={handleResetPassword} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="사용자명"
+                  value={resetUsername}
+                  onChange={(e) => setResetUsername(e.target.value)}
+                  style={{ minWidth: '180px' }}
+                />
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="새 비밀번호"
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                  style={{ minWidth: '180px' }}
+                />
+                <button className="btn btn-primary" type="submit" disabled={resetLoading}>
+                  {resetLoading ? '처리 중...' : '초기화'}
+                </button>
+              </form>
+              <small style={{ color: '#6b7280', fontSize: '12px', display: 'block', marginTop: '8px' }}>
+                💡 관리자 전용 기능입니다. 사용자명을 정확히 입력해주세요.
+              </small>
             </div>
             
             <p style={{ color: '#6b7280', marginBottom: '20px' }}>

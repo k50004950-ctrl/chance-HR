@@ -386,12 +386,18 @@ const OwnerDashboard = () => {
         'work_end_time', 'employment_status'
       ];
       
+      const fieldValues = {};
       textFields.forEach(field => {
         const element = form.querySelector(`[name="${field}"]`);
         if (element && element.value) {
+          fieldValues[field] = element.value;
           formDataToSend.append(field, element.value);
         }
       });
+
+      if (!fieldValues.contract_start_date && fieldValues.hire_date) {
+        formDataToSend.append('contract_start_date', fieldValues.hire_date);
+      }
       
       // 급여 정보를 DOM에서 직접 읽기
       const salaryTypeElement = form.querySelector('[name="salary_type"]');
@@ -1759,14 +1765,17 @@ const OwnerDashboard = () => {
 
               <div className="grid grid-2">
                 <div className="form-group">
-                  <label className="form-label">계약 시작일</label>
+                  <label className="form-label">계약 시작일 (입사일과 동일)</label>
                   <input
                     type="date"
                     name="contract_start_date"
                     className="form-input"
-                    value={formData.contract_start_date || ''}
-                    onChange={handleInputChange}
+                    value={formData.hire_date || formData.contract_start_date || ''}
+                    readOnly
                   />
+                  <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                    💡 계약 시작일은 입사일과 동일하게 자동 입력됩니다.
+                  </small>
                 </div>
                 <div className="form-group">
                   <label className="form-label">계약 종료일</label>

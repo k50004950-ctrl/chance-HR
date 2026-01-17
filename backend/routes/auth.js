@@ -7,6 +7,22 @@ import { authenticate, authorizeRole } from '../middleware/auth.js';
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production-2026';
 
+// 사용자명 중복 확인
+router.get('/username-check', async (req, res) => {
+  try {
+    const username = (req.query.username || '').trim();
+    if (!username) {
+      return res.status(400).json({ message: '사용자명을 입력해주세요.' });
+    }
+
+    const user = await get('SELECT id FROM users WHERE username = ?', [username]);
+    return res.json({ available: !user });
+  } catch (error) {
+    console.error('사용자명 확인 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 // 로그인
 router.post('/login', async (req, res) => {
   try {

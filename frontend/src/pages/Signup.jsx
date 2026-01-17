@@ -7,6 +7,8 @@ const Signup = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [usernameCheckStatus, setUsernameCheckStatus] = useState('unchecked');
+  const [usernameCheckLoading, setUsernameCheckLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -26,10 +28,35 @@ const Signup = () => {
   const [locating, setLocating] = useState(false);
 
   const handleChange = (e) => {
+    if (e.target.name === 'username') {
+      setUsernameCheckStatus('unchecked');
+    }
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleCheckUsername = async () => {
+    if (!formData.username) {
+      setMessage({ type: 'error', text: '아이디를 입력해주세요.' });
+      return;
+    }
+    try {
+      setUsernameCheckLoading(true);
+      const response = await authAPI.checkUsername(formData.username);
+      if (response.data.available) {
+        setUsernameCheckStatus('available');
+        setMessage({ type: 'success', text: '사용 가능한 아이디입니다.' });
+      } else {
+        setUsernameCheckStatus('unavailable');
+        setMessage({ type: 'error', text: '이미 사용 중인 아이디입니다.' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.message || '아이디 확인에 실패했습니다.' });
+    } finally {
+      setUsernameCheckLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -46,6 +73,10 @@ const Signup = () => {
     if (!formData.username || !formData.password || !formData.name || 
         !formData.business_name || !formData.business_number || !formData.phone) {
       setMessage({ type: 'error', text: '필수 항목을 모두 입력해주세요.' });
+      return;
+    }
+    if (usernameCheckStatus !== 'available') {
+      setMessage({ type: 'error', text: '아이디 중복확인을 먼저 해주세요.' });
       return;
     }
     if (!formData.address || !formData.latitude || !formData.longitude) {
@@ -164,15 +195,36 @@ const Signup = () => {
           
           <div className="form-group">
             <label className="form-label">아이디 *</label>
-            <input
-              type="text"
-              name="username"
-              className="form-input"
-              value={formData.username}
-              onChange={handleChange}
-              required
-              placeholder="로그인용 아이디"
-            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                name="username"
+                className="form-input"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                placeholder="로그인용 아이디"
+              />
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleCheckUsername}
+                disabled={usernameCheckLoading}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                {usernameCheckLoading ? '확인 중...' : '중복 확인'}
+              </button>
+            </div>
+            {usernameCheckStatus === 'available' && (
+              <small style={{ color: '#16a34a', fontSize: '12px', display: 'block', marginTop: '6px' }}>
+                사용 가능한 아이디입니다.
+              </small>
+            )}
+            {usernameCheckStatus === 'unavailable' && (
+              <small style={{ color: '#dc2626', fontSize: '12px', display: 'block', marginTop: '6px' }}>
+                이미 사용 중인 아이디입니다.
+              </small>
+            )}
           </div>
 
           <div className="grid grid-2">

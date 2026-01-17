@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI } from '../services/api';
+import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
 import ConsentInfo from '../components/ConsentInfo';
@@ -35,6 +35,8 @@ const OwnerDashboard = () => {
   const [pastPayrollMonth, setPastPayrollMonth] = useState('');
   const [employmentStatusFilter, setEmploymentStatusFilter] = useState('all');
   const [pastPayrollRecords, setPastPayrollRecords] = useState([]);
+  const [usernameCheckStatus, setUsernameCheckStatus] = useState('unchecked');
+  const [usernameCheckLoading, setUsernameCheckLoading] = useState(false);
   const [pastPayrollForm, setPastPayrollForm] = useState({
     start_date: '',
     end_date: '',
@@ -344,10 +346,37 @@ const OwnerDashboard = () => {
   };
 
   const handleInputChange = (e) => {
+    if (e.target.name === 'username') {
+      setUsernameCheckStatus('unchecked');
+    }
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleCheckUsername = async () => {
+    if (!formData.username) {
+      setMessage({ type: 'error', text: '아이디를 입력해주세요.' });
+      return;
+    }
+
+    try {
+      setUsernameCheckLoading(true);
+      const response = await authAPI.checkUsername(formData.username);
+      if (response.data.available) {
+        setUsernameCheckStatus('available');
+        setMessage({ type: 'success', text: '사용 가능한 아이디입니다.' });
+      } else {
+        setUsernameCheckStatus('unavailable');
+        setMessage({ type: 'error', text: '이미 사용 중인 아이디입니다.' });
+      }
+    } catch (error) {
+      console.error('아이디 확인 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '아이디 확인에 실패했습니다.' });
+    } finally {
+      setUsernameCheckLoading(false);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -364,6 +393,11 @@ const OwnerDashboard = () => {
     setMessage({ type: '', text: '' }); // 이전 메시지 초기화
 
     try {
+      if (!formData.id && usernameCheckStatus !== 'available') {
+        setMessage({ type: 'error', text: '아이디 중복확인을 먼저 해주세요.' });
+        setLoading(false);
+        return;
+      }
       const form = e.target;
       const formDataToSend = new FormData();
       
@@ -1612,16 +1646,39 @@ const OwnerDashboard = () => {
               <div className="grid grid-2">
                 <div className="form-group">
                   <label className="form-label">사용자명 (로그인 ID) *</label>
-                  <input
-                    type="text"
-                    name="username"
-                    className="form-input"
-                    value={formData.username || ''}
-                    onChange={handleInputChange}
-                    required
-                    disabled={formData.id}
-                    placeholder="로그인할 때 사용할 아이디를 입력하세요"
-                  />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      name="username"
+                      className="form-input"
+                      value={formData.username || ''}
+                      onChange={handleInputChange}
+                      required
+                      disabled={formData.id}
+                      placeholder="로그인할 때 사용할 아이디를 입력하세요"
+                    />
+                    {!formData.id && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={handleCheckUsername}
+                        disabled={usernameCheckLoading}
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        {usernameCheckLoading ? '확인 중...' : '중복 확인'}
+                      </button>
+                    )}
+                  </div>
+                  {!formData.id && usernameCheckStatus === 'available' && (
+                    <small style={{ color: '#16a34a', fontSize: '12px', display: 'block', marginTop: '6px' }}>
+                      사용 가능한 아이디입니다.
+                    </small>
+                  )}
+                  {!formData.id && usernameCheckStatus === 'unavailable' && (
+                    <small style={{ color: '#dc2626', fontSize: '12px', display: 'block', marginTop: '6px' }}>
+                      이미 사용 중인 아이디입니다.
+                    </small>
+                  )}
                 </div>
                 {!formData.id && (
                   <div className="form-group">

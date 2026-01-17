@@ -46,6 +46,7 @@ export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   signup: (userData) => api.post('/auth/signup', userData),
   register: (userData) => api.post('/auth/register', userData),
+  checkUsername: (username) => api.get('/auth/username-check', { params: { username } }),
   getOwners: () => api.get('/auth/owners'),
   getPendingOwners: () => api.get('/auth/pending-owners'),
   approveOwner: (id, action) => api.post(`/auth/approve-owner/${id}`, { action }),

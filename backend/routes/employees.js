@@ -250,8 +250,11 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
       employeeId: userId
     });
   } catch (error) {
-    if (error.message.includes('UNIQUE constraint failed')) {
-      return res.status(400).json({ message: '이미 존재하는 사용자명입니다.' });
+    if (
+      error.message.includes('UNIQUE constraint failed') ||
+      error.message.includes('duplicate key value')
+    ) {
+      return res.status(400).json({ message: '이미 사용 중인 아이디입니다. 다른 아이디를 입력해주세요.' });
     }
     console.error('직원 등록 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });

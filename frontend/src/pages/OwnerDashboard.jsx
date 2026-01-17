@@ -28,6 +28,11 @@ const OwnerDashboard = () => {
   const [employeesWithoutContract, setEmployeesWithoutContract] = useState([]);
   const [pastEmployees, setPastEmployees] = useState([]);
   const [salaryHistory, setSalaryHistory] = useState(null);
+  const [salaryViewMode, setSalaryViewMode] = useState('month');
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
+  const [pastPayrollEmployeeId, setPastPayrollEmployeeId] = useState('');
+  const [pastPayrollYear, setPastPayrollYear] = useState(() => new Date().getFullYear());
+  const [pastPayrollMonth, setPastPayrollMonth] = useState('');
   const [employmentStatusFilter, setEmploymentStatusFilter] = useState('all');
   const [pastPayrollRecords, setPastPayrollRecords] = useState([]);
   const [pastPayrollForm, setPastPayrollForm] = useState({
@@ -66,7 +71,15 @@ const OwnerDashboard = () => {
         loadPastEmployees();
       }
     }
-  }, [selectedWorkplace, activeTab, selectedMonth]);
+  }, [selectedWorkplace, activeTab, selectedMonth, salaryViewMode, selectedYear]);
+
+  useEffect(() => {
+    if (pastPayrollEmployeeId) {
+      loadPastPayroll(pastPayrollEmployeeId);
+    } else {
+      setPastPayrollRecords([]);
+    }
+  }, [pastPayrollEmployeeId]);
 
   useEffect(() => {
     if (showModal && modalType === 'employee') {
@@ -150,13 +163,25 @@ const OwnerDashboard = () => {
 
   const loadSalary = async () => {
     try {
-      const startDate = `${selectedMonth}-01`;
-      const endDate = `${selectedMonth}-31`;
+      const startDate = salaryViewMode === 'year'
+        ? `${selectedYear}-01-01`
+        : `${selectedMonth}-01`;
+      const endDate = salaryViewMode === 'year'
+        ? `${selectedYear}-12-31`
+        : `${selectedMonth}-31`;
       const response = await salaryAPI.calculateWorkplace(selectedWorkplace, { startDate, endDate });
       setSalaryData(response.data);
     } catch (error) {
       console.error('급여 계산 오류:', error);
     }
+  };
+
+  const getMonthRange = (year, month) => {
+    if (!year || !month) return null;
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month, 0);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
   };
 
   const loadPastEmployees = async () => {
@@ -585,8 +610,12 @@ const OwnerDashboard = () => {
     XLSX.utils.book_append_sheet(wb, ws, '급여계산');
 
     // 파일명 생성 (YYYY년MM월_급여계산.xlsx)
-    const [year, month] = selectedMonth.split('-');
-    const filename = `${year}년${month}월_급여계산.xlsx`;
+    const filename = salaryViewMode === 'year'
+      ? `${selectedYear}년_급여계산.xlsx`
+      : (() => {
+        const [year, month] = selectedMonth.split('-');
+        return `${year}년${month}월_급여계산.xlsx`;
+      })();
 
     // 파일 다운로드
     XLSX.writeFile(wb, filename);
@@ -1132,13 +1161,41 @@ const OwnerDashboard = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                   <h3 style={{ color: '#374151' }}>급여 계산</h3>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <input
-                      type="month"
-                      className="form-input"
-                      style={{ width: 'auto' }}
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(e.target.value)}
-                    />
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        className={`btn ${salaryViewMode === 'month' ? 'btn-primary' : 'btn-secondary'}`}
+                        type="button"
+                        onClick={() => setSalaryViewMode('month')}
+                      >
+                        월별
+                      </button>
+                      <button
+                        className={`btn ${salaryViewMode === 'year' ? 'btn-primary' : 'btn-secondary'}`}
+                        type="button"
+                        onClick={() => setSalaryViewMode('year')}
+                      >
+                        연별
+                      </button>
+                    </div>
+                    {salaryViewMode === 'month' ? (
+                      <input
+                        type="month"
+                        className="form-input"
+                        style={{ width: 'auto' }}
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                      />
+                    ) : (
+                      <input
+                        type="number"
+                        className="form-input"
+                        style={{ width: '100px' }}
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        min="2000"
+                        max="2100"
+                      />
+                    )}
                     {salaryData && salaryData.employees && salaryData.employees.length > 0 && (
                       <button
                         className="btn btn-success"
@@ -1215,6 +1272,164 @@ const OwnerDashboard = () => {
                         </table>
                       </div>
                     )}
+
+                    <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
+                      <h4 style={{ color: '#374151', marginBottom: '12px' }}>🧾 과거 급여 수기 입력/조회</h4>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                        <select
+                          className="form-select"
+                          value={pastPayrollEmployeeId || ''}
+                          onChange={(e) => setPastPayrollEmployeeId(e.target.value)}
+                        >
+                          <option value="">직원 선택</option>
+                          {employees.map((emp) => (
+                            <option key={emp.id} value={emp.id}>
+                              {emp.name} ({emp.username})
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          className="form-input"
+                          style={{ width: '110px' }}
+                          value={pastPayrollYear}
+                          onChange={(e) => setPastPayrollYear(Number(e.target.value))}
+                          min="2000"
+                          max="2100"
+                        />
+                        <select
+                          className="form-select"
+                          value={pastPayrollMonth}
+                          onChange={(e) => setPastPayrollMonth(e.target.value)}
+                        >
+                          <option value="">전체 월</option>
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <option key={i + 1} value={String(i + 1).padStart(2, '0')}>
+                              {i + 1}월
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {pastPayrollEmployeeId && (
+                        <>
+                          <div className="grid grid-2" style={{ marginBottom: '12px' }}>
+                            <div className="form-group">
+                              <label className="form-label">시작일</label>
+                              <input
+                                type="date"
+                                className="form-input"
+                                value={pastPayrollForm.start_date}
+                                onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, start_date: e.target.value })}
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">종료일</label>
+                              <input
+                                type="date"
+                                className="form-input"
+                                value={pastPayrollForm.end_date}
+                                onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, end_date: e.target.value })}
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">급여 유형</label>
+                              <select
+                                className="form-input"
+                                value={pastPayrollForm.salary_type}
+                                onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, salary_type: e.target.value })}
+                              >
+                                <option value="hourly">시급</option>
+                                <option value="monthly">월급</option>
+                                <option value="annual">연봉</option>
+                              </select>
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">금액</label>
+                              <input
+                                type="number"
+                                className="form-input"
+                                placeholder="예: 2500000"
+                                value={pastPayrollForm.amount}
+                                onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, amount: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">비고</label>
+                            <input
+                              type="text"
+                              className="form-input"
+                              placeholder="예: 2023년 5월 수기 입력"
+                              value={pastPayrollForm.notes}
+                              onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, notes: e.target.value })}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{ marginBottom: '16px' }}
+                            onClick={() => handleAddPastPayroll(pastPayrollEmployeeId)}
+                          >
+                            + 과거 급여 기록 추가
+                          </button>
+
+                          {pastPayrollRecords.length > 0 ? (
+                            <div style={{ overflowX: 'auto' }}>
+                              <table className="table">
+                                <thead>
+                                  <tr>
+                                    <th>기간</th>
+                                    <th>급여유형</th>
+                                    <th>금액</th>
+                                    <th>비고</th>
+                                    <th>관리</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {pastPayrollRecords
+                                    .filter((record) => {
+                                      if (!pastPayrollYear) return true;
+                                      const range = pastPayrollMonth
+                                        ? getMonthRange(pastPayrollYear, Number(pastPayrollMonth))
+                                        : {
+                                          start: new Date(pastPayrollYear, 0, 1),
+                                          end: new Date(pastPayrollYear, 11, 31, 23, 59, 59, 999)
+                                        };
+                                      if (!range) return true;
+                                      const start = new Date(record.start_date);
+                                      const end = new Date(record.end_date);
+                                      return start <= range.end && end >= range.start;
+                                    })
+                                    .map((record) => (
+                                      <tr key={record.id}>
+                                        <td style={{ fontSize: '12px' }}>
+                                          {formatDate(record.start_date)} ~ {formatDate(record.end_date)}
+                                        </td>
+                                        <td>{getSalaryTypeName(record.salary_type)}</td>
+                                        <td>{Number(record.amount).toLocaleString()}원</td>
+                                        <td>{record.notes || '-'}</td>
+                                        <td>
+                                          <button
+                                            type="button"
+                                            className="btn btn-danger"
+                                            style={{ fontSize: '12px', padding: '4px 8px' }}
+                                            onClick={() => handleDeletePastPayroll(record.id)}
+                                          >
+                                            삭제
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p style={{ color: '#9ca3af', fontSize: '12px' }}>등록된 과거 급여 기록이 없습니다.</p>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </>
                 )}
               </div>

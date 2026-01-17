@@ -432,6 +432,9 @@ const OwnerDashboard = () => {
       if (!fieldValues.contract_start_date && fieldValues.hire_date) {
         formDataToSend.append('contract_start_date', fieldValues.hire_date);
       }
+      if (!fieldValues.employment_renewal_date && fieldValues.hire_date) {
+        formDataToSend.append('employment_renewal_date', fieldValues.hire_date);
+      }
       
       // 급여 정보를 DOM에서 직접 읽기
       const salaryTypeElement = form.querySelector('[name="salary_type"]');
@@ -1809,14 +1812,17 @@ const OwnerDashboard = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">고용/고용갱신 연월일</label>
+                  <label className="form-label">고용/고용갱신 연월일 (입사일과 동일)</label>
                   <input
                     type="date"
                     name="employment_renewal_date"
                     className="form-input"
-                    value={formData.employment_renewal_date || ''}
-                    onChange={handleInputChange}
+                    value={formData.hire_date || formData.employment_renewal_date || ''}
+                    readOnly
                   />
+                  <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                    💡 고용/갱신일은 입사일과 동일하게 자동 입력됩니다.
+                  </small>
                 </div>
               </div>
 

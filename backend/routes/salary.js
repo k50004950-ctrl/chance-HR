@@ -47,6 +47,17 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
       [employeeId, startDate, endDate]
     );
 
+    // 과거 급여 기록 조회 (기간 겹침)
+    const pastPayrollRecords = await query(
+      `SELECT amount FROM employee_past_payroll
+       WHERE user_id = ? AND start_date <= ? AND end_date >= ?`,
+      [employeeId, endDate, startDate]
+    );
+    const pastPayrollAmount = pastPayrollRecords.reduce(
+      (sum, record) => sum + (Number(record.amount) || 0),
+      0
+    );
+
     let calculatedSalary = 0;
     let totalWorkHours = 0;
     let totalWorkDays = attendanceRecords.length;
@@ -108,7 +119,9 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
         totalWorkDays,
         totalWorkHours: totalWorkHours.toFixed(2)
       },
-      calculatedSalary: Math.round(calculatedSalary)
+      calculatedSalary: Math.round(calculatedSalary),
+      pastPayrollAmount,
+      totalPay: Math.round(calculatedSalary + pastPayrollAmount)
     });
   } catch (error) {
     console.error('급여 계산 오류:', error);
@@ -154,6 +167,16 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       const attendanceRecords = await query(
         "SELECT * FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ? AND status = 'completed'",
         [employee.id, startDate, endDate]
+      );
+
+      const pastPayrollRecords = await query(
+        `SELECT amount FROM employee_past_payroll
+         WHERE user_id = ? AND start_date <= ? AND end_date >= ?`,
+        [employee.id, endDate, startDate]
+      );
+      const pastPayrollAmount = pastPayrollRecords.reduce(
+        (sum, record) => sum + (Number(record.amount) || 0),
+        0
       );
 
       let calculatedSalary = 0;
@@ -234,8 +257,10 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         }
       }
 
+      const totalPay = roundedSalary + pastPayrollAmount;
+
       // 퇴직금은 별도 표시 (총 급여에 포함하지 않음)
-      totalSalary += roundedSalary;
+      totalSalary += totalPay;
 
       salaryResults.push({
         employeeId: employee.id,
@@ -250,8 +275,10 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         baseSalary: roundedSalary,
         weeklyHolidayPay: salaryInfo.weekly_holiday_pay || 0,
         weeklyHolidayPayAmount: Math.round(weeklyHolidayPayAmount),
+        pastPayrollAmount: Math.round(pastPayrollAmount),
         baseSalaryAmount: Math.round(baseSalaryAmount),
-        severancePay: severancePay
+        severancePay: severancePay,
+        totalPay: Math.round(totalPay)
       });
     }
 

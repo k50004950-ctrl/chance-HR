@@ -163,12 +163,17 @@ const OwnerDashboard = () => {
 
   const loadSalary = async () => {
     try {
-      const startDate = salaryViewMode === 'year'
-        ? `${selectedYear}-01-01`
-        : `${selectedMonth}-01`;
-      const endDate = salaryViewMode === 'year'
-        ? `${selectedYear}-12-31`
-        : `${selectedMonth}-31`;
+      let startDate = '';
+      let endDate = '';
+      if (salaryViewMode === 'year') {
+        startDate = `${selectedYear}-01-01`;
+        endDate = `${selectedYear}-12-31`;
+      } else {
+        const [year, month] = selectedMonth.split('-').map(Number);
+        const lastDay = new Date(year, month, 0).getDate();
+        startDate = `${selectedMonth}-01`;
+        endDate = `${selectedMonth}-${String(lastDay).padStart(2, '0')}`;
+      }
       const response = await salaryAPI.calculateWorkplace(selectedWorkplace, { startDate, endDate });
       setSalaryData(response.data);
     } catch (error) {
@@ -567,8 +572,9 @@ const OwnerDashboard = () => {
       '근무시간': emp.totalWorkHours,
       '기본급여': emp.baseSalaryAmount || emp.baseSalary || emp.calculatedSalary,
       '주휴수당': emp.weeklyHolidayPayAmount || 0,
+      '수기 과거 급여': emp.pastPayrollAmount || 0,
       '퇴직금(당일퇴사)': emp.severancePay || 0,
-      '총지급액': emp.calculatedSalary
+      '총지급액': emp.totalPay ?? (emp.calculatedSalary + (emp.pastPayrollAmount || 0))
     }));
 
     // 합계 행 추가
@@ -582,6 +588,7 @@ const OwnerDashboard = () => {
       '근무시간': '',
       '기본급여': '',
       '주휴수당': salaryData.employees.reduce((sum, emp) => sum + (emp.weeklyHolidayPayAmount || 0), 0),
+      '수기 과거 급여': salaryData.employees.reduce((sum, emp) => sum + (emp.pastPayrollAmount || 0), 0),
       '퇴직금(당일퇴사)': salaryData.employees.reduce((sum, emp) => sum + (emp.severancePay || 0), 0),
       '총지급액': salaryData.totalSalary
     };
@@ -601,6 +608,7 @@ const OwnerDashboard = () => {
       { wch: 10 }, // 근무시간
       { wch: 12 }, // 기본급여
       { wch: 12 }, // 주휴수당
+      { wch: 14 }, // 수기 과거 급여
       { wch: 16 }, // 퇴직금(당일퇴사)
       { wch: 14 }  // 총지급액
     ];
@@ -1243,12 +1251,15 @@ const OwnerDashboard = () => {
                               <th>근무시간</th>
                               <th>기본 급여</th>
                               <th>주휴수당</th>
+                              <th>수기 과거 급여</th>
                               <th>퇴직금(당일퇴사)</th>
                               <th>총 지급액</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {salaryData.employees.map((emp) => (
+                            {salaryData.employees.map((emp) => {
+                              const totalPay = emp.totalPay ?? (emp.calculatedSalary + (emp.pastPayrollAmount || 0));
+                              return (
                               <tr key={emp.employeeId}>
                                 <td style={{ fontWeight: '600' }}>{emp.employeeName}</td>
                                 <td>{getSalaryTypeName(emp.salaryType)}</td>
@@ -1260,14 +1271,18 @@ const OwnerDashboard = () => {
                                 <td style={{ color: emp.weeklyHolidayPayAmount > 0 ? '#10b981' : '#9ca3af' }}>
                                   {emp.weeklyHolidayPayAmount > 0 ? `+${emp.weeklyHolidayPayAmount.toLocaleString()}원` : '-'}
                                 </td>
+                                <td style={{ color: emp.pastPayrollAmount > 0 ? '#2563eb' : '#9ca3af' }}>
+                                  {emp.pastPayrollAmount > 0 ? `+${emp.pastPayrollAmount.toLocaleString()}원` : '-'}
+                                </td>
                                 <td style={{ color: emp.severancePay > 0 ? '#f59e0b' : '#9ca3af', fontWeight: emp.severancePay > 0 ? '600' : '400' }}>
                                   {emp.severancePay > 0 ? `+${emp.severancePay.toLocaleString()}원` : '1년 미만'}
                                 </td>
                                 <td style={{ fontWeight: '700', color: '#667eea' }}>
-                                  {emp.calculatedSalary.toLocaleString()}원
+                                  {totalPay.toLocaleString()}원
                                 </td>
                               </tr>
-                            ))}
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>

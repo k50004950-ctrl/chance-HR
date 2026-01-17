@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { workplaceAPI, authAPI, employeeAPI, attendanceAPI } from '../services/api';
+import { workplaceAPI, authAPI } from '../services/api';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('owners');
@@ -14,31 +14,12 @@ const AdminDashboard = () => {
   const [resetUsername, setResetUsername] = useState('');
   const [resetPassword, setResetPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
-  const [calendarMonth, setCalendarMonth] = useState(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}`;
-  });
-  const [calendarWorkplaceId, setCalendarWorkplaceId] = useState(null);
-  const [calendarSummary, setCalendarSummary] = useState([]);
 
   useEffect(() => {
     loadWorkplaces();
     loadOwners();
   }, []);
 
-  useEffect(() => {
-    if (!calendarWorkplaceId && workplaces.length > 0) {
-      setCalendarWorkplaceId(workplaces[0].id);
-    }
-  }, [workplaces, calendarWorkplaceId]);
-
-  useEffect(() => {
-    if (activeTab === 'calendar' && calendarWorkplaceId) {
-      loadCalendarSummary();
-    }
-  }, [activeTab, calendarWorkplaceId, calendarMonth]);
   const handleToggleOwnerStatus = async (ownerId, ownerName) => {
     const owner = owners.find((item) => item.id === ownerId);
     const action = owner?.approval_status === 'approved' ? '일시 중지' : '활성화';
@@ -90,151 +71,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const loadCalendarSummary = async () => {
-    try {
-      const [year, month] = calendarMonth.split('-').map(Number);
-      const lastDay = new Date(year, month, 0).getDate();
-      const startDate = `${calendarMonth}-01`;
-      const endDate = `${calendarMonth}-${String(lastDay).padStart(2, '0')}`;
-      const [employeeResponse, attendanceResponse] = await Promise.all([
-        employeeAPI.getByWorkplace(calendarWorkplaceId),
-        attendanceAPI.getByWorkplace(calendarWorkplaceId, { startDate, endDate })
-      ]);
-
-      const employees = employeeResponse.data.filter(
-        (emp) => emp.employment_status !== 'resigned' && emp.employment_status !== 'on_leave'
-      );
-      const attendanceRecords = attendanceResponse.data;
-
-      const attendanceByKey = new Map();
-      attendanceRecords.forEach((record) => {
-        const key = `${record.user_id}-${record.date}`;
-        attendanceByKey.set(key, record);
-      });
-
-      const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-      const formatDateKey = (date) => {
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-      };
-
-      const summary = [];
-      for (let day = 1; day <= lastDay; day += 1) {
-        const date = new Date(year, month - 1, day);
-        const dateKey = formatDateKey(date);
-        const weekday = dayKeys[date.getDay()];
-
-        let expected = 0;
-        let normal = 0;
-        let late = 0;
-        let absent = 0;
-        let annualLeave = 0;
-        let paidLeave = 0;
-        let unpaidLeave = 0;
-        const lateNames = [];
-        const absentNames = [];
-
-        employees.forEach((emp) => {
-          const workDays = emp.work_days ? emp.work_days.split(',') : [];
-          const isScheduled = workDays.length === 0 || workDays.includes(weekday);
-          if (!isScheduled) return;
-
-          expected += 1;
-          const record = attendanceByKey.get(`${emp.id}-${dateKey}`);
-
-          if (record?.leave_type) {
-            if (record.leave_type === 'annual') annualLeave += 1;
-            if (record.leave_type === 'paid') paidLeave += 1;
-            if (record.leave_type === 'unpaid') unpaidLeave += 1;
-            return;
-          }
-
-          if (!record || !record.check_in_time) {
-            absent += 1;
-            absentNames.push(emp.name);
-            return;
-          }
-
-          const checkIn = new Date(record.check_in_time);
-          const checkOut = record.check_out_time ? new Date(record.check_out_time) : null;
-          const checkInMinutes = checkIn.getHours() * 60 + checkIn.getMinutes();
-          const checkOutMinutes = checkOut ? checkOut.getHours() * 60 + checkOut.getMinutes() : null;
-
-          const startMinutes = emp.work_start_time
-            ? Number(emp.work_start_time.split(':')[0]) * 60 + Number(emp.work_start_time.split(':')[1] || 0)
-            : null;
-          const endMinutes = emp.work_end_time
-            ? Number(emp.work_end_time.split(':')[0]) * 60 + Number(emp.work_end_time.split(':')[1] || 0)
-            : null;
-
-          const lateCheckIn = startMinutes !== null && checkInMinutes > startMinutes;
-          const earlyLeave = endMinutes !== null && (checkOutMinutes === null || checkOutMinutes < endMinutes);
-
-          if (lateCheckIn || earlyLeave) {
-            late += 1;
-            lateNames.push(emp.name);
-          } else {
-            normal += 1;
-          }
-        });
-
-        summary.push({
-          date: dateKey,
-          weekday,
-          expected,
-          normal,
-          late,
-          absent,
-          annualLeave,
-          paidLeave,
-          unpaidLeave,
-          lateNames,
-          absentNames
-        });
-      }
-
-      setCalendarSummary(summary);
-    } catch (error) {
-      console.error('캘린더 요약 조회 오류:', error);
-      setCalendarSummary([]);
-    }
-  };
-
-  const fixedHolidayMap = {
-    '01-01': '신정',
-    '03-01': '삼일절',
-    '05-05': '어린이날',
-    '06-06': '현충일',
-    '08-15': '광복절',
-    '10-03': '개천절',
-    '10-09': '한글날',
-    '12-25': '성탄절'
-  };
-
-  const lunarHolidayMap = {
-    '2025-01-27': '설날 연휴',
-    '2025-01-28': '설날 연휴',
-    '2025-01-29': '설날',
-    '2025-01-30': '설날 연휴',
-    '2025-10-05': '추석 연휴',
-    '2025-10-06': '추석',
-    '2025-10-07': '추석 연휴',
-    '2026-02-16': '설날 연휴',
-    '2026-02-17': '설날',
-    '2026-02-18': '설날 연휴',
-    '2026-09-24': '추석 연휴',
-    '2026-09-25': '추석',
-    '2026-09-26': '추석 연휴'
-  };
-
-  const getHolidayName = (dateKey) => {
-    if (!dateKey) return '';
-    if (lunarHolidayMap[dateKey]) return lunarHolidayMap[dateKey];
-    const monthDay = dateKey.slice(5, 10);
-    return fixedHolidayMap[monthDay] || '';
-  };
 
   const openModal = (type, data = null) => {
     setModalType(type);
@@ -279,12 +115,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const formatNameList = (names) => {
-    if (!names || names.length === 0) return '';
-    const display = names.slice(0, 3).join(', ');
-    const extra = names.length > 3 ? ` 외 ${names.length - 3}명` : '';
-    return `${display}${extra}`;
-  };
 
   const ownerCollator = new Intl.Collator('ko-KR', { sensitivity: 'base' });
   const normalizedSearch = ownerSearch.trim().toLowerCase();
@@ -333,12 +163,6 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('owners')}
           >
             사업주 목록
-          </button>
-          <button
-            className={`nav-tab ${activeTab === 'calendar' ? 'active' : ''}`}
-            onClick={() => setActiveTab('calendar')}
-          >
-            캘린더
           </button>
           <button
             className={`nav-tab ${activeTab === 'workplaces' ? 'active' : ''}`}
@@ -418,111 +242,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {activeTab === 'calendar' && (
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ color: '#374151' }}>캘린더</h3>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <select
-                  className="form-select"
-                  value={calendarWorkplaceId || ''}
-                  onChange={(e) => setCalendarWorkplaceId(Number(e.target.value))}
-                >
-                  {workplaces.map((workplace) => (
-                    <option key={workplace.id} value={workplace.id}>
-                      {workplace.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="month"
-                  className="form-input"
-                  value={calendarMonth}
-                  onChange={(e) => setCalendarMonth(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <p style={{ color: '#6b7280', marginBottom: '20px', fontSize: '14px' }}>
-              근무 요일과 근무시간을 기준으로 정상/지각/결근을 표시합니다.
-            </p>
-
-            {calendarSummary.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
-                표시할 데이터가 없습니다.
-              </p>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>일자</th>
-                      <th>요일</th>
-                      <th>공휴일</th>
-                      <th>근무 예정</th>
-                      <th>정상 출퇴근</th>
-                      <th>지각/조퇴</th>
-                      <th>결근</th>
-                      <th>연차</th>
-                      <th>유급휴가</th>
-                      <th>무급휴가</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {calendarSummary.map((row) => (
-                      <tr key={row.date}>
-                        <td>{row.date}</td>
-                        <td>
-                          {{
-                            mon: '월',
-                            tue: '화',
-                            wed: '수',
-                            thu: '목',
-                            fri: '금',
-                            sat: '토',
-                            sun: '일'
-                          }[row.weekday]}
-                        </td>
-                        <td style={{ color: getHolidayName(row.date) ? '#dc2626' : '#6b7280' }}>
-                          {getHolidayName(row.date) || '-'}
-                        </td>
-                        <td>{row.expected}명</td>
-                        <td style={{ color: row.normal > 0 ? '#16a34a' : '#6b7280' }}>
-                          {row.normal}명
-                        </td>
-                        <td style={{ color: row.late > 0 ? '#f97316' : '#6b7280' }}>
-                          {row.late}명
-                          {row.late > 0 && (
-                            <div style={{ fontSize: '12px', color: '#9a3412', marginTop: '4px' }}>
-                              {formatNameList(row.lateNames)}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ color: row.absent > 0 ? '#dc2626' : '#6b7280' }}>
-                          {row.absent}명
-                          {row.absent > 0 && (
-                            <div style={{ fontSize: '12px', color: '#b91c1c', marginTop: '4px' }}>
-                              {formatNameList(row.absentNames)}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ color: row.annualLeave > 0 ? '#2563eb' : '#6b7280' }}>
-                          {row.annualLeave}명
-                        </td>
-                        <td style={{ color: row.paidLeave > 0 ? '#0ea5e9' : '#6b7280' }}>
-                          {row.paidLeave}명
-                        </td>
-                        <td style={{ color: row.unpaidLeave > 0 ? '#8b5cf6' : '#6b7280' }}>
-                          {row.unpaidLeave}명
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* 사업주 관리 */}
         {activeTab === 'owners' && (

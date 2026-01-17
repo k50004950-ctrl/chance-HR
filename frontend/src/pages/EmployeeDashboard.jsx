@@ -22,6 +22,7 @@ const EmployeeDashboard = () => {
   const [certificateData, setCertificateData] = useState(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [consentData, setConsentData] = useState({ privacy_consent: false, location_consent: false });
+  const [employeeWorkDays, setEmployeeWorkDays] = useState([]);
 
   useEffect(() => {
     checkConsent();
@@ -33,6 +34,10 @@ const EmployeeDashboard = () => {
     try {
       const response = await employeeAPI.getById(user.id);
       const employee = response.data;
+      const workDays = employee.work_days
+        ? employee.work_days.split(',').map((day) => day.trim()).filter(Boolean)
+        : [];
+      setEmployeeWorkDays(workDays);
       
       // 동의하지 않은 경우 모달 표시
       if (!employee.privacy_consent || !employee.location_consent) {
@@ -252,6 +257,7 @@ const EmployeeDashboard = () => {
     const firstDay = new Date(year, month - 1, 1);
     const firstWeekday = firstDay.getDay();
     const lastDay = new Date(year, month, 0).getDate();
+    const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
     const attendanceByDate = new Map();
     attendanceRecords.forEach((record) => {
@@ -268,12 +274,15 @@ const EmployeeDashboard = () => {
     for (let day = 1; day <= lastDay; day += 1) {
       const dayString = String(day).padStart(2, '0');
       const dateKey = `${selectedMonth}-${dayString}`;
+      const weekdayKey = dayKeys[new Date(year, month - 1, day).getDay()];
+      const isScheduled = employeeWorkDays.length === 0 || employeeWorkDays.includes(weekdayKey);
       days.push({
         key: dateKey,
         dateKey,
         day,
         holiday: getHolidayName(dateKey),
-        record: attendanceByDate.get(dateKey) || null
+        record: attendanceByDate.get(dateKey) || null,
+        isScheduled
       });
     }
     return days;
@@ -549,7 +558,7 @@ const EmployeeDashboard = () => {
               const isCompleted = record?.status === 'completed';
               const statusLabel = leaveType
                 ? (leaveType === 'annual' ? '연차' : leaveType === 'paid' ? '유급휴가' : '무급휴가')
-                : (record ? (isCompleted ? '완료' : '미완료') : '');
+                : (record ? (isCompleted ? '완료' : '미완료') : (day.isScheduled ? '' : '휴무'));
 
               const statusColor = leaveType === 'annual'
                 ? '#2563eb'
@@ -559,7 +568,9 @@ const EmployeeDashboard = () => {
                     ? '#8b5cf6'
                     : isCompleted
                       ? '#16a34a'
-                      : '#f97316';
+                      : record
+                        ? '#f97316'
+                        : '#6b7280';
 
               return (
                 <div

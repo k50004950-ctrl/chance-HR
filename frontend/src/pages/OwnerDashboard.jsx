@@ -63,7 +63,7 @@ const OwnerDashboard = () => {
   useEffect(() => {
     if (selectedWorkplace) {
       loadEmployees();
-      if (activeTab === 'attendance') {
+      if (activeTab === 'attendance' || activeTab === 'calendar') {
         loadAttendance();
       }
       if (activeTab === 'salary') {
@@ -120,14 +120,142 @@ const OwnerDashboard = () => {
 
   const loadAttendance = async () => {
     try {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const lastDay = new Date(year, month, 0).getDate();
       const startDate = `${selectedMonth}-01`;
-      const endDate = `${selectedMonth}-31`;
+      const endDate = `${selectedMonth}-${String(lastDay).padStart(2, '0')}`;
       const response = await attendanceAPI.getByWorkplace(selectedWorkplace, { startDate, endDate });
       setAttendance(response.data);
       calculateAttendanceStats(response.data);
     } catch (error) {
       console.error('출퇴근 기록 조회 오류:', error);
     }
+  };
+
+  const fixedHolidayMap = {
+    '01-01': '신정',
+    '03-01': '삼일절',
+    '05-05': '어린이날',
+    '06-06': '현충일',
+    '08-15': '광복절',
+    '10-03': '개천절',
+    '10-09': '한글날',
+    '12-25': '성탄절'
+  };
+
+  const lunarHolidayMap = {
+    '2025-01-27': '설날 연휴',
+    '2025-01-28': '설날 연휴',
+    '2025-01-29': '설날',
+    '2025-01-30': '설날 연휴',
+    '2025-10-05': '추석 연휴',
+    '2025-10-06': '추석',
+    '2025-10-07': '추석 연휴',
+    '2026-02-16': '설날 연휴',
+    '2026-02-17': '설날',
+    '2026-02-18': '설날 연휴',
+    '2026-09-24': '추석 연휴',
+    '2026-09-25': '추석',
+    '2026-09-26': '추석 연휴'
+  };
+
+  const getHolidayName = (dateKey) => {
+    if (!dateKey) return '';
+    if (lunarHolidayMap[dateKey]) return lunarHolidayMap[dateKey];
+    const monthDay = dateKey.slice(5, 10);
+    return fixedHolidayMap[monthDay] || '';
+  };
+
+  const formatNameList = (names) => {
+    if (!names || names.length === 0) return '';
+    const display = names.slice(0, 3).join(', ');
+    const extra = names.length > 3 ? ` 외 ${names.length - 3}명` : '';
+    return `${display}${extra}`;
+  };
+
+  const buildOwnerCalendarDays = () => {
+    if (!selectedMonth) return [];
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const firstWeekday = firstDay.getDay();
+    const lastDay = new Date(year, month, 0).getDate();
+    const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+    const attendanceByKey = new Map();
+    attendance.forEach((record) => {
+      if (!record.user_id || !record.date) return;
+      attendanceByKey.set(`${record.user_id}-${record.date}`, record);
+    });
+
+    const days = [];
+    for (let i = 0; i < firstWeekday; i += 1) {
+      days.push({ empty: true, key: `empty-${i}` });
+    }
+
+    for (let day = 1; day <= lastDay; day += 1) {
+      const dateKey = `${selectedMonth}-${String(day).padStart(2, '0')}`;
+      const weekdayKey = dayKeys[new Date(year, month - 1, day).getDay()];
+      const workingEmployees = employees.filter((emp) => emp.employment_status !== 'resigned');
+
+      let completed = 0;
+      let incomplete = 0;
+      let absent = 0;
+      let annual = 0;
+      let paid = 0;
+      let unpaid = 0;
+      const completedNames = [];
+      const incompleteNames = [];
+      const absentNames = [];
+      const leaveNames = [];
+
+      workingEmployees.forEach((emp) => {
+        const workDays = emp.work_days ? emp.work_days.split(',') : [];
+        const isScheduled = workDays.length === 0 || workDays.includes(weekdayKey);
+        if (!isScheduled) return;
+
+        const record = attendanceByKey.get(`${emp.id}-${dateKey}`);
+        if (record?.leave_type) {
+          if (record.leave_type === 'annual') annual += 1;
+          if (record.leave_type === 'paid') paid += 1;
+          if (record.leave_type === 'unpaid') unpaid += 1;
+          leaveNames.push(emp.name);
+          return;
+        }
+
+        if (!record || !record.check_in_time) {
+          absent += 1;
+          absentNames.push(emp.name);
+          return;
+        }
+
+        if (record.check_in_time && record.check_out_time) {
+          completed += 1;
+          completedNames.push(emp.name);
+        } else {
+          incomplete += 1;
+          incompleteNames.push(emp.name);
+        }
+      });
+
+      days.push({
+        key: dateKey,
+        dateKey,
+        day,
+        holiday: getHolidayName(dateKey),
+        completed,
+        incomplete,
+        absent,
+        annual,
+        paid,
+        unpaid,
+        completedNames,
+        incompleteNames,
+        absentNames,
+        leaveNames
+      });
+    }
+
+    return days;
   };
 
   const calculateAttendanceStats = (attendanceData) => {
@@ -747,6 +875,12 @@ const OwnerDashboard = () => {
                 📊 당월 출근현황
               </button>
               <button
+                className={`nav-tab ${activeTab === 'calendar' ? 'active' : ''}`}
+                onClick={() => setActiveTab('calendar')}
+              >
+                📅 캘린더
+              </button>
+              <button
                 className={`nav-tab ${activeTab === 'roster' ? 'active' : ''}`}
                 onClick={() => setActiveTab('roster')}
               >
@@ -771,6 +905,99 @@ const OwnerDashboard = () => {
                 📂 과거 직원
               </button>
             </div>
+
+            {activeTab === 'calendar' && (
+              <div className="card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ color: '#374151' }}>📅 캘린더</h3>
+                  <input
+                    type="month"
+                    className="form-input"
+                    style={{ width: 'auto' }}
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '16px', padding: '12px', background: '#f9fafb', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '12px', color: '#6b7280' }}>
+                    <span style={{ color: '#16a34a' }}>완료</span>
+                    <span style={{ color: '#f97316' }}>미완료</span>
+                    <span style={{ color: '#dc2626' }}>결근</span>
+                    <span style={{ color: '#2563eb' }}>연차</span>
+                    <span style={{ color: '#0ea5e9' }}>유급휴가</span>
+                    <span style={{ color: '#8b5cf6' }}>무급휴가</span>
+                    <span style={{ color: '#dc2626' }}>공휴일</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '8px' }}>
+                  {['일', '월', '화', '수', '목', '금', '토'].map((label) => (
+                    <div
+                      key={label}
+                      style={{ textAlign: 'center', fontSize: '12px', color: '#6b7280', fontWeight: '600' }}
+                    >
+                      {label}
+                    </div>
+                  ))}
+                  {buildOwnerCalendarDays().map((day) => {
+                    if (day.empty) {
+                      return <div key={day.key} style={{ height: '120px' }} />;
+                    }
+                    return (
+                      <div
+                        key={day.key}
+                        style={{
+                          padding: '8px',
+                          borderRadius: '8px',
+                          border: '1px solid #e5e7eb',
+                          minHeight: '120px',
+                          background: day.holiday ? '#fef2f2' : 'white'
+                        }}
+                      >
+                        <div style={{ fontSize: '12px', fontWeight: '600', color: day.holiday ? '#dc2626' : '#374151' }}>
+                          {day.day}
+                        </div>
+                        {day.holiday && (
+                          <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '4px' }}>
+                            {day.holiday}
+                          </div>
+                        )}
+                        <div style={{ marginTop: '6px', fontSize: '11px', color: '#6b7280' }}>
+                          완료 {day.completed} / 미완료 {day.incomplete}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                          결근 {day.absent}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                          휴가 {day.annual + day.paid + day.unpaid}
+                        </div>
+                        {day.completedNames.length > 0 && (
+                          <div style={{ fontSize: '10px', color: '#15803d', marginTop: '4px' }}>
+                            완료: {formatNameList(day.completedNames)}
+                          </div>
+                        )}
+                        {day.absentNames.length > 0 && (
+                          <div style={{ fontSize: '10px', color: '#b91c1c', marginTop: '4px' }}>
+                            결근: {formatNameList(day.absentNames)}
+                          </div>
+                        )}
+                        {day.incompleteNames.length > 0 && (
+                          <div style={{ fontSize: '10px', color: '#c2410c', marginTop: '4px' }}>
+                            미완료: {formatNameList(day.incompleteNames)}
+                          </div>
+                        )}
+                        {day.leaveNames.length > 0 && (
+                          <div style={{ fontSize: '10px', color: '#1d4ed8', marginTop: '4px' }}>
+                            휴가: {formatNameList(day.leaveNames)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* 근로자 명부 (직원 관리 통합) */}
             {activeTab === 'roster' && (

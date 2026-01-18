@@ -15,7 +15,24 @@ export const calculateDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 // 위치가 사업장 범위 내에 있는지 확인
-export const isWithinWorkplace = (userLat, userLon, workplaceLat, workplaceLon, radius) => {
-  const distance = calculateDistance(userLat, userLon, workplaceLat, workplaceLon);
-  return distance <= radius;
+export const isWithinWorkplace = (userLat, userLon, workplaceLat, workplaceLon, radius, accuracy = 0) => {
+  const userLatNum = Number(userLat);
+  const userLonNum = Number(userLon);
+  const workplaceLatNum = Number(workplaceLat);
+  const workplaceLonNum = Number(workplaceLon);
+  const radiusNum = Number(radius);
+  const accuracyNum = Number(accuracy) || 0;
+
+  if (
+    Number.isNaN(userLatNum) ||
+    Number.isNaN(userLonNum) ||
+    Number.isNaN(workplaceLatNum) ||
+    Number.isNaN(workplaceLonNum) ||
+    Number.isNaN(radiusNum)
+  ) {
+    return false;
+  }
+
+  const distance = calculateDistance(userLatNum, userLonNum, workplaceLatNum, workplaceLonNum);
+  return distance <= radiusNum + accuracyNum;
 };

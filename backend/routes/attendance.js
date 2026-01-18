@@ -12,7 +12,7 @@ const getKstDateString = () =>
 // 출근 체크
 router.post('/check-in', authenticate, async (req, res) => {
   try {
-    const { latitude, longitude } = req.body;
+    const { latitude, longitude, accuracy } = req.body;
     const userId = req.user.id;
     const workplaceId = req.user.workplace_id;
 
@@ -40,7 +40,8 @@ router.post('/check-in', authenticate, async (req, res) => {
       longitude,
       workplace.latitude,
       workplace.longitude,
-      workplace.radius
+      workplace.radius,
+      accuracy
     );
 
     if (!withinRange) {
@@ -100,7 +101,7 @@ router.post('/check-in', authenticate, async (req, res) => {
 // 퇴근 체크
 router.post('/check-out', authenticate, async (req, res) => {
   try {
-    const { latitude, longitude } = req.body;
+    const { latitude, longitude, accuracy } = req.body;
     const userId = req.user.id;
     const workplaceId = req.user.workplace_id;
 
@@ -124,7 +125,8 @@ router.post('/check-out', authenticate, async (req, res) => {
       longitude,
       workplace.latitude,
       workplace.longitude,
-      workplace.radius
+      workplace.radius,
+      accuracy
     );
 
     if (!withinRange) {

@@ -34,6 +34,7 @@ const OwnerDashboard = () => {
   const [pastPayrollYear, setPastPayrollYear] = useState(() => new Date().getFullYear());
   const [pastPayrollMonth, setPastPayrollMonth] = useState('');
   const [employmentStatusFilter, setEmploymentStatusFilter] = useState('all');
+  const [rosterViewMode, setRosterViewMode] = useState('table');
   const [pastPayrollRecords, setPastPayrollRecords] = useState([]);
   const [usernameCheckStatus, setUsernameCheckStatus] = useState('unchecked');
   const [usernameCheckLoading, setUsernameCheckLoading] = useState(false);
@@ -1005,7 +1006,7 @@ const OwnerDashboard = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                   <div>
                     <h3 style={{ color: '#374151', marginBottom: '12px' }}>📋 근로자 명부</h3>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <button
                         className={`btn ${employmentStatusFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
                         style={{ padding: '6px 12px', fontSize: '12px' }}
@@ -1027,6 +1028,29 @@ const OwnerDashboard = () => {
                       >
                         휴직
                       </button>
+                      <button
+                        className={`btn ${employmentStatusFilter === 'resigned' ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        onClick={() => setEmploymentStatusFilter('resigned')}
+                      >
+                        퇴사
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        className={`btn ${rosterViewMode === 'table' ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        onClick={() => setRosterViewMode('table')}
+                      >
+                        표 보기
+                      </button>
+                      <button
+                        className={`btn ${rosterViewMode === 'cards' ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        onClick={() => setRosterViewMode('cards')}
+                      >
+                        카드 보기
+                      </button>
                     </div>
                   </div>
                   <button
@@ -1046,78 +1070,134 @@ const OwnerDashboard = () => {
                     등록된 직원이 없습니다.
                   </p>
                 ) : (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table className="table table-mobile-cards">
-                      <thead>
-                        <tr>
-                          <th>이름</th>
-                          <th>상태</th>
-                          <th>주민번호</th>
-                          <th>생일</th>
-                          <th>전화번호</th>
-                          <th>주소</th>
-                          <th>직책</th>
-                          <th>입사일</th>
-                          <th>급여유형</th>
-                          <th>급여</th>
-                          <th>인건비 신고</th>
-                          <th>개인정보동의</th>
-                          <th>비상연락망</th>
-                          <th>관리</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                  <>
+                    {rosterViewMode === 'table' ? (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table className="table table-mobile-cards">
+                          <thead>
+                            <tr>
+                              <th>이름</th>
+                              <th>상태</th>
+                              <th>주민번호</th>
+                              <th>생일</th>
+                              <th>전화번호</th>
+                              <th>주소</th>
+                              <th>직책</th>
+                              <th>입사일</th>
+                              <th>급여유형</th>
+                              <th>급여</th>
+                              <th>인건비 신고</th>
+                              <th>개인정보동의</th>
+                              <th>비상연락망</th>
+                              <th>관리</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {employees.filter(emp => employmentStatusFilter === 'all' || emp.employment_status === employmentStatusFilter).map((emp) => (
+                              <tr key={emp.id}>
+                                <td data-label="이름" style={{ fontWeight: '600' }}>{emp.name}</td>
+                                <td data-label="상태">
+                                  <span style={{
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '11px',
+                                    fontWeight: '600',
+                                    background: emp.employment_status === 'active' ? '#d1fae5' : emp.employment_status === 'on_leave' ? '#fef3c7' : '#fee2e2',
+                                    color: emp.employment_status === 'active' ? '#065f46' : emp.employment_status === 'on_leave' ? '#92400e' : '#991b1b'
+                                  }}>
+                                    {emp.employment_status === 'active' ? '재직중' : emp.employment_status === 'on_leave' ? '휴직' : '퇴사'}
+                                  </span>
+                                </td>
+                                <td data-label="주민번호">{emp.ssn || '-'}</td>
+                                <td data-label="생일">{formatDate(emp.birth_date)}</td>
+                                <td data-label="전화번호">{emp.phone || '-'}</td>
+                                <td data-label="주소" style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {emp.address || '-'}
+                                </td>
+                                <td data-label="직책">{emp.position || '-'}</td>
+                                <td data-label="입사일">{formatDate(emp.hire_date)}</td>
+                                <td data-label="급여유형">{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</td>
+                                <td data-label="급여">{emp.amount ? `${emp.amount.toLocaleString()}원` : '-'}</td>
+                                <td data-label="인건비 신고" style={{ fontSize: '12px', color: '#6b7280' }}>{emp.tax_type || '4대보험'}</td>
+                                <td data-label="개인정보동의" style={{ textAlign: 'center' }}>
+                                  {emp.privacy_consent && emp.location_consent ? (
+                                    <div style={{ fontSize: '11px' }}>
+                                      <span style={{ color: '#10b981', fontSize: '16px' }}>✅</span>
+                                      <div style={{ color: '#6b7280', marginTop: '4px' }}>동의완료</div>
+                                    </div>
+                                  ) : (
+                                    <div style={{ fontSize: '11px' }}>
+                                      <span style={{ color: '#dc2626', fontSize: '16px' }}>❌</span>
+                                      <div style={{ color: '#dc2626', marginTop: '4px' }}>미동의</div>
+                                    </div>
+                                  )}
+                                </td>
+                                <td data-label="비상연락망">
+                                  {emp.emergency_contact ? (
+                                    <div style={{ fontSize: '12px' }}>
+                                      <div>{emp.emergency_contact}</div>
+                                      <div style={{ color: '#6b7280' }}>{emp.emergency_phone || '-'}</div>
+                                    </div>
+                                  ) : '-'}
+                                </td>
+                                <td data-label="관리">
+                                  <button
+                                    className="btn btn-secondary"
+                                    style={{ marginRight: '6px', padding: '6px 12px', fontSize: '12px' }}
+                                    onClick={() => openModal('employee', emp)}
+                                  >
+                                    수정
+                                  </button>
+                                  {emp.employment_status !== 'resigned' && (
+                                    <button
+                                      className="btn"
+                                      style={{ marginRight: '6px', padding: '6px 12px', fontSize: '12px', background: '#ef4444', color: 'white' }}
+                                      onClick={() => openResignationModal(emp)}
+                                    >
+                                      퇴사 처리
+                                    </button>
+                                  )}
+                                  <button
+                                    className="btn"
+                                    style={{ marginRight: '6px', padding: '6px 12px', fontSize: '12px', background: '#f59e0b', color: 'white' }}
+                                    onClick={() => handleViewSalaryHistory(emp.id, emp.name)}
+                                  >
+                                    이력
+                                  </button>
+                                  <button
+                                    className="btn btn-danger"
+                                    style={{ padding: '6px 12px', fontSize: '12px' }}
+                                    onClick={() => handleDeleteEmployee(emp.id)}
+                                  >
+                                    삭제
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="employee-card-grid">
                         {employees.filter(emp => employmentStatusFilter === 'all' || emp.employment_status === employmentStatusFilter).map((emp) => (
-                          <tr key={emp.id}>
-                            <td data-label="이름" style={{ fontWeight: '600' }}>{emp.name}</td>
-                            <td data-label="상태">
-                              <span style={{
-                                padding: '4px 8px',
-                                borderRadius: '4px',
-                                fontSize: '11px',
-                                fontWeight: '600',
-                                background: emp.employment_status === 'active' ? '#d1fae5' : emp.employment_status === 'on_leave' ? '#fef3c7' : '#fee2e2',
-                                color: emp.employment_status === 'active' ? '#065f46' : emp.employment_status === 'on_leave' ? '#92400e' : '#991b1b'
-                              }}>
+                          <div key={emp.id} className="employee-card">
+                            <div className="employee-card-header">
+                              <div style={{ fontWeight: '700', fontSize: '16px' }}>{emp.name}</div>
+                              <span className={`employee-status ${emp.employment_status}`}>
                                 {emp.employment_status === 'active' ? '재직중' : emp.employment_status === 'on_leave' ? '휴직' : '퇴사'}
                               </span>
-                            </td>
-                            <td data-label="주민번호">{emp.ssn || '-'}</td>
-                            <td data-label="생일">{formatDate(emp.birth_date)}</td>
-                            <td data-label="전화번호">{emp.phone || '-'}</td>
-                            <td data-label="주소" style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {emp.address || '-'}
-                            </td>
-                            <td data-label="직책">{emp.position || '-'}</td>
-                            <td data-label="입사일">{formatDate(emp.hire_date)}</td>
-                            <td data-label="급여유형">{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</td>
-                            <td data-label="급여">{emp.amount ? `${emp.amount.toLocaleString()}원` : '-'}</td>
-                            <td data-label="인건비 신고" style={{ fontSize: '12px', color: '#6b7280' }}>{emp.tax_type || '4대보험'}</td>
-                            <td data-label="개인정보동의" style={{ textAlign: 'center' }}>
-                              {emp.privacy_consent && emp.location_consent ? (
-                                <div style={{ fontSize: '11px' }}>
-                                  <span style={{ color: '#10b981', fontSize: '16px' }}>✅</span>
-                                  <div style={{ color: '#6b7280', marginTop: '4px' }}>동의완료</div>
-                                </div>
-                              ) : (
-                                <div style={{ fontSize: '11px' }}>
-                                  <span style={{ color: '#dc2626', fontSize: '16px' }}>❌</span>
-                                  <div style={{ color: '#dc2626', marginTop: '4px' }}>미동의</div>
-                                </div>
-                              )}
-                            </td>
-                            <td data-label="비상연락망">
-                              {emp.emergency_contact ? (
-                                <div style={{ fontSize: '12px' }}>
-                                  <div>{emp.emergency_contact}</div>
-                                  <div style={{ color: '#6b7280' }}>{emp.emergency_phone || '-'}</div>
-                                </div>
-                              ) : '-'}
-                            </td>
-                            <td data-label="관리">
+                            </div>
+                            <div className="employee-card-meta">
+                              <div><span>직책</span>{emp.position || '-'}</div>
+                              <div><span>입사일</span>{formatDate(emp.hire_date)}</div>
+                              <div><span>연락처</span>{emp.phone || '-'}</div>
+                              <div><span>급여</span>{emp.amount ? `${emp.amount.toLocaleString()}원` : '-'}</div>
+                              <div><span>급여유형</span>{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</div>
+                              <div><span>동의</span>{emp.privacy_consent && emp.location_consent ? '완료' : '미동의'}</div>
+                            </div>
+                            <div className="employee-card-actions">
                               <button
                                 className="btn btn-secondary"
-                                style={{ marginRight: '6px', padding: '6px 12px', fontSize: '12px' }}
                                 onClick={() => openModal('employee', emp)}
                               >
                                 수정
@@ -1125,7 +1205,7 @@ const OwnerDashboard = () => {
                               {emp.employment_status !== 'resigned' && (
                                 <button
                                   className="btn"
-                                  style={{ marginRight: '6px', padding: '6px 12px', fontSize: '12px', background: '#ef4444', color: 'white' }}
+                                  style={{ background: '#ef4444', color: 'white' }}
                                   onClick={() => openResignationModal(emp)}
                                 >
                                   퇴사 처리
@@ -1133,24 +1213,23 @@ const OwnerDashboard = () => {
                               )}
                               <button
                                 className="btn"
-                                style={{ marginRight: '6px', padding: '6px 12px', fontSize: '12px', background: '#f59e0b', color: 'white' }}
+                                style={{ background: '#f59e0b', color: 'white' }}
                                 onClick={() => handleViewSalaryHistory(emp.id, emp.name)}
                               >
                                 이력
                               </button>
                               <button
                                 className="btn btn-danger"
-                                style={{ padding: '6px 12px', fontSize: '12px' }}
                                 onClick={() => handleDeleteEmployee(emp.id)}
                               >
                                 삭제
                               </button>
-                            </td>
-                          </tr>
+                            </div>
+                          </div>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

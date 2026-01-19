@@ -1047,7 +1047,7 @@ const OwnerDashboard = () => {
                   </p>
                 ) : (
                   <div style={{ overflowX: 'auto' }}>
-                    <table className="table">
+                    <table className="table table-mobile-cards">
                       <thead>
                         <tr>
                           <th>이름</th>
@@ -1069,8 +1069,8 @@ const OwnerDashboard = () => {
                       <tbody>
                         {employees.filter(emp => employmentStatusFilter === 'all' || emp.employment_status === employmentStatusFilter).map((emp) => (
                           <tr key={emp.id}>
-                            <td style={{ fontWeight: '600' }}>{emp.name}</td>
-                            <td>
+                            <td data-label="이름" style={{ fontWeight: '600' }}>{emp.name}</td>
+                            <td data-label="상태">
                               <span style={{
                                 padding: '4px 8px',
                                 borderRadius: '4px',
@@ -1082,18 +1082,18 @@ const OwnerDashboard = () => {
                                 {emp.employment_status === 'active' ? '재직중' : emp.employment_status === 'on_leave' ? '휴직' : '퇴사'}
                               </span>
                             </td>
-                            <td>{emp.ssn || '-'}</td>
-                            <td>{formatDate(emp.birth_date)}</td>
-                            <td>{emp.phone || '-'}</td>
-                            <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <td data-label="주민번호">{emp.ssn || '-'}</td>
+                            <td data-label="생일">{formatDate(emp.birth_date)}</td>
+                            <td data-label="전화번호">{emp.phone || '-'}</td>
+                            <td data-label="주소" style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {emp.address || '-'}
                             </td>
-                            <td>{emp.position || '-'}</td>
-                            <td>{formatDate(emp.hire_date)}</td>
-                            <td>{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</td>
-                            <td>{emp.amount ? `${emp.amount.toLocaleString()}원` : '-'}</td>
-                            <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.tax_type || '4대보험'}</td>
-                            <td style={{ textAlign: 'center' }}>
+                            <td data-label="직책">{emp.position || '-'}</td>
+                            <td data-label="입사일">{formatDate(emp.hire_date)}</td>
+                            <td data-label="급여유형">{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</td>
+                            <td data-label="급여">{emp.amount ? `${emp.amount.toLocaleString()}원` : '-'}</td>
+                            <td data-label="인건비 신고" style={{ fontSize: '12px', color: '#6b7280' }}>{emp.tax_type || '4대보험'}</td>
+                            <td data-label="개인정보동의" style={{ textAlign: 'center' }}>
                               {emp.privacy_consent && emp.location_consent ? (
                                 <div style={{ fontSize: '11px' }}>
                                   <span style={{ color: '#10b981', fontSize: '16px' }}>✅</span>
@@ -1106,7 +1106,7 @@ const OwnerDashboard = () => {
                                 </div>
                               )}
                             </td>
-                            <td>
+                            <td data-label="비상연락망">
                               {emp.emergency_contact ? (
                                 <div style={{ fontSize: '12px' }}>
                                   <div>{emp.emergency_contact}</div>
@@ -1114,7 +1114,7 @@ const OwnerDashboard = () => {
                                 </div>
                               ) : '-'}
                             </td>
-                            <td>
+                            <td data-label="관리">
                               <button
                                 className="btn btn-secondary"
                                 style={{ marginRight: '6px', padding: '6px 12px', fontSize: '12px' }}

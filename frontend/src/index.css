@@ -238,6 +238,62 @@ h4 {
   transition: background 0.2s;
 }
 
+/* 모바일 카드형 테이블 */
+@media (max-width: 900px) {
+  .table-mobile-cards thead {
+    display: none;
+  }
+
+  .table-mobile-cards,
+  .table-mobile-cards tbody,
+  .table-mobile-cards tr,
+  .table-mobile-cards td {
+    display: block;
+    width: 100%;
+  }
+
+  .table-mobile-cards tr {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    background: #ffffff;
+  }
+
+  .table-mobile-cards td {
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 4px;
+    font-size: 13px;
+    text-align: right;
+  }
+
+  .table-mobile-cards td::before {
+    content: attr(data-label);
+    flex: 0 0 40%;
+    color: #6b7280;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .table-mobile-cards td[data-label="관리"] {
+    padding-top: 12px;
+  }
+
+  .table-mobile-cards td[data-label="관리"]::before {
+    content: "관리";
+  }
+
+  .table-mobile-cards td .btn {
+    width: auto;
+    min-height: 36px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
+
 @media (max-width: 768px) {
   .table th,
   .table td {

@@ -506,6 +506,10 @@ const OwnerDashboard = () => {
           const mm = digits.slice(2, 4);
           const dd = digits.slice(4, 6);
           const genderCode = digits.charAt(6);
+          const isForeigner = ['5', '6', '7', '8'].includes(genderCode);
+          if (isForeigner) {
+            return next;
+          }
 
           let century = '';
           if (['1', '2', '5', '6'].includes(genderCode)) century = '19';

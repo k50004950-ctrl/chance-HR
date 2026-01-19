@@ -773,6 +773,13 @@ const OwnerDashboard = () => {
     return new Date(dateString).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const formatCurrency = (value) => {
+    if (value === null || value === undefined || value === '') return '-';
+    const num = Number(value);
+    if (Number.isNaN(num)) return '-';
+    return `${num.toLocaleString()}원`;
+  };
+
   const getSalaryTypeName = (type) => {
     switch (type) {
       case 'hourly': return '시급';
@@ -1178,7 +1185,7 @@ const OwnerDashboard = () => {
                                 <td data-label="직책">{emp.position || '-'}</td>
                                 <td data-label="입사일">{formatDate(emp.hire_date)}</td>
                                 <td data-label="급여유형">{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</td>
-                                <td data-label="급여">{emp.amount ? `${emp.amount.toLocaleString()}원` : '-'}</td>
+                                <td data-label="급여">{formatCurrency(emp.amount)}</td>
                                 <td data-label="인건비 신고" style={{ fontSize: '12px', color: '#6b7280' }}>{emp.tax_type || '4대보험'}</td>
                                 <td data-label="개인정보동의" style={{ textAlign: 'center' }}>
                                   {emp.privacy_consent && emp.location_consent ? (
@@ -1252,7 +1259,7 @@ const OwnerDashboard = () => {
                               <div><span>직책</span>{emp.position || '-'}</div>
                               <div><span>입사일</span>{formatDate(emp.hire_date)}</div>
                               <div><span>연락처</span>{emp.phone || '-'}</div>
-                              <div><span>급여</span>{emp.amount ? `${emp.amount.toLocaleString()}원` : '-'}</div>
+                              <div><span>급여</span>{formatCurrency(emp.amount)}</div>
                               <div><span>급여유형</span>{emp.salary_type ? getSalaryTypeName(emp.salary_type) : '-'}</div>
                               <div><span>동의</span>{emp.privacy_consent && emp.location_consent ? '완료' : '미동의'}</div>
                             </div>
@@ -1640,7 +1647,7 @@ const OwnerDashboard = () => {
                         총 지급 급여 (세전)
                       </div>
                       <div style={{ fontSize: '36px', fontWeight: '700' }}>
-                        {salaryData.totalSalary.toLocaleString()}원
+                        {formatCurrency(salaryData.totalSalary)}
                       </div>
                     </div>
 
@@ -1673,15 +1680,15 @@ const OwnerDashboard = () => {
                                     <td style={{ fontWeight: '600' }}>{emp.employeeName}</td>
                                     <td>{getSalaryTypeName(emp.salaryType)}</td>
                                     <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.taxType || '4대보험'}</td>
-                                    <td>{emp.baseAmount.toLocaleString()}원</td>
+                                <td>{formatCurrency(emp.baseAmount)}</td>
                                     <td>{emp.totalWorkDays}일</td>
                                     <td>{emp.totalWorkHours}h</td>
-                                    <td>{emp.baseSalaryAmount ? emp.baseSalaryAmount.toLocaleString() : (emp.baseSalary || emp.calculatedSalary).toLocaleString()}원</td>
+                                <td>{formatCurrency(emp.baseSalaryAmount ?? emp.baseSalary ?? emp.calculatedSalary)}</td>
                                 <td style={{ color: emp.weeklyHolidayPayAmount > 0 ? '#10b981' : '#9ca3af' }}>
-                                  {emp.weeklyHolidayPayAmount > 0 ? `+${emp.weeklyHolidayPayAmount.toLocaleString()}원` : '-'}
+                                  {emp.weeklyHolidayPayAmount > 0 ? `+${Number(emp.weeklyHolidayPayAmount).toLocaleString()}원` : '-'}
                                 </td>
                                     <td style={{ fontWeight: '700', color: '#667eea' }}>
-                                      {totalPay.toLocaleString()}원
+                                  {formatCurrency(totalPay)}
                                     </td>
                                   </tr>
                                 );
@@ -1733,7 +1740,7 @@ const OwnerDashboard = () => {
                                 <td>{formatDate(emp.hire_date)}</td>
                                 <td>{getYearsOfService(emp.hire_date)}</td>
                                 <td style={{ color: severancePay > 0 ? '#f59e0b' : '#9ca3af', fontWeight: severancePay > 0 ? '600' : '400' }}>
-                                  {severancePay > 0 ? `${severancePay.toLocaleString()}원` : '1년 미만'}
+                                  {severancePay > 0 ? formatCurrency(severancePay) : '1년 미만'}
                                 </td>
                               </tr>
                             );

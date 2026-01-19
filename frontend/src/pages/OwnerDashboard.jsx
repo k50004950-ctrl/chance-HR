@@ -746,7 +746,7 @@ const OwnerDashboard = () => {
       '주휴수당': emp.weeklyHolidayPayAmount || 0,
       '수기 과거 급여': emp.pastPayrollAmount || 0,
       '퇴직금(당일퇴사)': emp.severancePay || 0,
-      '총지급액': emp.totalPay ?? (emp.calculatedSalary + (emp.pastPayrollAmount || 0))
+      '총지급액': emp.totalPay ?? emp.calculatedSalary
     }));
 
     // 합계 행 추가
@@ -1607,7 +1607,7 @@ const OwnerDashboard = () => {
                           </thead>
                           <tbody>
                             {salaryData.employees.map((emp) => {
-                              const totalPay = emp.totalPay ?? (emp.calculatedSalary + (emp.pastPayrollAmount || 0));
+                              const totalPay = emp.totalPay ?? emp.calculatedSalary;
                               return (
                               <tr key={emp.employeeId}>
                                 <td style={{ fontWeight: '600' }}>{emp.employeeName}</td>
@@ -1635,6 +1635,9 @@ const OwnerDashboard = () => {
                           </tbody>
                         </table>
                       </div>
+                      <p style={{ color: '#6b7280', fontSize: '12px', marginTop: '8px' }}>
+                        * 수기 과거 급여와 퇴직금은 총 지급액에 포함되지 않습니다.
+                      </p>
                     )}
 
                     <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>

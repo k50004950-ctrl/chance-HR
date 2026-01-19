@@ -121,7 +121,7 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
       },
       calculatedSalary: Math.round(calculatedSalary),
       pastPayrollAmount,
-      totalPay: Math.round(calculatedSalary + pastPayrollAmount)
+      totalPay: Math.round(calculatedSalary)
     });
   } catch (error) {
     console.error('급여 계산 오류:', error);
@@ -257,9 +257,9 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         }
       }
 
-      const totalPay = roundedSalary + pastPayrollAmount;
+      const totalPay = roundedSalary;
 
-      // 퇴직금은 별도 표시 (총 급여에 포함하지 않음)
+      // 퇴직금/수기 과거 급여는 별도 표시 (총 급여에 포함하지 않음)
       totalSalary += totalPay;
 
       salaryResults.push({

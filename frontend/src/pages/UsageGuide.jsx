@@ -1,10 +1,12 @@
 import React from 'react';
 import Header from '../components/Header';
+import { useAuth } from '../context/AuthContext';
 
 const UsageGuide = () => {
+  const { user } = useAuth();
   return (
     <div>
-      <Header />
+      {user && <Header />}
       <div className="container">
         <h2 style={{ marginBottom: '20px', color: '#374151' }}>사용방법 안내서</h2>
 

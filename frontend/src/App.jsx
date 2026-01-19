@@ -42,14 +42,7 @@ const AppRouter = () => {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
       <Route path="/signup" element={user ? <Navigate to="/" /> : <Signup />} />
-      <Route
-        path="/guide"
-        element={
-          <ProtectedRoute>
-            <UsageGuide />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/guide" element={<UsageGuide />} />
       
       <Route
         path="/"

@@ -495,9 +495,43 @@ const OwnerDashboard = () => {
     if (e.target.name === 'username') {
       setUsernameCheckStatus('unchecked');
     }
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+
+      if (name === 'ssn') {
+        const digits = value.replace(/\D/g, '');
+        if (digits.length >= 7) {
+          const yy = digits.slice(0, 2);
+          const mm = digits.slice(2, 4);
+          const dd = digits.slice(4, 6);
+          const genderCode = digits.charAt(6);
+
+          let century = '';
+          if (['1', '2', '5', '6'].includes(genderCode)) century = '19';
+          if (['3', '4', '7', '8'].includes(genderCode)) century = '20';
+          if (['9', '0'].includes(genderCode)) century = '18';
+
+          if (century) {
+            const birthDate = `${century}${yy}-${mm}-${dd}`;
+            const dateObj = new Date(birthDate);
+            const isValidDate = !Number.isNaN(dateObj.getTime())
+              && dateObj.getFullYear() === Number(`${century}${yy}`)
+              && dateObj.getMonth() + 1 === Number(mm)
+              && dateObj.getDate() === Number(dd);
+
+            if (isValidDate) {
+              const isMale = ['1', '3', '5', '7', '9'].includes(genderCode);
+              const isFemale = ['2', '4', '6', '8', '0'].includes(genderCode);
+              next.birth_date = birthDate;
+              if (isMale) next.gender = 'male';
+              if (isFemale) next.gender = 'female';
+            }
+          }
+        }
+      }
+
+      return next;
     });
   };
 

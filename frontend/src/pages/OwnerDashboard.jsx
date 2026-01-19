@@ -1588,56 +1588,58 @@ const OwnerDashboard = () => {
                         급여 데이터가 없습니다.
                       </p>
                     ) : (
-                      <div style={{ overflowX: 'auto' }}>
-                        <table className="table">
-                          <thead>
-                            <tr>
-                              <th>직원명</th>
-                              <th>급여유형</th>
-                              <th>인건비 신고</th>
-                              <th>기본급</th>
-                              <th>근무일수</th>
-                              <th>근무시간</th>
-                              <th>기본 급여</th>
-                              <th>주휴수당</th>
-                              <th>수기 과거 급여</th>
-                              <th>퇴직금(당일퇴사)</th>
-                              <th>총 지급액</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {salaryData.employees.map((emp) => {
-                              const totalPay = emp.totalPay ?? emp.calculatedSalary;
-                              return (
-                              <tr key={emp.employeeId}>
-                                <td style={{ fontWeight: '600' }}>{emp.employeeName}</td>
-                                <td>{getSalaryTypeName(emp.salaryType)}</td>
-                                <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.taxType || '4대보험'}</td>
-                                <td>{emp.baseAmount.toLocaleString()}원</td>
-                                <td>{emp.totalWorkDays}일</td>
-                                <td>{emp.totalWorkHours}h</td>
-                                <td>{emp.baseSalaryAmount ? emp.baseSalaryAmount.toLocaleString() : (emp.baseSalary || emp.calculatedSalary).toLocaleString()}원</td>
-                                <td style={{ color: emp.weeklyHolidayPayAmount > 0 ? '#10b981' : '#9ca3af' }}>
-                                  {emp.weeklyHolidayPayAmount > 0 ? `+${emp.weeklyHolidayPayAmount.toLocaleString()}원` : '-'}
-                                </td>
-                                <td style={{ color: emp.pastPayrollAmount > 0 ? '#2563eb' : '#9ca3af' }}>
-                                  {emp.pastPayrollAmount > 0 ? `+${emp.pastPayrollAmount.toLocaleString()}원` : '-'}
-                                </td>
-                                <td style={{ color: emp.severancePay > 0 ? '#f59e0b' : '#9ca3af', fontWeight: emp.severancePay > 0 ? '600' : '400' }}>
-                                  {emp.severancePay > 0 ? `+${emp.severancePay.toLocaleString()}원` : '1년 미만'}
-                                </td>
-                                <td style={{ fontWeight: '700', color: '#667eea' }}>
-                                  {totalPay.toLocaleString()}원
-                                </td>
+                      <>
+                        <div style={{ overflowX: 'auto' }}>
+                          <table className="table">
+                            <thead>
+                              <tr>
+                                <th>직원명</th>
+                                <th>급여유형</th>
+                                <th>인건비 신고</th>
+                                <th>기본급</th>
+                                <th>근무일수</th>
+                                <th>근무시간</th>
+                                <th>기본 급여</th>
+                                <th>주휴수당</th>
+                                <th>수기 과거 급여</th>
+                                <th>퇴직금(당일퇴사)</th>
+                                <th>총 지급액</th>
                               </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                      <p style={{ color: '#6b7280', fontSize: '12px', marginTop: '8px' }}>
-                        * 수기 과거 급여와 퇴직금은 총 지급액에 포함되지 않습니다.
-                      </p>
+                            </thead>
+                            <tbody>
+                              {salaryData.employees.map((emp) => {
+                                const totalPay = emp.totalPay ?? emp.calculatedSalary;
+                                return (
+                                  <tr key={emp.employeeId}>
+                                    <td style={{ fontWeight: '600' }}>{emp.employeeName}</td>
+                                    <td>{getSalaryTypeName(emp.salaryType)}</td>
+                                    <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.taxType || '4대보험'}</td>
+                                    <td>{emp.baseAmount.toLocaleString()}원</td>
+                                    <td>{emp.totalWorkDays}일</td>
+                                    <td>{emp.totalWorkHours}h</td>
+                                    <td>{emp.baseSalaryAmount ? emp.baseSalaryAmount.toLocaleString() : (emp.baseSalary || emp.calculatedSalary).toLocaleString()}원</td>
+                                    <td style={{ color: emp.weeklyHolidayPayAmount > 0 ? '#10b981' : '#9ca3af' }}>
+                                      {emp.weeklyHolidayPayAmount > 0 ? `+${emp.weeklyHolidayPayAmount.toLocaleString()}원` : '-'}
+                                    </td>
+                                    <td style={{ color: emp.pastPayrollAmount > 0 ? '#2563eb' : '#9ca3af' }}>
+                                      {emp.pastPayrollAmount > 0 ? `+${emp.pastPayrollAmount.toLocaleString()}원` : '-'}
+                                    </td>
+                                    <td style={{ color: emp.severancePay > 0 ? '#f59e0b' : '#9ca3af', fontWeight: emp.severancePay > 0 ? '600' : '400' }}>
+                                      {emp.severancePay > 0 ? `+${emp.severancePay.toLocaleString()}원` : '1년 미만'}
+                                    </td>
+                                    <td style={{ fontWeight: '700', color: '#667eea' }}>
+                                      {totalPay.toLocaleString()}원
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p style={{ color: '#6b7280', fontSize: '12px', marginTop: '8px' }}>
+                          * 수기 과거 급여와 퇴직금은 총 지급액에 포함되지 않습니다.
+                        </p>
+                      </>
                     )}
 
                     <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>

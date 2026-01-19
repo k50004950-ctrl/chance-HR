@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ChangePassword from './ChangePassword';
 
@@ -35,6 +36,9 @@ const Header = () => {
             <span className="header-user">
               {user?.name} ({getRoleName(user?.role)})
             </span>
+            <Link to="/guide" className="btn btn-secondary" style={{ marginRight: '8px' }}>
+              📘 사용방법
+            </Link>
             <button 
               onClick={() => setShowChangePassword(true)} 
               className="btn btn-secondary"

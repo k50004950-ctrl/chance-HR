@@ -806,8 +806,6 @@ const OwnerDashboard = () => {
       '근무시간': emp.totalWorkHours,
       '기본급여': emp.baseSalaryAmount || emp.baseSalary || emp.calculatedSalary,
       '주휴수당': emp.weeklyHolidayPayAmount || 0,
-      '수기 과거 급여': emp.pastPayrollAmount || 0,
-      '퇴직금(당일퇴사)': emp.severancePay || 0,
       '총지급액': emp.totalPay ?? emp.calculatedSalary
     }));
 
@@ -822,8 +820,6 @@ const OwnerDashboard = () => {
       '근무시간': '',
       '기본급여': '',
       '주휴수당': salaryData.employees.reduce((sum, emp) => sum + (emp.weeklyHolidayPayAmount || 0), 0),
-      '수기 과거 급여': salaryData.employees.reduce((sum, emp) => sum + (emp.pastPayrollAmount || 0), 0),
-      '퇴직금(당일퇴사)': salaryData.employees.reduce((sum, emp) => sum + (emp.severancePay || 0), 0),
       '총지급액': salaryData.totalSalary
     };
     excelData.push(totalRow);
@@ -842,8 +838,6 @@ const OwnerDashboard = () => {
       { wch: 10 }, // 근무시간
       { wch: 12 }, // 기본급여
       { wch: 12 }, // 주휴수당
-      { wch: 14 }, // 수기 과거 급여
-      { wch: 16 }, // 퇴직금(당일퇴사)
       { wch: 14 }  // 총지급액
     ];
 

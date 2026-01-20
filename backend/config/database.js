@@ -168,6 +168,9 @@ export const initDatabase = async () => {
           longitude DECIMAL(11, 8),
           radius INTEGER DEFAULT 100,
           default_off_days VARCHAR(50) DEFAULT '',
+          qr_check_in_token VARCHAR(100),
+          qr_check_out_token VARCHAR(100),
+          qr_token_expires_at TIMESTAMP,
           owner_id INTEGER,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (owner_id) REFERENCES users(id)
@@ -186,6 +189,22 @@ export const initDatabase = async () => {
         await pool.query(`ALTER TABLE workplaces ADD COLUMN IF NOT EXISTS default_off_days VARCHAR(50) DEFAULT ''`);
       } catch (e) {
         console.log('default_off_days 컬럼은 이미 존재합니다.');
+      }
+      // QR 토큰 컬럼 추가 (마이그레이션)
+      try {
+        await pool.query(`ALTER TABLE workplaces ADD COLUMN IF NOT EXISTS qr_check_in_token VARCHAR(100)`);
+      } catch (e) {
+        console.log('qr_check_in_token 컬럼은 이미 존재합니다.');
+      }
+      try {
+        await pool.query(`ALTER TABLE workplaces ADD COLUMN IF NOT EXISTS qr_check_out_token VARCHAR(100)`);
+      } catch (e) {
+        console.log('qr_check_out_token 컬럼은 이미 존재합니다.');
+      }
+      try {
+        await pool.query(`ALTER TABLE workplaces ADD COLUMN IF NOT EXISTS qr_token_expires_at TIMESTAMP`);
+      } catch (e) {
+        console.log('qr_token_expires_at 컬럼은 이미 존재합니다.');
       }
 
       // Employee_details 테이블
@@ -514,6 +533,9 @@ export const initDatabase = async () => {
           longitude REAL,
           radius INTEGER DEFAULT 100,
           default_off_days TEXT,
+          qr_check_in_token TEXT,
+          qr_check_out_token TEXT,
+          qr_token_expires_at DATETIME,
           owner_id INTEGER,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (owner_id) REFERENCES users(id)
@@ -527,6 +549,16 @@ export const initDatabase = async () => {
       // 기존 workplaces 테이블에 default_off_days 컬럼 추가 (마이그레이션)
       try {
         await run(`ALTER TABLE workplaces ADD COLUMN default_off_days TEXT`);
+      } catch (e) {}
+      // QR 토큰 컬럼 추가 (마이그레이션)
+      try {
+        await run(`ALTER TABLE workplaces ADD COLUMN qr_check_in_token TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE workplaces ADD COLUMN qr_check_out_token TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE workplaces ADD COLUMN qr_token_expires_at DATETIME`);
       } catch (e) {}
 
       // Employee_details 테이블

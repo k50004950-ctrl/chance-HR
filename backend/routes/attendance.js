@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import { query, run, get } from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
 import { isWithinWorkplace } from '../utils/location.js';
@@ -8,6 +9,8 @@ const router = express.Router();
 
 const getKstDateString = () =>
   new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
+
+const generateQrToken = () => crypto.randomBytes(16).toString('hex');
 
 // 출근 체크
 router.post('/check-in', authenticate, async (req, res) => {
@@ -98,6 +101,52 @@ router.post('/check-in', authenticate, async (req, res) => {
   }
 });
 
+// QR 코드 생성 (사업주)
+router.post('/qr/generate', authenticate, async (req, res) => {
+  try {
+    const { workplaceId, regenerate } = req.body;
+
+    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    if (!workplaceId) {
+      return res.status(400).json({ message: '사업장 정보가 필요합니다.' });
+    }
+
+    const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [workplaceId]);
+    if (!workplace) {
+      return res.status(404).json({ message: '사업장을 찾을 수 없습니다.' });
+    }
+
+    if (req.user.role === 'owner' && workplace.owner_id !== req.user.id) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    let checkInToken = workplace.qr_check_in_token;
+    let checkOutToken = workplace.qr_check_out_token;
+
+    if (regenerate || !checkInToken || !checkOutToken) {
+      checkInToken = generateQrToken();
+      checkOutToken = generateQrToken();
+
+      await run(
+        'UPDATE workplaces SET qr_check_in_token = ?, qr_check_out_token = ?, qr_token_expires_at = ? WHERE id = ?',
+        [checkInToken, checkOutToken, null, workplaceId]
+      );
+    }
+
+    res.json({
+      checkInToken,
+      checkOutToken,
+      expiresAt: null
+    });
+  } catch (error) {
+    console.error('QR 생성 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 // 퇴근 체크
 router.post('/check-out', authenticate, async (req, res) => {
   try {
@@ -181,6 +230,119 @@ router.post('/check-out', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('퇴근 체크 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// QR 출퇴근 체크 (근로자)
+router.post('/qr/check', authenticate, async (req, res) => {
+  try {
+    const { token } = req.body;
+    const userId = req.user.id;
+    const workplaceId = req.user.workplace_id;
+
+    if (!token) {
+      return res.status(400).json({ message: 'QR 토큰이 필요합니다.' });
+    }
+
+    if (req.user.role !== 'employee') {
+      return res.status(403).json({ message: '근로자 계정만 이용 가능합니다.' });
+    }
+
+    if (!workplaceId) {
+      return res.status(400).json({ message: '사업장이 지정되지 않았습니다.' });
+    }
+
+    const workplace = await get(
+      'SELECT * FROM workplaces WHERE qr_check_in_token = ? OR qr_check_out_token = ?',
+      [token, token]
+    );
+
+    if (!workplace) {
+      return res.status(400).json({ message: '유효하지 않은 QR 코드입니다.' });
+    }
+
+    if (Number(workplace.id) !== Number(workplaceId)) {
+      return res.status(403).json({ message: '사업장이 일치하지 않습니다.' });
+    }
+
+    const isCheckInToken = workplace.qr_check_in_token === token;
+    const isCheckOutToken = workplace.qr_check_out_token === token;
+
+    if (!isCheckInToken && !isCheckOutToken) {
+      return res.status(400).json({ message: '유효하지 않은 QR 코드입니다.' });
+    }
+
+    const today = getKstDateString();
+    const existingRecord = await get(
+      'SELECT * FROM attendance WHERE user_id = ? AND date = ?',
+      [userId, today]
+    );
+
+    if (isCheckInToken) {
+      if (existingRecord && existingRecord.check_in_time) {
+        return res.status(400).json({ message: '이미 출근 체크하셨습니다.' });
+      }
+
+      const now = new Date().toISOString();
+      if (existingRecord) {
+        await run(
+          'UPDATE attendance SET check_in_time = ?, check_in_lat = ?, check_in_lng = ?, leave_type = ? WHERE id = ?',
+          [now, null, null, null, existingRecord.id]
+        );
+      } else {
+        await run(
+          'INSERT INTO attendance (user_id, workplace_id, date, check_in_time, check_in_lat, check_in_lng, leave_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [userId, workplaceId, today, now, null, null, null]
+        );
+      }
+
+      notifyAttendance({
+        type: 'check-in',
+        userName: req.user.name,
+        timestamp: now,
+        workplaceName: workplace?.name
+      }).catch((error) => {
+        console.error('카카오 출근 알림 실패:', error);
+      });
+
+      return res.json({ message: 'QR 출근이 기록되었습니다.', checkInTime: now });
+    }
+
+    if (!existingRecord || !existingRecord.check_in_time) {
+      return res.status(400).json({ message: '출근 기록이 없습니다.' });
+    }
+
+    if (existingRecord.check_out_time) {
+      return res.status(400).json({ message: '이미 퇴근 체크하셨습니다.' });
+    }
+
+    const checkInTime = new Date(existingRecord.check_in_time);
+    const checkOutTime = new Date();
+    const workHours = (checkOutTime - checkInTime) / (1000 * 60 * 60);
+    const now = new Date().toISOString();
+
+    await run(
+      'UPDATE attendance SET check_out_time = ?, check_out_lat = ?, check_out_lng = ?, work_hours = ?, status = ?, leave_type = ? WHERE id = ?',
+      [now, null, null, workHours.toFixed(2), 'completed', null, existingRecord.id]
+    );
+
+    notifyAttendance({
+      type: 'check-out',
+      userName: req.user.name,
+      timestamp: now,
+      workplaceName: workplace?.name
+    }).catch((error) => {
+      console.error('카카오 퇴근 알림 실패:', error);
+    });
+
+    res.json({
+      message: 'QR 퇴근이 기록되었습니다.',
+      checkOutTime: now,
+      workHours: workHours.toFixed(2)
+    });
+  } catch (error) {
+    console.error('QR 출퇴근 체크 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 });

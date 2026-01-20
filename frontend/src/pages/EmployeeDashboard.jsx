@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import { attendanceAPI, salaryAPI, employeeAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { Html5Qrcode } from 'html5-qrcode';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
@@ -17,7 +18,11 @@ const EmployeeDashboard = () => {
   });
   const [salaryInfo, setSalaryInfo] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [lastLocationCheckAt, setLastLocationCheckAt] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
+  const [qrProcessing, setQrProcessing] = useState(false);
+  const qrScannerRef = useRef(null);
   const [showCertificateModal, setShowCertificateModal] = useState(false);
   const [certificateData, setCertificateData] = useState(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
@@ -139,11 +144,102 @@ const EmployeeDashboard = () => {
     });
   };
 
+  const parseQrToken = (payload) => {
+    if (!payload) return '';
+    if (payload.includes('|')) {
+      const parts = payload.split('|');
+      if (parts.length >= 3 && parts[0] === 'CHANCEHR') {
+        return parts[2];
+      }
+    }
+    try {
+      const url = new URL(payload);
+      const tokenParam = url.searchParams.get('token');
+      if (tokenParam) return tokenParam;
+    } catch (e) {
+      // ignore URL parse error
+    }
+    return payload.trim();
+  };
+
+  const stopQrScanner = async () => {
+    if (qrScannerRef.current) {
+      try {
+        await qrScannerRef.current.stop();
+      } catch (error) {
+        // ignore stop errors
+      }
+      try {
+        qrScannerRef.current.clear();
+      } catch (error) {
+        // ignore clear errors
+      }
+      qrScannerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (!qrScannerOpen) {
+      stopQrScanner();
+      setQrProcessing(false);
+      return;
+    }
+
+    const startScanner = async () => {
+      try {
+        const html5QrCode = new Html5Qrcode('qr-reader');
+        qrScannerRef.current = html5QrCode;
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 220, height: 220 } },
+          async (decodedText) => {
+            if (qrProcessing) return;
+            setQrProcessing(true);
+            await stopQrScanner();
+            setQrScannerOpen(false);
+
+            const token = parseQrToken(decodedText);
+            if (!token) {
+              setMessage({ type: 'error', text: 'QR 코드 내용을 확인할 수 없습니다.' });
+              setQrProcessing(false);
+              return;
+            }
+
+            try {
+              const response = await attendanceAPI.checkQr({ token });
+              setMessage({ type: 'success', text: response.data.message });
+              loadTodayStatus();
+              loadAttendanceRecords();
+            } catch (error) {
+              setMessage({
+                type: 'error',
+                text: error.response?.data?.message || 'QR 출퇴근에 실패했습니다.'
+              });
+            } finally {
+              setQrProcessing(false);
+            }
+          }
+        );
+      } catch (error) {
+        setMessage({ type: 'error', text: 'QR 스캔을 시작할 수 없습니다. 카메라 권한을 확인해주세요.' });
+        setQrScannerOpen(false);
+        setQrProcessing(false);
+      }
+    };
+
+    startScanner();
+
+    return () => {
+      stopQrScanner();
+    };
+  }, [qrScannerOpen, qrProcessing]);
+
   const checkCurrentLocation = async () => {
     setLocationLoading(true);
     try {
       const location = await getCurrentLocation();
       setCurrentLocation(location);
+      setLastLocationCheckAt(Date.now());
       setMessage({ 
         type: 'info', 
         text: `현재 위치를 확인했습니다. (정확도: ${Math.round(location.accuracy)}m)` 
@@ -154,15 +250,36 @@ const EmployeeDashboard = () => {
     setLocationLoading(false);
   };
 
+  const isLocationFresh = () => {
+    if (!currentLocation || !lastLocationCheckAt) return false;
+    return Date.now() - lastLocationCheckAt <= 2 * 60 * 1000;
+  };
+
+  const ensureLocationChecked = () => {
+    if (!isLocationFresh()) {
+      setMessage({
+        type: 'error',
+        text: '출퇴근 체크 전에 "📍 위치 확인"을 먼저 해주세요.'
+      });
+      return false;
+    }
+    return true;
+  };
+
   const handleCheckIn = async () => {
     setLoading(true);
     setMessage({ type: '', text: '' });
 
     try {
-      const location = await getCurrentLocation();
-      const response = await attendanceAPI.checkIn(location);
+      if (!ensureLocationChecked()) {
+        setLoading(false);
+        return;
+      }
+      const response = await attendanceAPI.checkIn(currentLocation);
       
       setMessage({ type: 'success', text: response.data.message });
+      setCurrentLocation(null);
+      setLastLocationCheckAt(null);
       loadTodayStatus();
       loadAttendanceRecords();
     } catch (error) {
@@ -180,10 +297,15 @@ const EmployeeDashboard = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const location = await getCurrentLocation();
-      const response = await attendanceAPI.checkOut(location);
+      if (!ensureLocationChecked()) {
+        setLoading(false);
+        return;
+      }
+      const response = await attendanceAPI.checkOut(currentLocation);
       
       setMessage({ type: 'success', text: response.data.message });
+      setCurrentLocation(null);
+      setLastLocationCheckAt(null);
       loadTodayStatus();
       loadAttendanceRecords();
     } catch (error) {
@@ -330,16 +452,26 @@ const EmployeeDashboard = () => {
 
         {/* 출퇴근 체크 카드 */}
         <div className="card" style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
             <h3 style={{ margin: 0, color: '#374151' }}>📍 오늘의 출퇴근</h3>
-            <button
-              className="btn btn-secondary"
-              onClick={checkCurrentLocation}
-              disabled={locationLoading}
-              style={{ padding: '8px 16px', fontSize: '14px' }}
-            >
-              {locationLoading ? '확인 중...' : '📍 위치 확인'}
-            </button>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={checkCurrentLocation}
+                disabled={locationLoading}
+                style={{ padding: '8px 16px', fontSize: '14px' }}
+              >
+                {locationLoading ? '확인 중...' : '📍 위치 확인'}
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => setQrScannerOpen(true)}
+                disabled={qrProcessing || loading}
+                style={{ padding: '8px 16px', fontSize: '14px' }}
+              >
+                📷 QR 스캔
+              </button>
+            </div>
           </div>
 
           {/* 현재 위치 정보 */}
@@ -418,7 +550,8 @@ const EmployeeDashboard = () => {
               paddingLeft: '20px',
               lineHeight: '1.6'
             }}>
-              <li>출퇴근 시 현재 위치가 자동으로 기록됩니다</li>
+              <li>출퇴근 전에 반드시 "📍 위치 확인"을 먼저 해주세요</li>
+              <li>위치 인식이 어려울 경우 "📷 QR 스캔"으로 출퇴근할 수 있습니다</li>
               <li>위치 권한을 허용해주세요</li>
               <li>정확한 위치 확인을 위해 GPS를 켜주세요</li>
             </ul>
@@ -428,7 +561,7 @@ const EmployeeDashboard = () => {
             <button
               className="btn btn-success"
               onClick={handleCheckIn}
-              disabled={loading || todayStatus?.hasCheckedIn}
+              disabled={loading || todayStatus?.hasCheckedIn || !isLocationFresh()}
               style={{ 
                 width: '100%', 
                 padding: '18px', 
@@ -442,7 +575,7 @@ const EmployeeDashboard = () => {
             <button
               className="btn btn-danger"
               onClick={handleCheckOut}
-              disabled={loading || !todayStatus?.hasCheckedIn || todayStatus?.hasCheckedOut}
+              disabled={loading || !todayStatus?.hasCheckedIn || todayStatus?.hasCheckedOut || !isLocationFresh()}
               style={{ 
                 width: '100%', 
                 padding: '18px', 
@@ -471,6 +604,35 @@ const EmployeeDashboard = () => {
             </div>
           )}
         </div>
+
+        {/* QR 스캐너 모달 */}
+        {qrScannerOpen && (
+          <div className="modal-overlay" onClick={() => setQrScannerOpen(false)}>
+            <div
+              className="modal"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: '420px' }}
+            >
+              <div className="modal-header" style={{ background: '#2563eb', color: 'white' }}>
+                📷 QR 출퇴근 스캔
+              </div>
+              <div style={{ padding: '20px' }}>
+                <div id="qr-reader" style={{ width: '100%' }} />
+                <p style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280' }}>
+                  카메라를 QR 코드에 맞추면 자동으로 출퇴근이 기록됩니다.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setQrScannerOpen(false)}
+                  >
+                    닫기
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 이번 달 급여 정보 */}
         {salaryInfo && (

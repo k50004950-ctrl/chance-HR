@@ -4,6 +4,7 @@ import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, s
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
 import ConsentInfo from '../components/ConsentInfo';
+import QRCode from 'qrcode';
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
@@ -40,6 +41,8 @@ const OwnerDashboard = () => {
   const [pastPayrollRecords, setPastPayrollRecords] = useState([]);
   const [usernameCheckStatus, setUsernameCheckStatus] = useState('unchecked');
   const [usernameCheckLoading, setUsernameCheckLoading] = useState(false);
+  const [qrData, setQrData] = useState(null);
+  const [qrLoading, setQrLoading] = useState(false);
   const [pastPayrollForm, setPastPayrollForm] = useState({
     start_date: '',
     end_date: '',
@@ -77,6 +80,10 @@ const OwnerDashboard = () => {
       }
     }
   }, [selectedWorkplace, activeTab, selectedMonth, salaryViewMode, selectedYear]);
+
+  useEffect(() => {
+    setQrData(null);
+  }, [selectedWorkplace]);
 
   useEffect(() => {
     if (pastPayrollEmployeeId) {
@@ -307,6 +314,85 @@ const OwnerDashboard = () => {
       totalWorkHours: attendanceData.reduce((sum, r) => sum + (Number(r.work_hours) || 0), 0),
       employeeStats: Object.values(employeeStats)
     });
+  };
+
+  const handleGenerateQr = async (forceRegenerate = false) => {
+    if (!selectedWorkplace) {
+      setMessage({ type: 'error', text: '사업장을 선택해주세요.' });
+      return;
+    }
+
+    setQrLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await attendanceAPI.generateQr({
+        workplaceId: selectedWorkplace,
+        regenerate: forceRegenerate
+      });
+
+      const { checkInToken, checkOutToken } = response.data;
+      const qrBaseUrl = `${window.location.origin}/#/qr`;
+      const checkInPayload = `${qrBaseUrl}?token=${encodeURIComponent(checkInToken)}`;
+      const checkOutPayload = `${qrBaseUrl}?token=${encodeURIComponent(checkOutToken)}`;
+
+      const [checkInQr, checkOutQr] = await Promise.all([
+        QRCode.toDataURL(checkInPayload, { width: 220, margin: 1 }),
+        QRCode.toDataURL(checkOutPayload, { width: 220, margin: 1 })
+      ]);
+
+      setQrData({
+        checkInQr,
+        checkOutQr
+      });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'QR 생성에 실패했습니다.'
+      });
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const handlePrintQr = () => {
+    if (!qrData) return;
+
+    const printWindow = window.open('', '_blank', 'width=720,height=900');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>출퇴근 QR</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 24px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+            .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; text-align: center; }
+            .title { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+            img { width: 220px; height: 220px; }
+            .hint { margin-top: 16px; font-size: 12px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <h2>출퇴근 QR</h2>
+          <div class="grid">
+            <div class="card">
+              <div class="title">출근 QR</div>
+              <img src="${qrData.checkInQr}" alt="출근 QR" />
+            </div>
+            <div class="card">
+              <div class="title">퇴근 QR</div>
+              <img src="${qrData.checkOutQr}" alt="퇴근 QR" />
+            </div>
+          </div>
+          <div class="hint">직원이 QR을 스캔하면 로그인 후 자동으로 출/퇴근이 기록됩니다.</div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
   };
 
   const loadSalary = async () => {
@@ -1370,6 +1456,51 @@ const OwnerDashboard = () => {
                     onChange={(e) => setSelectedMonth(e.target.value)}
                   />
                 </div>
+
+              {/* QR 출퇴근 */}
+              <div className="card" style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                  <h4 style={{ margin: 0, color: '#374151' }}>📷 QR 출퇴근</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => handleGenerateQr(false)}
+                      disabled={qrLoading}
+                    >
+                      {qrLoading ? '생성 중...' : (qrData ? 'QR 새로고침' : 'QR 생성')}
+                    </button>
+                    {qrData && (
+                      <button
+                        className="btn btn-secondary"
+                        onClick={handlePrintQr}
+                      >
+                        🖨️ 인쇄
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '16px' }}>
+                  위치 인식이 어려운 경우 직원이 QR을 스캔해서 출퇴근을 기록할 수 있습니다. QR은 사업장별로 고정됩니다.
+                </div>
+
+                {qrData ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                    <div style={{ textAlign: 'center', padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #d1fae5' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#065f46' }}>출근 QR</div>
+                      <img src={qrData.checkInQr} alt="출근 QR" style={{ width: '180px', height: '180px' }} />
+                    </div>
+                    <div style={{ textAlign: 'center', padding: '12px', background: '#fef3c7', borderRadius: '8px', border: '1px solid #fde68a' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#92400e' }}>퇴근 QR</div>
+                      <img src={qrData.checkOutQr} alt="퇴근 QR" style={{ width: '180px', height: '180px' }} />
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '24px', background: '#f9fafb', borderRadius: '8px', color: '#6b7280' }}>
+                    QR을 생성하면 이곳에 출근/퇴근 QR이 표시됩니다.
+                  </div>
+                )}
+              </div>
 
                 {/* 통계 카드 */}
                 {attendanceStats && (

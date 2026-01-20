@@ -9,6 +9,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import UsageGuide from './pages/UsageGuide';
+import QrAttendance from './pages/QrAttendance';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -43,6 +44,7 @@ const AppRouter = () => {
       <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
       <Route path="/signup" element={user ? <Navigate to="/" /> : <Signup />} />
       <Route path="/guide" element={<UsageGuide />} />
+      <Route path="/qr" element={<QrAttendance />} />
       
       <Route
         path="/"

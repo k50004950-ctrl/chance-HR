@@ -1010,6 +1010,7 @@ const OwnerDashboard = () => {
       const payload = {
         employment_status: 'resigned',
         resignation_date: resignationForm.resignation_date,
+        contract_end_date: resignationForm.resignation_date,
         separation_type: resignationForm.separation_type,
         separation_reason: resignationForm.separation_reason
       };
@@ -2536,6 +2537,17 @@ const OwnerDashboard = () => {
                   />
                 </div>
                 <div className="form-group">
+                  <label className="form-label">입사일</label>
+                  <input
+                    type="date"
+                    name="hire_date"
+                    className="form-input"
+                    value={formData.hire_date || ''}
+                    onChange={handleInputChange}
+                    placeholder="입사일을 선택하세요"
+                  />
+                </div>
+                <div className="form-group">
                   <label className="form-label">주민등록번호</label>
                   <input
                     type="text"
@@ -2725,17 +2737,6 @@ const OwnerDashboard = () => {
 
               <div className="grid grid-2">
                 <div className="form-group">
-                  <label className="form-label">입사일</label>
-                  <input
-                    type="date"
-                    name="hire_date"
-                    className="form-input"
-                    value={formData.hire_date || ''}
-                    onChange={handleInputChange}
-                    placeholder="입사일을 선택하세요"
-                  />
-                </div>
-                <div className="form-group">
                   <label className="form-label">재직 상태</label>
                   <select
                     name="employment_status"
@@ -2772,36 +2773,7 @@ const OwnerDashboard = () => {
               </div>
 
               <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
-                근무 시간
-              </h4>
-
-              <div className="grid grid-2">
-                <div className="form-group">
-                  <label className="form-label">근무 시작 시간</label>
-                  <input
-                    type="time"
-                    name="work_start_time"
-                    className="form-input"
-                    value={formData.work_start_time || ''}
-                    onChange={handleInputChange}
-                    placeholder="09:00"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">근무 종료 시간</label>
-                  <input
-                    type="time"
-                    name="work_end_time"
-                    className="form-input"
-                    value={formData.work_end_time || ''}
-                    onChange={handleInputChange}
-                    placeholder="18:00"
-                  />
-                </div>
-              </div>
-
-              <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
-                근무 요일
+                근무 요일/시간
               </h4>
 
               <div className="form-group">
@@ -2860,6 +2832,31 @@ const OwnerDashboard = () => {
                 <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '8px', display: 'block' }}>
                   💡 직원이 근무하는 요일을 선택하세요. 선택하지 않으면 전체 요일 근무로 간주됩니다.
                 </small>
+              </div>
+
+              <div className="grid grid-2">
+                <div className="form-group">
+                  <label className="form-label">근무 시작 시간</label>
+                  <input
+                    type="time"
+                    name="work_start_time"
+                    className="form-input"
+                    value={formData.work_start_time || ''}
+                    onChange={handleInputChange}
+                    placeholder="09:00"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">근무 종료 시간</label>
+                  <input
+                    type="time"
+                    name="work_end_time"
+                    className="form-input"
+                    value={formData.work_end_time || ''}
+                    onChange={handleInputChange}
+                    placeholder="18:00"
+                  />
+                </div>
               </div>
 
               <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>

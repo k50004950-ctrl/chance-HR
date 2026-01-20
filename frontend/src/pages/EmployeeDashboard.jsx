@@ -30,6 +30,7 @@ const EmployeeDashboard = () => {
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [consentData, setConsentData] = useState({ privacy_consent: false, location_consent: false });
   const [employeeWorkDays, setEmployeeWorkDays] = useState([]);
+  const [employeeProfile, setEmployeeProfile] = useState(null);
 
   useEffect(() => {
     checkConsent();
@@ -41,6 +42,7 @@ const EmployeeDashboard = () => {
     try {
       const response = await employeeAPI.getById(user.id);
       const employee = response.data;
+      setEmployeeProfile(employee);
       const workDays = employee.work_days
         ? employee.work_days.split(',').map((day) => day.trim()).filter(Boolean)
         : [];
@@ -361,6 +363,57 @@ const EmployeeDashboard = () => {
     return `${num.toLocaleString()}원`;
   };
 
+  const getNextPayDate = (profile) => {
+    if (!profile) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const type = profile.pay_schedule_type;
+
+    if (type === 'after_hire_days') {
+      const hireDate = profile.hire_date ? new Date(profile.hire_date) : null;
+      const afterDays = Number(profile.pay_after_days || 0);
+      if (!hireDate || Number.isNaN(hireDate.getTime()) || afterDays <= 0) return null;
+      const firstPayDate = new Date(hireDate.getTime() + afterDays * 24 * 60 * 60 * 1000);
+      firstPayDate.setHours(0, 0, 0, 0);
+      if (today <= firstPayDate) return firstPayDate;
+      const diffDays = Math.floor((today - firstPayDate) / (24 * 60 * 60 * 1000));
+      const cycles = Math.floor(diffDays / afterDays) + 1;
+      const next = new Date(firstPayDate.getTime() + cycles * afterDays * 24 * 60 * 60 * 1000);
+      next.setHours(0, 0, 0, 0);
+      return next;
+    }
+
+    if (type === 'monthly_fixed') {
+      const payDay = Number(profile.pay_day || 0);
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const day = !payDay || payDay <= 0 ? lastDay : Math.min(payDay, lastDay);
+      const candidate = new Date(year, month, day);
+      candidate.setHours(0, 0, 0, 0);
+      if (today <= candidate) return candidate;
+      const nextMonthLastDay = new Date(year, month + 2, 0).getDate();
+      const nextDay = !payDay || payDay <= 0 ? nextMonthLastDay : Math.min(payDay, nextMonthLastDay);
+      const next = new Date(year, month + 1, nextDay);
+      next.setHours(0, 0, 0, 0);
+      return next;
+    }
+
+    return null;
+  };
+
+  const getPaydayLabel = () => {
+    const nextPayDate = getNextPayDate(employeeProfile);
+    if (!nextPayDate) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((nextPayDate - today) / (24 * 60 * 60 * 1000));
+    return {
+      date: nextPayDate,
+      diffDays
+    };
+  };
+
   const getSalaryTypeName = (type) => {
     switch (type) {
       case 'hourly': return '시급';
@@ -458,6 +511,8 @@ const EmployeeDashboard = () => {
   const handlePrintCertificate = () => {
     window.print();
   };
+
+  const paydayInfo = getPaydayLabel();
 
   return (
     <div>
@@ -700,6 +755,23 @@ const EmployeeDashboard = () => {
                 {salaryInfo.calculatedSalary.toLocaleString()}원
               </div>
             </div>
+            {paydayInfo && (
+              <div style={{
+                marginTop: '12px',
+                padding: '12px',
+                background: '#f8fafc',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '13px', color: '#475569' }}>
+                  다음 급여일: {formatDate(paydayInfo.date)}
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: '#2563eb' }}>
+                  D-{Math.max(paydayInfo.diffDays, 0)}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -21,6 +21,7 @@ import pastEmployeesRoutes from './routes/pastEmployees.js';
 import salaryHistoryRoutes from './routes/salaryHistory.js';
 import pastPayrollRoutes from './routes/pastPayroll.js';
 import pushRoutes from './routes/push.js';
+import { startPaydayScheduler } from './services/payrollSchedule.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -117,6 +118,8 @@ const startServer = async () => {
       console.log(`  - Password: admin123`);
       console.log(`===========================================\n`);
     });
+
+    startPaydayScheduler();
   } catch (error) {
     console.error('서버 시작 오류:', error);
     process.exit(1);

@@ -69,6 +69,8 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       ed.position, ed.department, ed.contract_file, ed.resume_file,
       ed.work_start_time, ed.work_end_time, ed.work_days, ed.id_card_file, ed.family_cert_file,
       ed.resignation_date, ed.privacy_consent, ed.privacy_consent_date, ed.location_consent, ed.location_consent_date,
+      ed.pay_schedule_type, ed.pay_day, ed.pay_after_days, ed.payroll_period_start_day, ed.payroll_period_end_day,
+      ed.last_pay_notice_date,
       si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
     FROM users u
     LEFT JOIN employee_details ed ON u.id = ed.user_id
@@ -97,6 +99,8 @@ router.get('/:id', authenticate, async (req, res) => {
         ed.position, ed.department, ed.contract_file, ed.resume_file, ed.notes,
         ed.work_start_time, ed.work_end_time, ed.work_days, ed.id_card_file, ed.family_cert_file,
         ed.resignation_date, ed.privacy_consent, ed.location_consent,
+        ed.pay_schedule_type, ed.pay_day, ed.pay_after_days, ed.payroll_period_start_day, ed.payroll_period_end_day,
+        ed.last_pay_notice_date,
         si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
       FROM users u
       LEFT JOIN employee_details ed ON u.id = ed.user_id
@@ -171,6 +175,7 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
       contract_start_date, contract_end_date, employment_notes, separation_type, separation_reason,
       position, department, notes,
       work_start_time, work_end_time, work_days,
+      pay_schedule_type, pay_day, pay_after_days, payroll_period_start_day, payroll_period_end_day,
       salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type,
       employment_status, resignation_date,
       privacy_consent, privacy_consent_date, location_consent, location_consent_date
@@ -222,14 +227,20 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
         employment_notes, separation_type, separation_reason,
         position, department, contract_file, resume_file, id_card_file, family_cert_file,
         notes, work_start_time, work_end_time, work_days, resignation_date,
-        privacy_consent, privacy_consent_date, location_consent, location_consent_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      pay_schedule_type, pay_day, pay_after_days, payroll_period_start_day, payroll_period_end_day,
+      privacy_consent, privacy_consent_date, location_consent, location_consent_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId, workplace_id, hire_date, gender, birth_date, career, job_type,
         employment_renewal_date, contract_start_date, contract_end_date,
         employment_notes, separation_type, separation_reason,
         position, department, contractFile, resumeFile, idCardFile, familyCertFile,
         notes, work_start_time, work_end_time, work_days, resignation_date || null,
+        pay_schedule_type || null,
+        pay_day !== undefined && pay_day !== '' ? Number(pay_day) : null,
+        pay_after_days !== undefined && pay_after_days !== '' ? Number(pay_after_days) : null,
+        payroll_period_start_day !== undefined && payroll_period_start_day !== '' ? Number(payroll_period_start_day) : null,
+        payroll_period_end_day !== undefined && payroll_period_end_day !== '' ? Number(payroll_period_end_day) : null,
         0, null, 0, null
       ]
     );
@@ -277,6 +288,7 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       contract_start_date, contract_end_date, employment_notes, separation_type, separation_reason,
       position, department, notes,
       work_start_time, work_end_time, work_days,
+      pay_schedule_type, pay_day, pay_after_days, payroll_period_start_day, payroll_period_end_day,
       salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type,
       employment_status, resignation_date,
       privacy_consent, privacy_consent_date, location_consent, location_consent_date
@@ -379,19 +391,30 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     const resolvedWorkEndTime = work_end_time !== undefined ? work_end_time : existingDetails?.work_end_time;
     const resolvedWorkDays = work_days !== undefined ? work_days : existingDetails?.work_days;
     const resolvedResignationDate = resignation_date !== undefined ? resignation_date : existingDetails?.resignation_date;
+    const resolvedPayScheduleType = pay_schedule_type !== undefined ? pay_schedule_type : existingDetails?.pay_schedule_type;
+    const resolvedPayDay = pay_day !== undefined && pay_day !== '' ? Number(pay_day) : existingDetails?.pay_day;
+    const resolvedPayAfterDays = pay_after_days !== undefined && pay_after_days !== '' ? Number(pay_after_days) : existingDetails?.pay_after_days;
+    const resolvedPayrollStart = payroll_period_start_day !== undefined && payroll_period_start_day !== '' ? Number(payroll_period_start_day) : existingDetails?.payroll_period_start_day;
+    const resolvedPayrollEnd = payroll_period_end_day !== undefined && payroll_period_end_day !== '' ? Number(payroll_period_end_day) : existingDetails?.payroll_period_end_day;
 
     // 직원 상세정보 수정
     let updateQuery = `UPDATE employee_details SET 
       hire_date = ?, gender = ?, birth_date = ?, career = ?, job_type = ?,
       employment_renewal_date = ?, contract_start_date = ?, contract_end_date = ?,
       employment_notes = ?, separation_type = ?, separation_reason = ?,
-      position = ?, department = ?, notes = ?, work_start_time = ?, work_end_time = ?, work_days = ?, resignation_date = ?`;
+      position = ?, department = ?, notes = ?, work_start_time = ?, work_end_time = ?, work_days = ?, resignation_date = ?,
+      pay_schedule_type = ?, pay_day = ?, pay_after_days = ?, payroll_period_start_day = ?, payroll_period_end_day = ?`;
     let updateParams = [
       resolvedHireDate, resolvedGender, resolvedBirthDate, resolvedCareer, resolvedJobType,
       resolvedEmploymentRenewalDate, resolvedContractStartDate, resolvedContractEndDate,
       resolvedEmploymentNotes, resolvedSeparationType, resolvedSeparationReason,
       resolvedPosition, resolvedDepartment, resolvedNotes, resolvedWorkStartTime, resolvedWorkEndTime, resolvedWorkDays,
-      resolvedResignationDate || null
+      resolvedResignationDate || null,
+      resolvedPayScheduleType || null,
+      resolvedPayDay ?? null,
+      resolvedPayAfterDays ?? null,
+      resolvedPayrollStart ?? null,
+      resolvedPayrollEnd ?? null
     ];
     
     if (contractFile) {

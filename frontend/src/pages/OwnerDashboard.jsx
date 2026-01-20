@@ -3280,6 +3280,90 @@ const OwnerDashboard = () => {
                 </div>
               )}
 
+              <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151' }}>급여 지급 기준</h4>
+
+              <div className="grid grid-2">
+                <div className="form-group">
+                  <label className="form-label">지급 기준</label>
+                  <select
+                    name="pay_schedule_type"
+                    className="form-select"
+                    value={formData.pay_schedule_type || ''}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">선택하세요</option>
+                    <option value="monthly_fixed">매월 지급일</option>
+                    <option value="after_hire_days">입사일 기준 N일 후</option>
+                  </select>
+                </div>
+                {formData.pay_schedule_type === 'after_hire_days' && (
+                  <div className="form-group">
+                    <label className="form-label">입사일 + N일</label>
+                    <input
+                      type="number"
+                      name="pay_after_days"
+                      className="form-input"
+                      value={formData.pay_after_days || ''}
+                      onChange={handleInputChange}
+                      placeholder="예: 30"
+                      min="1"
+                    />
+                  </div>
+                )}
+                {formData.pay_schedule_type === 'monthly_fixed' && (
+                  <div className="form-group">
+                    <label className="form-label">급여 지급일</label>
+                    <input
+                      type="number"
+                      name="pay_day"
+                      className="form-input"
+                      value={formData.pay_day || ''}
+                      onChange={handleInputChange}
+                      placeholder="말일=0"
+                      min="0"
+                      max="31"
+                    />
+                    <small style={{ color: '#6b7280', fontSize: '12px' }}>
+                      💡 말일 지급은 0으로 입력하세요.
+                    </small>
+                  </div>
+                )}
+              </div>
+
+              {formData.pay_schedule_type === 'monthly_fixed' && (
+                <div className="grid grid-2">
+                  <div className="form-group">
+                    <label className="form-label">급여 기간 시작일</label>
+                    <input
+                      type="number"
+                      name="payroll_period_start_day"
+                      className="form-input"
+                      value={formData.payroll_period_start_day || ''}
+                      onChange={handleInputChange}
+                      placeholder="예: 1"
+                      min="1"
+                      max="31"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">급여 기간 종료일</label>
+                    <input
+                      type="number"
+                      name="payroll_period_end_day"
+                      className="form-input"
+                      value={formData.payroll_period_end_day || ''}
+                      onChange={handleInputChange}
+                      placeholder="말일=0"
+                      min="0"
+                      max="31"
+                    />
+                    <small style={{ color: '#6b7280', fontSize: '12px' }}>
+                      💡 말일 종료는 0으로 입력하세요.
+                    </small>
+                  </div>
+                </div>
+              )}
+
               <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151' }}>급여 정보</h4>
               
               <div className="grid grid-2">

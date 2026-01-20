@@ -14,9 +14,9 @@ const UsageGuide = () => {
           <h3 style={{ marginTop: 0, color: '#374151' }}>목차</h3>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '14px' }}>
             <a href="#common">공통</a>
-            <a href="#admin">총관리자</a>
             <a href="#owner">사업주</a>
             <a href="#employee">직원</a>
+            <a href="#homescreen">홈 화면 추가</a>
             <a href="#troubleshooting">자주 발생하는 문제</a>
           </div>
         </div>
@@ -28,17 +28,6 @@ const UsageGuide = () => {
             <li>상단 헤더에서 <strong>비밀번호 변경</strong>과 <strong>로그아웃</strong>을 할 수 있습니다.</li>
             <li>모바일 사용 시 위치 권한을 “허용”해야 출퇴근 체크가 가능합니다.</li>
           </ul>
-        </div>
-
-        <div id="admin" className="card" style={{ marginBottom: '20px' }}>
-          <h3 style={{ marginTop: 0, color: '#374151' }}>총관리자 사용 방법</h3>
-          <ol style={{ paddingLeft: '18px', lineHeight: '1.8' }}>
-            <li><strong>사업주 목록</strong>에서 사업주를 확인하고, 이름을 클릭해 상세 정보를 봅니다.</li>
-            <li><strong>활성/일시중지</strong>로 사업주 계정을 제어합니다.</li>
-            <li><strong>비밀번호 초기화</strong>로 사업주/직원 계정의 비밀번호를 재설정할 수 있습니다.</li>
-            <li><strong>삭제</strong> 버튼은 사업주 계정 및 연결된 데이터(사업장/직원/출퇴근/급여)를 모두 삭제합니다.</li>
-            <li><strong>사업장 목록</strong>에서 사업장의 위치, 반경, 직원 수를 확인합니다.</li>
-          </ol>
         </div>
 
         <div id="owner" className="card" style={{ marginBottom: '20px' }}>
@@ -106,6 +95,24 @@ const UsageGuide = () => {
               본인의 출근 기록과 휴무일이 표시됩니다.
             </li>
           </ol>
+        </div>
+
+        <div id="homescreen" className="card" style={{ marginBottom: '20px' }}>
+          <h3 style={{ marginTop: 0, color: '#374151' }}>홈 화면 추가 (알림 사용 권장)</h3>
+          <div style={{ fontSize: '14px', lineHeight: '1.8' }}>
+            <strong>안드로이드 (Chrome)</strong>
+            <ol style={{ paddingLeft: '18px', marginTop: '8px' }}>
+              <li>웹사이트 접속 후 우측 상단 <strong>⋮</strong> 메뉴를 누릅니다.</li>
+              <li><strong>홈 화면에 추가</strong>를 선택합니다.</li>
+              <li>추가 완료 후 홈 화면 아이콘으로 실행합니다.</li>
+            </ol>
+            <strong>아이폰 (Safari, iOS 16.4+)</strong>
+            <ol style={{ paddingLeft: '18px', marginTop: '8px' }}>
+              <li>웹사이트 접속 후 하단 <strong>공유</strong> 버튼을 누릅니다.</li>
+              <li><strong>홈 화면에 추가</strong>를 선택합니다.</li>
+              <li>홈 화면 아이콘으로 실행한 뒤 <strong>알림 허용</strong>을 눌러주세요.</li>
+            </ol>
+          </div>
         </div>
 
         <div id="troubleshooting" className="card" style={{ marginBottom: '20px' }}>

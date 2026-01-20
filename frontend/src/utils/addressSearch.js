@@ -1,6 +1,7 @@
 // 주소 검색 및 좌표 변환 유틸리티
 
 let daumScriptPromise = null;
+let kakaoScriptPromise = null;
 
 const ensureDaumPostcodeLoaded = () => {
   if (window.daum && window.daum.Postcode) {
@@ -21,6 +22,40 @@ const ensureDaumPostcodeLoaded = () => {
   });
 
   return daumScriptPromise;
+};
+
+const ensureKakaoMapsLoaded = () => {
+  if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
+    return Promise.resolve();
+  }
+
+  const appKey = import.meta.env.VITE_KAKAO_MAPS_KEY;
+  if (!appKey) {
+    return Promise.resolve();
+  }
+
+  if (kakaoScriptPromise) {
+    return kakaoScriptPromise;
+  }
+
+  kakaoScriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&libraries=services`;
+    script.async = true;
+    script.onload = () => {
+      if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
+        resolve();
+      } else if (window.kakao && window.kakao.maps) {
+        window.kakao.maps.load(resolve);
+      } else {
+        reject(new Error('Kakao 지도 서비스를 로드할 수 없습니다.'));
+      }
+    };
+    script.onerror = () => reject(new Error('Kakao 지도 스크립트를 로드할 수 없습니다.'));
+    document.head.appendChild(script);
+  });
+
+  return kakaoScriptPromise;
 };
 
 // Daum 우편번호 서비스를 사용한 주소 검색
@@ -58,6 +93,28 @@ export const searchAddress = async () => {
 // 주소를 좌표(위도, 경도)로 변환 - Kakao REST API 사용
 export const getCoordinatesFromAddress = async (address) => {
   try {
+    await ensureKakaoMapsLoaded();
+    if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
+      const geocoder = new window.kakao.maps.services.Geocoder();
+      const kakaoResult = await new Promise((resolve) => {
+        geocoder.addressSearch(address, (result, status) => {
+          if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
+            resolve({
+              latitude: parseFloat(result[0].y),
+              longitude: parseFloat(result[0].x),
+              success: true
+            });
+          } else {
+            resolve(null);
+          }
+        });
+      });
+
+      if (kakaoResult) {
+        return kakaoResult;
+      }
+    }
+
     // Kakao REST API 키 없이 사용 가능한 대안: Nominatim (OpenStreetMap)
     const encodedAddress = encodeURIComponent(address);
     const response = await fetch(

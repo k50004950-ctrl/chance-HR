@@ -65,6 +65,7 @@ const OwnerDashboard = () => {
   const [workplaceSaving, setWorkplaceSaving] = useState(false);
   const [workplaceLocationLoading, setWorkplaceLocationLoading] = useState(false);
   const [workplaceSearchLoading, setWorkplaceSearchLoading] = useState(false);
+  const [workplaceGeocodeLoading, setWorkplaceGeocodeLoading] = useState(false);
   const [pastPayrollForm, setPastPayrollForm] = useState({
     start_date: '',
     end_date: '',
@@ -597,6 +598,29 @@ const OwnerDashboard = () => {
       }
     } finally {
       setWorkplaceSearchLoading(false);
+    }
+  };
+
+  const handleWorkplaceAddressBlur = async () => {
+    if (!workplaceForm.address) return;
+    if (workplaceGeocodeLoading) return;
+    try {
+      setWorkplaceGeocodeLoading(true);
+      const coords = await getCoordinatesFromAddress(workplaceForm.address);
+      if (coords && coords.latitude && coords.longitude) {
+        setWorkplaceForm((prev) => ({
+          ...prev,
+          latitude: coords.latitude?.toFixed ? coords.latitude.toFixed(6) : coords.latitude,
+          longitude: coords.longitude?.toFixed ? coords.longitude.toFixed(6) : coords.longitude
+        }));
+        if (coords.success === false && coords.message) {
+          setMessage({ type: 'error', text: coords.message });
+        }
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: '주소 좌표 변환에 실패했습니다. 주소 검색을 이용해주세요.' });
+    } finally {
+      setWorkplaceGeocodeLoading(false);
     }
   };
 
@@ -2696,6 +2720,7 @@ const OwnerDashboard = () => {
                         className="form-input"
                         value={workplaceForm.address}
                         onChange={handleWorkplaceFormChange}
+                        onBlur={handleWorkplaceAddressBlur}
                       />
                       <button
                         type="button"

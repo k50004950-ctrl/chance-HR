@@ -939,7 +939,8 @@ const OwnerDashboard = () => {
         'career', 'job_type', 'employment_renewal_date', 'contract_start_date', 'contract_end_date',
         'employment_notes', 'position', 'department', 'notes', 'work_start_time',
         'work_end_time', 'employment_status',
-        'pay_schedule_type', 'pay_day', 'pay_after_days', 'payroll_period_start_day', 'payroll_period_end_day'
+        'pay_schedule_type', 'pay_day', 'pay_after_days', 'payroll_period_start_day', 'payroll_period_end_day',
+        'deduct_absence'
       ];
       
       const fieldValues = {};
@@ -3345,23 +3346,9 @@ const OwnerDashboard = () => {
                   >
                     <option value="">선택하세요</option>
                     <option value="monthly_fixed">매월 지급일</option>
-                    <option value="after_hire_days">입사일 기준 N일 후</option>
+                    <option value="hire_date_based">입사일 기준</option>
                   </select>
                 </div>
-                {formData.pay_schedule_type === 'after_hire_days' && (
-                  <div className="form-group">
-                    <label className="form-label">입사일 + N일</label>
-                    <input
-                      type="number"
-                      name="pay_after_days"
-                      className="form-input"
-                      value={formData.pay_after_days || ''}
-                      onChange={handleInputChange}
-                      placeholder="예: 30"
-                      min="1"
-                    />
-                  </div>
-                )}
                 {formData.pay_schedule_type === 'monthly_fixed' && (
                   <div className="form-group">
                     <label className="form-label">급여 지급일</label>
@@ -3415,6 +3402,24 @@ const OwnerDashboard = () => {
                   </div>
                 </div>
               )}
+
+              <div className="grid grid-2">
+                <div className="form-group">
+                  <label className="form-label">무단결근 차감</label>
+                  <select
+                    name="deduct_absence"
+                    className="form-select"
+                    value={formData.deduct_absence ?? '0'}
+                    onChange={handleInputChange}
+                  >
+                    <option value="0">N</option>
+                    <option value="1">Y</option>
+                  </select>
+                  <small style={{ color: '#6b7280', fontSize: '12px' }}>
+                    💡 무단결근 시 월급에서 일할 차감 여부
+                  </small>
+                </div>
+              </div>
 
               <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151' }}>급여 정보</h4>
               

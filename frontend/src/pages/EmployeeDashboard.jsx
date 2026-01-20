@@ -369,6 +369,24 @@ const EmployeeDashboard = () => {
     today.setHours(0, 0, 0, 0);
     const type = profile.pay_schedule_type;
 
+    if (type === 'hire_date_based') {
+      const hireDate = profile.hire_date ? new Date(profile.hire_date) : null;
+      if (!hireDate || Number.isNaN(hireDate.getTime())) return null;
+      const payDay = hireDate.getDate();
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const day = Math.min(payDay, lastDay);
+      const candidate = new Date(year, month, day);
+      candidate.setHours(0, 0, 0, 0);
+      if (today <= candidate) return candidate;
+      const nextMonthLastDay = new Date(year, month + 2, 0).getDate();
+      const nextDay = Math.min(payDay, nextMonthLastDay);
+      const next = new Date(year, month + 1, nextDay);
+      next.setHours(0, 0, 0, 0);
+      return next;
+    }
+
     if (type === 'after_hire_days') {
       const hireDate = profile.hire_date ? new Date(profile.hire_date) : null;
       const afterDays = Number(profile.pay_after_days || 0);

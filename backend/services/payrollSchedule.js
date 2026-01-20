@@ -28,6 +28,17 @@ export const getNextPayDate = (schedule) => {
   if (!schedule) return null;
 
   const type = schedule.pay_schedule_type;
+  if (type === 'hire_date_based') {
+    const hireDate = schedule.hire_date ? new Date(schedule.hire_date) : null;
+    if (!hireDate || Number.isNaN(hireDate.getTime())) return null;
+    const payDay = hireDate.getDate();
+    const year = today.getFullYear();
+    const monthIndex = today.getMonth();
+    const candidate = buildMonthlyPayDate(year, monthIndex, payDay);
+    if (today <= candidate) return candidate;
+    return buildMonthlyPayDate(year, monthIndex + 1, payDay);
+  }
+
   if (type === 'after_hire_days') {
     const hireDate = schedule.hire_date ? new Date(schedule.hire_date) : null;
     const afterDays = Number(schedule.pay_after_days || 0);

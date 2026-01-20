@@ -4,6 +4,35 @@ import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
+const buildScheduledWorkdays = (startDate, endDate, workDays) => {
+  const scheduleDays = workDays && workDays.length > 0
+    ? workDays
+    : ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  const dayMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  let count = 0;
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const key = dayMap[d.getDay()];
+    if (scheduleDays.includes(key)) {
+      count += 1;
+    }
+  }
+  return count;
+};
+
+const buildAttendanceDateSet = (records) => {
+  const set = new Set();
+  records.forEach((record) => {
+    if (record?.date) {
+      set.add(String(record.date));
+    }
+  });
+  return set;
+};
+
 const parseNumber = (value) => {
   if (!value) return 0;
   const numeric = String(value).replace(/,/g, '');
@@ -114,6 +143,11 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
       [employeeId, startDate, endDate]
     );
 
+    const allAttendanceRecords = await query(
+      "SELECT date, status, leave_type FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ?",
+      [employeeId, startDate, endDate]
+    );
+
     // 과거 급여 기록 조회 (기간 겹침)
     const pastPayrollRecords = await query(
       `SELECT amount FROM employee_past_payroll
@@ -170,6 +204,41 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
       [employeeId]
     );
 
+    const employeeDetails = await get(
+      'SELECT work_days, deduct_absence FROM employee_details WHERE user_id = ?',
+      [employeeId]
+    );
+
+    let absentDays = 0;
+    let absenceDeduction = 0;
+    if (employeeDetails?.deduct_absence) {
+      const workDays = employeeDetails.work_days
+        ? employeeDetails.work_days.split(',').map((day) => day.trim()).filter(Boolean)
+        : [];
+      const scheduledWorkdays = buildScheduledWorkdays(startDate, endDate, workDays);
+      const attendanceDates = buildAttendanceDateSet(allAttendanceRecords);
+      let presentDays = 0;
+      const dayMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const key = dayMap[d.getDay()];
+        if (workDays.length > 0 && !workDays.includes(key)) continue;
+        const dateKey = d.toISOString().slice(0, 10);
+        if (attendanceDates.has(dateKey)) {
+          presentDays += 1;
+        }
+      }
+      absentDays = Math.max(scheduledWorkdays - presentDays, 0);
+      if (absentDays > 0 && scheduledWorkdays > 0 && (salaryInfo.salary_type === 'monthly' || salaryInfo.salary_type === 'annual')) {
+        const perDay = calculatedSalary / scheduledWorkdays;
+        absenceDeduction = Math.round(perDay * absentDays);
+        calculatedSalary = Math.max(calculatedSalary - absenceDeduction, 0);
+      }
+    }
+
     res.json({
       employee: employeeInfo,
       salaryInfo: {
@@ -188,7 +257,11 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
       },
       calculatedSalary: Math.round(calculatedSalary),
       pastPayrollAmount,
-      totalPay: Math.round(calculatedSalary)
+      totalPay: Math.round(calculatedSalary),
+      absence: {
+        absentDays,
+        deduction: absenceDeduction
+      }
     });
   } catch (error) {
     console.error('급여 계산 오류:', error);
@@ -236,6 +309,11 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         [employee.id, startDate, endDate]
       );
 
+      const allAttendanceRecords = await query(
+        "SELECT date, status, leave_type FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ?",
+        [employee.id, startDate, endDate]
+      );
+
       const pastPayrollRecords = await query(
         `SELECT amount FROM employee_past_payroll
          WHERE user_id = ? AND start_date <= ? AND end_date >= ?`,
@@ -275,6 +353,41 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         calculatedSalary = (salaryInfo.amount / 12) * months;
       }
 
+      const detailsForAbsence = await get(
+        'SELECT work_days, deduct_absence, hire_date FROM employee_details WHERE user_id = ?',
+        [employee.id]
+      );
+
+      let absentDays = 0;
+      let absenceDeduction = 0;
+      if (detailsForAbsence?.deduct_absence) {
+        const workDays = detailsForAbsence.work_days
+          ? detailsForAbsence.work_days.split(',').map((day) => day.trim()).filter(Boolean)
+          : [];
+        const scheduledWorkdays = buildScheduledWorkdays(startDate, endDate, workDays);
+        const attendanceDates = buildAttendanceDateSet(allAttendanceRecords);
+        let presentDays = 0;
+        const dayMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          const key = dayMap[d.getDay()];
+          if (workDays.length > 0 && !workDays.includes(key)) continue;
+          const dateKey = d.toISOString().slice(0, 10);
+          if (attendanceDates.has(dateKey)) {
+            presentDays += 1;
+          }
+        }
+        absentDays = Math.max(scheduledWorkdays - presentDays, 0);
+        if (absentDays > 0 && scheduledWorkdays > 0 && (salaryInfo.salary_type === 'monthly' || salaryInfo.salary_type === 'annual')) {
+          const perDay = calculatedSalary / scheduledWorkdays;
+          absenceDeduction = Math.round(perDay * absentDays);
+          calculatedSalary = Math.max(calculatedSalary - absenceDeduction, 0);
+        }
+      }
+
       const roundedSalary = Math.round(calculatedSalary);
 
       // 주휴수당 계산
@@ -298,7 +411,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
 
       // 당일 퇴사 시 지급해야 할 퇴직금 계산 (1년 이상 근무자)
       let severancePay = 0;
-      const employeeDetails = await get(
+      const employeeDetails = detailsForAbsence || await get(
         'SELECT hire_date FROM employee_details WHERE user_id = ?',
         [employee.id]
       );
@@ -345,7 +458,11 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         pastPayrollAmount: Math.round(pastPayrollAmount),
         baseSalaryAmount: Math.round(baseSalaryAmount),
         severancePay: severancePay,
-        totalPay: Math.round(totalPay)
+        totalPay: Math.round(totalPay),
+        absence: {
+          absentDays,
+          deduction: absenceDeduction
+        }
       });
     }
 

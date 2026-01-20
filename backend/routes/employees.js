@@ -70,7 +70,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       ed.work_start_time, ed.work_end_time, ed.work_days, ed.id_card_file, ed.family_cert_file,
       ed.resignation_date, ed.privacy_consent, ed.privacy_consent_date, ed.location_consent, ed.location_consent_date,
       ed.pay_schedule_type, ed.pay_day, ed.pay_after_days, ed.payroll_period_start_day, ed.payroll_period_end_day,
-      ed.last_pay_notice_date,
+      ed.last_pay_notice_date, ed.deduct_absence,
       si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
     FROM users u
     LEFT JOIN employee_details ed ON u.id = ed.user_id
@@ -100,7 +100,7 @@ router.get('/:id', authenticate, async (req, res) => {
         ed.work_start_time, ed.work_end_time, ed.work_days, ed.id_card_file, ed.family_cert_file,
         ed.resignation_date, ed.privacy_consent, ed.location_consent,
         ed.pay_schedule_type, ed.pay_day, ed.pay_after_days, ed.payroll_period_start_day, ed.payroll_period_end_day,
-        ed.last_pay_notice_date,
+        ed.last_pay_notice_date, ed.deduct_absence,
         si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
       FROM users u
       LEFT JOIN employee_details ed ON u.id = ed.user_id
@@ -176,6 +176,7 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
       position, department, notes,
       work_start_time, work_end_time, work_days,
       pay_schedule_type, pay_day, pay_after_days, payroll_period_start_day, payroll_period_end_day,
+      deduct_absence,
       salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type,
       employment_status, resignation_date,
       privacy_consent, privacy_consent_date, location_consent, location_consent_date
@@ -228,8 +229,9 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
         position, department, contract_file, resume_file, id_card_file, family_cert_file,
         notes, work_start_time, work_end_time, work_days, resignation_date,
       pay_schedule_type, pay_day, pay_after_days, payroll_period_start_day, payroll_period_end_day,
+      deduct_absence,
       privacy_consent, privacy_consent_date, location_consent, location_consent_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId, workplace_id, hire_date, gender, birth_date, career, job_type,
         employment_renewal_date, contract_start_date, contract_end_date,
@@ -241,6 +243,7 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
         pay_after_days !== undefined && pay_after_days !== '' ? Number(pay_after_days) : null,
         payroll_period_start_day !== undefined && payroll_period_start_day !== '' ? Number(payroll_period_start_day) : null,
         payroll_period_end_day !== undefined && payroll_period_end_day !== '' ? Number(payroll_period_end_day) : null,
+        deduct_absence === '1' || deduct_absence === 1 || deduct_absence === true ? 1 : 0,
         0, null, 0, null
       ]
     );
@@ -289,6 +292,7 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       position, department, notes,
       work_start_time, work_end_time, work_days,
       pay_schedule_type, pay_day, pay_after_days, payroll_period_start_day, payroll_period_end_day,
+      deduct_absence,
       salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type,
       employment_status, resignation_date,
       privacy_consent, privacy_consent_date, location_consent, location_consent_date
@@ -396,6 +400,9 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     const resolvedPayAfterDays = pay_after_days !== undefined && pay_after_days !== '' ? Number(pay_after_days) : existingDetails?.pay_after_days;
     const resolvedPayrollStart = payroll_period_start_day !== undefined && payroll_period_start_day !== '' ? Number(payroll_period_start_day) : existingDetails?.payroll_period_start_day;
     const resolvedPayrollEnd = payroll_period_end_day !== undefined && payroll_period_end_day !== '' ? Number(payroll_period_end_day) : existingDetails?.payroll_period_end_day;
+    const resolvedDeductAbsence = deduct_absence !== undefined
+      ? (deduct_absence === '1' || deduct_absence === 1 || deduct_absence === true ? 1 : 0)
+      : existingDetails?.deduct_absence;
 
     // 직원 상세정보 수정
     let updateQuery = `UPDATE employee_details SET 
@@ -403,7 +410,8 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       employment_renewal_date = ?, contract_start_date = ?, contract_end_date = ?,
       employment_notes = ?, separation_type = ?, separation_reason = ?,
       position = ?, department = ?, notes = ?, work_start_time = ?, work_end_time = ?, work_days = ?, resignation_date = ?,
-      pay_schedule_type = ?, pay_day = ?, pay_after_days = ?, payroll_period_start_day = ?, payroll_period_end_day = ?`;
+      pay_schedule_type = ?, pay_day = ?, pay_after_days = ?, payroll_period_start_day = ?, payroll_period_end_day = ?,
+      deduct_absence = ?`;
     let updateParams = [
       resolvedHireDate, resolvedGender, resolvedBirthDate, resolvedCareer, resolvedJobType,
       resolvedEmploymentRenewalDate, resolvedContractStartDate, resolvedContractEndDate,
@@ -414,7 +422,8 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       resolvedPayDay ?? null,
       resolvedPayAfterDays ?? null,
       resolvedPayrollStart ?? null,
-      resolvedPayrollEnd ?? null
+      resolvedPayrollEnd ?? null,
+      resolvedDeductAbsence ?? 0
     ];
     
     if (contractFile) {

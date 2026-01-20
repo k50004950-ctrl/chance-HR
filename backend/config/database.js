@@ -264,6 +264,7 @@ export const initDatabase = async () => {
           payroll_period_start_day INTEGER,
           payroll_period_end_day INTEGER,
           last_pay_notice_date DATE,
+          deduct_absence INTEGER DEFAULT 0,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id),
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
@@ -317,6 +318,9 @@ export const initDatabase = async () => {
       } catch (e) {}
       try {
         await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS last_pay_notice_date DATE`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS deduct_absence INTEGER DEFAULT 0`);
       } catch (e) {}
       try {
         await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS employment_notes TEXT`);
@@ -728,6 +732,7 @@ export const initDatabase = async () => {
           payroll_period_start_day INTEGER,
           payroll_period_end_day INTEGER,
           last_pay_notice_date DATE,
+          deduct_absence INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
@@ -782,6 +787,9 @@ export const initDatabase = async () => {
       } catch (e) {}
       try {
         await run(`ALTER TABLE employee_details ADD COLUMN last_pay_notice_date DATE`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN deduct_absence INTEGER DEFAULT 0`);
       } catch (e) {}
       try {
         await run(`ALTER TABLE employee_details ADD COLUMN employment_notes TEXT`);

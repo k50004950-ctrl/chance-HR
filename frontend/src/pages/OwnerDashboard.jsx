@@ -31,6 +31,7 @@ const OwnerDashboard = () => {
   const [salaryHistory, setSalaryHistory] = useState(null);
   const [salaryViewMode, setSalaryViewMode] = useState('month');
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
+  const [salaryPeriodRange, setSalaryPeriodRange] = useState(null);
   const [pastPayrollEmployeeId, setPastPayrollEmployeeId] = useState('');
   const [pastPayrollYear, setPastPayrollYear] = useState(() => new Date().getFullYear());
   const [pastPayrollMonth, setPastPayrollMonth] = useState('');
@@ -90,6 +91,12 @@ const OwnerDashboard = () => {
       }
     }
   }, [selectedWorkplace, activeTab, selectedMonth, salaryViewMode, selectedYear]);
+
+  useEffect(() => {
+    if (selectedWorkplace && (activeTab === 'salary' || activeTab === 'severance')) {
+      loadSalary();
+    }
+  }, [employees]);
 
   useEffect(() => {
     setQrData(null);
@@ -612,11 +619,45 @@ const OwnerDashboard = () => {
       if (salaryViewMode === 'year') {
         startDate = `${selectedYear}-01-01`;
         endDate = `${selectedYear}-12-31`;
+        setSalaryPeriodRange(null);
       } else {
         const [year, month] = selectedMonth.split('-').map(Number);
         const lastDay = new Date(year, month, 0).getDate();
-        startDate = `${selectedMonth}-01`;
-        endDate = `${selectedMonth}-${String(lastDay).padStart(2, '0')}`;
+        const activeEmployees = employees.filter((emp) => emp.employment_status !== 'resigned');
+        const baseEmployee = activeEmployees.find((emp) =>
+          emp.payroll_period_start_day !== null || emp.payroll_period_end_day !== null
+        ) || activeEmployees[0];
+
+        let startDay = baseEmployee?.payroll_period_start_day ?? 1;
+        let endDay = baseEmployee?.payroll_period_end_day ?? 0;
+
+        const hasCommonPeriod = baseEmployee
+          ? activeEmployees.every((emp) => {
+            const empStart = emp.payroll_period_start_day ?? 1;
+            const empEnd = emp.payroll_period_end_day ?? 0;
+            return empStart === startDay && empEnd === endDay;
+          })
+          : false;
+
+        if (!hasCommonPeriod) {
+          startDay = 1;
+          endDay = 0;
+        }
+
+        const normalizedStart = Math.min(Math.max(Number(startDay) || 1, 1), lastDay);
+        const normalizedEnd = endDay === 0
+          ? lastDay
+          : Math.min(Math.max(Number(endDay) || lastDay, 1), lastDay);
+
+        startDate = `${selectedMonth}-${String(normalizedStart).padStart(2, '0')}`;
+        endDate = `${selectedMonth}-${String(normalizedEnd).padStart(2, '0')}`;
+        setSalaryPeriodRange({
+          startDate,
+          endDate,
+          startDay: normalizedStart,
+          endDay: normalizedEnd,
+          hasCommonPeriod
+        });
       }
       const response = await salaryAPI.calculateWorkplace(selectedWorkplace, { startDate, endDate });
       setSalaryData(response.data);
@@ -897,13 +938,14 @@ const OwnerDashboard = () => {
         'emergency_contact', 'emergency_phone', 'hire_date', 'gender', 'birth_date',
         'career', 'job_type', 'employment_renewal_date', 'contract_start_date', 'contract_end_date',
         'employment_notes', 'position', 'department', 'notes', 'work_start_time',
-        'work_end_time', 'employment_status'
+        'work_end_time', 'employment_status',
+        'pay_schedule_type', 'pay_day', 'pay_after_days', 'payroll_period_start_day', 'payroll_period_end_day'
       ];
       
       const fieldValues = {};
       textFields.forEach(field => {
         const element = form.querySelector(`[name="${field}"]`);
-        if (element && element.value) {
+        if (element && element.value !== '') {
           fieldValues[field] = element.value;
           formDataToSend.append(field, element.value);
         }
@@ -2077,6 +2119,16 @@ const OwnerDashboard = () => {
                     )}
                   </div>
                 </div>
+                {salaryViewMode === 'month' && salaryPeriodRange && (
+                  <div style={{ marginBottom: '12px', color: '#6b7280', fontSize: '12px' }}>
+                    급여 기간: {salaryPeriodRange.startDate} ~ {salaryPeriodRange.endDate}
+                    {!salaryPeriodRange.hasCommonPeriod && (
+                      <span style={{ marginLeft: '6px', color: '#ef4444' }}>
+                        (직원별 기준이 달라 기본 1~말일로 계산)
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {salaryData && (
                   <>

@@ -565,10 +565,14 @@ router.delete('/:id', authenticate, authorizeRole('admin', 'owner'), async (req,
       }
     }
 
-    // 관련 데이터 삭제
+    // 관련 데이터 삭제 (FK 제약 순서)
+    await run('DELETE FROM salary_slips WHERE user_id = ?', [employeeId]);
+    await run('DELETE FROM salary_history WHERE user_id = ?', [employeeId]);
+    await run('DELETE FROM employee_past_payroll WHERE user_id = ?', [employeeId]);
+    await run('DELETE FROM push_subscriptions WHERE user_id = ?', [employeeId]);
     await run('DELETE FROM salary_info WHERE user_id = ?', [employeeId]);
-    await run('DELETE FROM employee_details WHERE user_id = ?', [employeeId]);
     await run('DELETE FROM attendance WHERE user_id = ?', [employeeId]);
+    await run('DELETE FROM employee_details WHERE user_id = ?', [employeeId]);
     await run('DELETE FROM users WHERE id = ?', [employeeId]);
 
     res.json({ message: '직원이 삭제되었습니다.' });

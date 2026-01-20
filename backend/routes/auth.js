@@ -94,7 +94,7 @@ router.post('/signup', async (req, res) => {
     const { 
       username, password, name, phone, email, address,
       business_name, business_number, additional_info, sales_rep,
-      latitude, longitude, radius, marketing_consent
+      latitude, longitude, radius, marketing_consent, service_consent
     } = req.body;
 
     if (!username || !password || !name || !business_name || !business_number || !phone) {
@@ -103,6 +103,9 @@ router.post('/signup', async (req, res) => {
     if (!address || !latitude || !longitude) {
       return res.status(400).json({ message: '사업장 주소와 좌표를 입력해주세요.' });
     }
+    if (!service_consent) {
+      return res.status(400).json({ message: '서비스 이용 동의가 필요합니다.' });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -110,11 +113,12 @@ router.post('/signup', async (req, res) => {
       `INSERT INTO users (
         username, password, name, role, phone, email, address,
         business_name, business_number, additional_info, sales_rep, approval_status,
-        marketing_consent, marketing_consent_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        marketing_consent, marketing_consent_date, service_consent, service_consent_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [username, hashedPassword, name, 'owner', phone, email, address, 
        business_name, business_number, additional_info, sales_rep, 'approved',
-       !!marketing_consent, marketing_consent ? new Date().toISOString() : null]
+       !!marketing_consent, marketing_consent ? new Date().toISOString() : null,
+       true, new Date().toISOString()]
     );
 
     try {
@@ -176,7 +180,7 @@ router.get('/owners', authenticate, authorizeRole('admin'), async (req, res) => 
       SELECT 
         u.id, u.username, u.name, u.phone, u.email, u.address,
         u.business_name, u.business_number, u.additional_info, u.sales_rep,
-        u.approval_status, u.created_at,
+        u.approval_status, u.created_at, u.service_consent, u.service_consent_date,
         COUNT(DISTINCT w.id) as workplace_count,
         COUNT(DISTINCT e.id) as employee_count
       FROM users u

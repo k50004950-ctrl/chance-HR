@@ -24,7 +24,8 @@ const Signup = () => {
     latitude: '',
     longitude: '',
     radius: 100,
-    marketing_consent: false
+    marketing_consent: false,
+    service_consent: false
   });
   const [locating, setLocating] = useState(false);
 
@@ -83,6 +84,10 @@ const Signup = () => {
     }
     if (!formData.address || !formData.latitude || !formData.longitude) {
       setMessage({ type: 'error', text: '사업장 주소와 좌표를 입력해주세요.' });
+      return;
+    }
+    if (!formData.service_consent) {
+      setMessage({ type: 'error', text: '서비스 이용 동의가 필요합니다.' });
       return;
     }
 
@@ -443,6 +448,54 @@ const Signup = () => {
               rows="3"
               placeholder="추가로 전달할 정보가 있다면 입력해주세요"
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">서비스 이용 동의 (필수)</label>
+            <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', maxHeight: '260px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7' }}>
+              <strong>📄 서비스 이용 동의 및 책임 한계에 대한 안내</strong>
+              <p style={{ marginTop: '10px' }}>
+                본인은 찬스컴퍼니 인사·노무 관리 솔루션(이하 “본 서비스”)이 사업주의 인사·근태·급여 관리 업무를 보다 편리하게 하기 위한 관리 지원 시스템임을 이해하고 이에 동의합니다.
+              </p>
+              <p>
+                본 서비스에서 제공하는 급여, 수당, 퇴직금 등의 계산 기능은 관리 편의를 위한 참고용 자동 계산 기능이며, 세무 신고·노무 신고·4대보험 신고·법적 신고를 자동으로 처리하거나 이를 보장하는 서비스가 아님을 확인합니다.
+              </p>
+              <p style={{ marginTop: '10px' }}>
+                <strong>⚠️ 중요 확인 사항</strong><br />
+                본 서비스의 모든 계산 결과는 최종 확정 자료가 아니며, 실제 급여 지급, 세무·노무 신고, 퇴직금 정산 등은 반드시 세무사, 노무사 등 전문가의 검토 후 진행해야 함에 동의합니다.
+              </p>
+              <p>
+                본인은 본 서비스의 이용 결과에 따른 세무·노무 신고, 법적 판단, 행정 처리, 관공서 제출 자료에 대한 최종 책임이 전적으로 본인(사업주)에게 있음을 확인합니다.
+              </p>
+              <p>
+                본 서비스는 다음 사항에 대해 법적 책임을 지지 않음에 동의합니다.
+              </p>
+              <ul style={{ paddingLeft: '18px' }}>
+                <li>계산 결과를 그대로 사용하여 발생한 손해 또는 분쟁</li>
+                <li>입력 정보 오류, 법령 해석 차이, 법령 변경으로 인한 문제</li>
+                <li>과태료, 추징금, 분쟁, 행정 제재 등 일체의 문제</li>
+              </ul>
+              <p style={{ marginTop: '10px' }}>
+                <strong>📌 서비스의 성격에 대한 동의</strong><br />
+                본인은 본 서비스가 인사·근태·급여 관리를 정리·관리하기 위한 보조 시스템이며, 세무·노무 업무를 대행하거나 법적 책임을 부담하는 서비스가 아님을 명확히 인지하고 이에 동의합니다.
+              </p>
+              <p style={{ marginTop: '10px' }}>
+                <strong>✅ 최종 동의 문구</strong><br />
+                본인은 위 내용을 모두 확인하였으며, 본 서비스는 관리 편의 제공 목적의 시스템이고, 모든 법적 책임은 본인에게 있음을 이해하고 이에 동의합니다.
+              </p>
+            </div>
+            <label style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', cursor: 'pointer', marginTop: '12px' }}>
+              <input
+                type="checkbox"
+                name="service_consent"
+                checked={formData.service_consent}
+                onChange={handleChange}
+                style={{ marginTop: '4px' }}
+              />
+              <span style={{ fontSize: '14px', color: '#374151' }}>
+                [필수] 위 내용에 동의합니다.
+              </span>
+            </label>
           </div>
 
           <div className="form-group">

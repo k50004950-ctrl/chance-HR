@@ -156,6 +156,8 @@ export const initDatabase = async () => {
           sales_rep VARCHAR(255),
           marketing_consent BOOLEAN DEFAULT false,
           marketing_consent_date TIMESTAMP,
+          service_consent BOOLEAN DEFAULT false,
+          service_consent_date TIMESTAMP,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
@@ -491,6 +493,18 @@ export const initDatabase = async () => {
       } catch (e) {
         // 컬럼이 이미 존재하면 무시
       }
+      try {
+        await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS service_consent BOOLEAN DEFAULT false');
+        console.log('✅ users 테이블에 service_consent 컬럼 추가됨');
+      } catch (e) {
+        // 컬럼이 이미 존재하면 무시
+      }
+      try {
+        await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS service_consent_date TIMESTAMP');
+        console.log('✅ users 테이블에 service_consent_date 컬럼 추가됨');
+      } catch (e) {
+        // 컬럼이 이미 존재하면 무시
+      }
 
       // employee_details 테이블에 resignation_date 컬럼 추가
       try {
@@ -538,6 +552,8 @@ export const initDatabase = async () => {
           sales_rep TEXT,
           marketing_consent INTEGER DEFAULT 0,
           marketing_consent_date DATETIME,
+          service_consent INTEGER DEFAULT 0,
+          service_consent_date DATETIME,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
@@ -564,6 +580,12 @@ export const initDatabase = async () => {
       } catch (e) {}
       try {
         await run(`ALTER TABLE users ADD COLUMN marketing_consent_date DATETIME`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE users ADD COLUMN service_consent INTEGER DEFAULT 0`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE users ADD COLUMN service_consent_date DATETIME`);
       } catch (e) {}
       try {
         await run(`ALTER TABLE users ADD COLUMN employment_status TEXT DEFAULT 'active'`);

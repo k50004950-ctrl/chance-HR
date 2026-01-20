@@ -308,6 +308,7 @@ const AdminDashboard = () => {
                       <th>전화번호</th>
                       <th>이메일</th>
                       <th>담당 영업사원</th>
+                      <th>서비스 동의</th>
                       <th>관리 사업장</th>
                       <th>직원 수</th>
                       <th>상태</th>
@@ -339,6 +340,18 @@ const AdminDashboard = () => {
                         <td>{owner.phone || '-'}</td>
                         <td>{owner.email || '-'}</td>
                         <td>{owner.sales_rep || '-'}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            background: owner.service_consent ? '#d1fae5' : '#fee2e2',
+                            color: owner.service_consent ? '#065f46' : '#991b1b',
+                            fontWeight: '600',
+                            fontSize: '12px'
+                          }}>
+                            {owner.service_consent ? '동의' : '미동의'}
+                          </span>
+                        </td>
                         <td style={{ textAlign: 'center' }}>
                           <span style={{
                             padding: '4px 8px',
@@ -469,6 +482,17 @@ const AdminDashboard = () => {
             <div className="form-group">
               <label className="form-label">주소</label>
               <div>{selectedOwner.address || '-'}</div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">서비스 이용 동의</label>
+              <div>
+                {selectedOwner.service_consent ? '동의함' : '미동의'}
+                {selectedOwner.service_consent_date && (
+                  <span style={{ marginLeft: '8px', fontSize: '12px', color: '#6b7280' }}>
+                    ({new Date(selectedOwner.service_consent_date).toLocaleString('ko-KR')})
+                  </span>
+                )}
+              </div>
             </div>
             {selectedOwner.additional_info && (
               <div className="form-group">

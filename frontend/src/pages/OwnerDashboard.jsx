@@ -54,6 +54,15 @@ const OwnerDashboard = () => {
   const [pushLoading, setPushLoading] = useState(false);
   const [pushPublicKeyReady, setPushPublicKeyReady] = useState(true);
   const [qrCollapsed, setQrCollapsed] = useState(true);
+  const [workplaceForm, setWorkplaceForm] = useState({
+    name: '',
+    address: '',
+    latitude: '',
+    longitude: '',
+    radius: ''
+  });
+  const [workplaceSaving, setWorkplaceSaving] = useState(false);
+  const [workplaceLocationLoading, setWorkplaceLocationLoading] = useState(false);
   const [pastPayrollForm, setPastPayrollForm] = useState({
     start_date: '',
     end_date: '',
@@ -105,6 +114,27 @@ const OwnerDashboard = () => {
   useEffect(() => {
     const currentWorkplace = workplaces.find((workplace) => workplace.id === selectedWorkplace);
     setQrPrintMessage(currentWorkplace?.qr_print_message || '');
+  }, [workplaces, selectedWorkplace]);
+
+  useEffect(() => {
+    const currentWorkplace = workplaces.find((workplace) => workplace.id === selectedWorkplace);
+    if (!currentWorkplace) {
+      setWorkplaceForm({
+        name: '',
+        address: '',
+        latitude: '',
+        longitude: '',
+        radius: ''
+      });
+      return;
+    }
+    setWorkplaceForm({
+      name: currentWorkplace.name || '',
+      address: currentWorkplace.address || '',
+      latitude: currentWorkplace.latitude ?? '',
+      longitude: currentWorkplace.longitude ?? '',
+      radius: currentWorkplace.radius ?? ''
+    });
   }, [workplaces, selectedWorkplace]);
 
   useEffect(() => {
@@ -496,6 +526,88 @@ const OwnerDashboard = () => {
       });
     } finally {
       setQrPrintSaving(false);
+    }
+  };
+
+  const handleWorkplaceFormChange = (e) => {
+    const { name, value } = e.target;
+    setWorkplaceForm((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSetWorkplaceLocation = async () => {
+    if (!navigator.geolocation) {
+      setMessage({ type: 'error', text: '현재 브라우저는 위치 정보를 지원하지 않습니다.' });
+      return;
+    }
+    setWorkplaceLocationLoading(true);
+    setMessage({ type: '', text: '' });
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setWorkplaceForm((prev) => ({
+          ...prev,
+          latitude: position.coords.latitude.toFixed(6),
+          longitude: position.coords.longitude.toFixed(6)
+        }));
+        setWorkplaceLocationLoading(false);
+      },
+      () => {
+        setMessage({ type: 'error', text: '위치 정보를 가져오지 못했습니다. 위치 권한을 확인해주세요.' });
+        setWorkplaceLocationLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      }
+    );
+  };
+
+  const handleSaveWorkplace = async () => {
+    const currentWorkplace = workplaces.find((workplace) => workplace.id === selectedWorkplace);
+    if (!currentWorkplace) {
+      setMessage({ type: 'error', text: '사업장을 선택해주세요.' });
+      return;
+    }
+    if (!workplaceForm.address) {
+      setMessage({ type: 'error', text: '사업장 주소를 입력해주세요.' });
+      return;
+    }
+    if (workplaceForm.latitude === '' || workplaceForm.longitude === '') {
+      setMessage({ type: 'error', text: '사업장 위치(위도/경도)를 입력해주세요.' });
+      return;
+    }
+
+    setWorkplaceSaving(true);
+    setMessage({ type: '', text: '' });
+    try {
+      const payload = {
+        name: workplaceForm.name || currentWorkplace.name,
+        address: workplaceForm.address,
+        latitude: Number(workplaceForm.latitude),
+        longitude: Number(workplaceForm.longitude),
+        radius: workplaceForm.radius !== '' ? Number(workplaceForm.radius) : currentWorkplace.radius,
+        default_off_days: currentWorkplace.default_off_days || '',
+        qr_print_message: currentWorkplace.qr_print_message || ''
+      };
+      await workplaceAPI.update(currentWorkplace.id, payload);
+      setWorkplaces((prev) =>
+        prev.map((workplace) =>
+          workplace.id === currentWorkplace.id
+            ? { ...workplace, ...payload }
+            : workplace
+        )
+      );
+      setMessage({ type: 'success', text: '사업장 정보가 수정되었습니다.' });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || '사업장 정보 수정에 실패했습니다.'
+      });
+    } finally {
+      setWorkplaceSaving(false);
     }
   };
 
@@ -1256,6 +1368,89 @@ const OwnerDashboard = () => {
                 </option>
               ))}
             </select>
+          </div>
+        )}
+
+        {selectedWorkplace && (
+          <div className="card" style={{ marginBottom: '20px' }}>
+            <h3 style={{ marginTop: 0, color: '#374151' }}>사업장 주소/위치 수정</h3>
+            <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '12px' }}>
+              주소 변경 시 위치(위도/경도)를 함께 저장해야 출퇴근 범위가 정확히 적용됩니다.
+            </p>
+            <div className="grid grid-2">
+              <div className="form-group">
+                <label className="form-label">사업장명</label>
+                <input
+                  type="text"
+                  name="name"
+                  className="form-input"
+                  value={workplaceForm.name}
+                  onChange={handleWorkplaceFormChange}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">주소</label>
+                <input
+                  type="text"
+                  name="address"
+                  className="form-input"
+                  value={workplaceForm.address}
+                  onChange={handleWorkplaceFormChange}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">위도</label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  name="latitude"
+                  className="form-input"
+                  value={workplaceForm.latitude}
+                  onChange={handleWorkplaceFormChange}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">경도</label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  name="longitude"
+                  className="form-input"
+                  value={workplaceForm.longitude}
+                  onChange={handleWorkplaceFormChange}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">반경 (미터)</label>
+                <input
+                  type="number"
+                  name="radius"
+                  className="form-input"
+                  value={workplaceForm.radius}
+                  onChange={handleWorkplaceFormChange}
+                  placeholder="예: 100"
+                  min="10"
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleSetWorkplaceLocation}
+                disabled={workplaceLocationLoading}
+              >
+                {workplaceLocationLoading ? '위치 불러오는 중...' : '현재 위치로 설정'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleSaveWorkplace}
+                disabled={workplaceSaving}
+              >
+                {workplaceSaving ? '저장 중...' : '사업장 정보 저장'}
+              </button>
+            </div>
           </div>
         )}
 

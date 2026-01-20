@@ -441,6 +441,30 @@ export const initDatabase = async () => {
         )
       `);
 
+      // Salary_slips 테이블 (급여명세서)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS salary_slips (
+          id SERIAL PRIMARY KEY,
+          workplace_id INTEGER NOT NULL,
+          user_id INTEGER NOT NULL,
+          payroll_month VARCHAR(7) NOT NULL,
+          pay_date DATE,
+          base_pay DECIMAL(15, 2) DEFAULT 0,
+          national_pension DECIMAL(15, 2) DEFAULT 0,
+          health_insurance DECIMAL(15, 2) DEFAULT 0,
+          employment_insurance DECIMAL(15, 2) DEFAULT 0,
+          long_term_care DECIMAL(15, 2) DEFAULT 0,
+          income_tax DECIMAL(15, 2) DEFAULT 0,
+          local_income_tax DECIMAL(15, 2) DEFAULT 0,
+          total_deductions DECIMAL(15, 2) DEFAULT 0,
+          net_pay DECIMAL(15, 2) DEFAULT 0,
+          source_text TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
+        )
+      `);
+
       // 기본 관리자 계정 생성 (없을 경우)
       const adminExists = await pool.query(
         "SELECT * FROM users WHERE username = $1",
@@ -847,6 +871,30 @@ export const initDatabase = async () => {
           notes TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `);
+
+      // Salary_slips 테이블 (급여명세서)
+      await run(`
+        CREATE TABLE IF NOT EXISTS salary_slips (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          workplace_id INTEGER NOT NULL,
+          user_id INTEGER NOT NULL,
+          payroll_month TEXT NOT NULL,
+          pay_date DATE,
+          base_pay REAL DEFAULT 0,
+          national_pension REAL DEFAULT 0,
+          health_insurance REAL DEFAULT 0,
+          employment_insurance REAL DEFAULT 0,
+          long_term_care REAL DEFAULT 0,
+          income_tax REAL DEFAULT 0,
+          local_income_tax REAL DEFAULT 0,
+          total_deductions REAL DEFAULT 0,
+          net_pay REAL DEFAULT 0,
+          source_text TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
 

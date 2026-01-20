@@ -1,8 +1,75 @@
 import express from 'express';
-import { query, get } from '../config/database.js';
+import { query, get, run } from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
+
+const parseNumber = (value) => {
+  if (!value) return 0;
+  const numeric = String(value).replace(/,/g, '');
+  const parsed = Number(numeric);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const parsePayrollLedger = (rawText) => {
+  const text = String(rawText || '').replace(/\r/g, '').replace(/\s+/g, ' ').trim();
+  const monthMatch = text.match(/귀속[:\s]*([0-9]{4})년\s*([0-9]{1,2})월/);
+  const payMatch = text.match(/지급[:\s]*([0-9]{4})년\s*([0-9]{1,2})월\s*([0-9]{1,2})일/);
+  const payrollMonth = monthMatch
+    ? `${monthMatch[1]}-${String(monthMatch[2]).padStart(2, '0')}`
+    : null;
+  const payDate = payMatch
+    ? `${payMatch[1]}-${String(payMatch[2]).padStart(2, '0')}-${String(payMatch[3]).padStart(2, '0')}`
+    : null;
+
+  const employeePattern = /(\d{1,4})\s*([가-힣A-Za-z]{2,})\s*([0-9]{1,3}(?:,[0-9]{3})+)/g;
+  const matches = [...text.matchAll(employeePattern)];
+
+  const employees = matches.map((match, index) => {
+    const start = match.index || 0;
+    const nextStart = matches[index + 1]?.index ?? text.length;
+    const block = text.slice(start, nextStart);
+    const name = match[2];
+    const basePay = parseNumber(match[3]);
+    const numbers = (block.match(/[0-9]{1,3}(?:,[0-9]{3})+/g) || []).map(parseNumber);
+
+    const baseIndex = numbers.findIndex((value) => value === basePay);
+    if (baseIndex !== -1) {
+      numbers.splice(baseIndex, 1);
+    }
+
+    const nationalPension = numbers[0] || 0;
+    const healthInsurance = numbers[1] || 0;
+    const employmentInsurance = numbers[2] || 0;
+    const longTermCare = numbers[3] || 0;
+    const incomeTax = numbers[4] || 0;
+    const localIncomeTax = numbers[5] || 0;
+    const totalDeductions = nationalPension + healthInsurance + employmentInsurance + longTermCare + incomeTax + localIncomeTax;
+
+    const remainder = numbers.slice(6);
+    const explicitNet = remainder.find((value) => value === basePay - totalDeductions);
+    const netPay = explicitNet ?? (remainder.length > 0 ? remainder[remainder.length - 1] : basePay - totalDeductions);
+
+    return {
+      name,
+      basePay,
+      nationalPension,
+      healthInsurance,
+      employmentInsurance,
+      longTermCare,
+      incomeTax,
+      localIncomeTax,
+      totalDeductions,
+      netPay
+    };
+  }).filter((emp) => emp.name && emp.basePay > 0);
+
+  return {
+    payrollMonth,
+    payDate,
+    employees
+  };
+};
 
 // 급여 계산
 router.get('/calculate/:employeeId', authenticate, async (req, res) => {
@@ -401,6 +468,110 @@ router.get('/severance/:employeeId', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('퇴직금 계산 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 급여대장(PDF/엑셀 텍스트) 가져오기
+router.post('/ledger/import', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const { workplaceId, text } = req.body;
+    if (!workplaceId || !text) {
+      return res.status(400).json({ message: '사업장과 급여대장 텍스트를 입력해주세요.' });
+    }
+
+    const workplace = await get('SELECT id, owner_id FROM workplaces WHERE id = ?', [workplaceId]);
+    if (!workplace || workplace.owner_id !== req.user.id) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const parsed = parsePayrollLedger(text);
+    if (!parsed.payrollMonth || parsed.employees.length === 0) {
+      return res.status(400).json({ message: '급여대장 내용을 인식하지 못했습니다. 텍스트를 확인해주세요.' });
+    }
+
+    const unmatched = [];
+    let imported = 0;
+
+    for (const employee of parsed.employees) {
+      const matchedUser = await get(
+        "SELECT id FROM users WHERE workplace_id = ? AND role = 'employee' AND name = ?",
+        [workplaceId, employee.name]
+      );
+
+      if (!matchedUser) {
+        unmatched.push(employee.name);
+        continue;
+      }
+
+      await run(
+        `DELETE FROM salary_slips WHERE workplace_id = ? AND user_id = ? AND payroll_month = ?`,
+        [workplaceId, matchedUser.id, parsed.payrollMonth]
+      );
+
+      await run(
+        `INSERT INTO salary_slips (
+          workplace_id, user_id, payroll_month, pay_date,
+          base_pay, national_pension, health_insurance, employment_insurance,
+          long_term_care, income_tax, local_income_tax, total_deductions,
+          net_pay, source_text
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          workplaceId,
+          matchedUser.id,
+          parsed.payrollMonth,
+          parsed.payDate,
+          employee.basePay,
+          employee.nationalPension,
+          employee.healthInsurance,
+          employee.employmentInsurance,
+          employee.longTermCare,
+          employee.incomeTax,
+          employee.localIncomeTax,
+          employee.totalDeductions,
+          employee.netPay,
+          text
+        ]
+      );
+      imported += 1;
+    }
+
+    res.json({
+      month: parsed.payrollMonth,
+      payDate: parsed.payDate,
+      imported,
+      unmatched
+    });
+  } catch (error) {
+    console.error('급여대장 가져오기 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 직원 급여명세서 조회
+router.get('/slips/my', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'employee') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const { month } = req.query;
+    const params = [req.user.id];
+    let sql = 'SELECT * FROM salary_slips WHERE user_id = ?';
+    if (month) {
+      sql += ' AND payroll_month = ?';
+      params.push(month);
+    }
+    sql += ' ORDER BY payroll_month DESC, pay_date DESC';
+
+    const slips = await query(sql, params);
+    res.json(slips);
+  } catch (error) {
+    console.error('급여명세서 조회 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 });

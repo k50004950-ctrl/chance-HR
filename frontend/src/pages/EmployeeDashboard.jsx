@@ -17,6 +17,8 @@ const EmployeeDashboard = () => {
     return `${year}-${month}`;
   });
   const [salaryInfo, setSalaryInfo] = useState(null);
+  const [salarySlips, setSalarySlips] = useState([]);
+  const [salarySlipsLoading, setSalarySlipsLoading] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [lastLocationCheckAt, setLastLocationCheckAt] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -80,6 +82,7 @@ const EmployeeDashboard = () => {
   useEffect(() => {
     loadAttendanceRecords();
     loadSalaryInfo();
+    loadSalarySlips();
   }, [selectedMonth]);
 
   const loadTodayStatus = async () => {
@@ -115,6 +118,19 @@ const EmployeeDashboard = () => {
     } catch (error) {
       console.error('급여 정보 조회 오류:', error);
       setSalaryInfo(null);
+    }
+  };
+
+  const loadSalarySlips = async () => {
+    try {
+      setSalarySlipsLoading(true);
+      const response = await salaryAPI.getMySlips({ month: selectedMonth });
+      setSalarySlips(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error('급여명세서 조회 오류:', error);
+      setSalarySlips([]);
+    } finally {
+      setSalarySlipsLoading(false);
     }
   };
 
@@ -336,6 +352,13 @@ const EmployeeDashboard = () => {
     if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatCurrency = (value) => {
+    if (value === null || value === undefined || value === '') return '-';
+    const num = Number(value);
+    if (Number.isNaN(num)) return '-';
+    return `${num.toLocaleString()}원`;
   };
 
   const getSalaryTypeName = (type) => {
@@ -679,6 +702,46 @@ const EmployeeDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* 급여명세서 */}
+        <div className="card" style={{ marginBottom: '24px' }}>
+          <h3 style={{ marginBottom: '16px', color: '#374151' }}>📄 급여명세서</h3>
+          {salarySlipsLoading ? (
+            <p style={{ color: '#6b7280' }}>불러오는 중...</p>
+          ) : salarySlips.length === 0 ? (
+            <p style={{ color: '#6b7280' }}>이번 달 급여명세서가 없습니다.</p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>귀속월</th>
+                    <th>지급일</th>
+                    <th>기본급</th>
+                    <th>공제합계</th>
+                    <th>차인지급액</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {salarySlips.map((slip) => (
+                    <tr key={slip.id}>
+                      <td style={{ fontWeight: '600' }}>{slip.payroll_month || '-'}</td>
+                      <td>{formatDate(slip.pay_date)}</td>
+                      <td>{formatCurrency(slip.base_pay)}</td>
+                      <td>{formatCurrency(slip.total_deductions)}</td>
+                      <td style={{ fontWeight: '700', color: '#667eea' }}>{formatCurrency(slip.net_pay)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {salarySlips.length > 0 && (
+            <p style={{ marginTop: '10px', fontSize: '12px', color: '#6b7280' }}>
+              상세 공제 항목은 사업주가 업로드한 급여대장 기준입니다.
+            </p>
+          )}
+        </div>
 
         {/* 출퇴근 기록 */}
         <div className="card">

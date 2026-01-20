@@ -10,16 +10,24 @@ const UsageGuide = () => {
   const isEmployee = user?.role === 'employee';
   const showOwner = !user || isOwner;
   const showEmployee = !user || isEmployee;
+  const handleTocClick = (event, targetId) => {
+    event.preventDefault();
+    const target = document.getElementById(targetId);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
   return (
     <div>
       {user && <Header />}
       <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
-          <h2 style={{ margin: 0, color: '#374151', textAlign: 'center', flex: '1' }}>사용방법 안내서</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', marginBottom: '20px', gap: '12px' }}>
+          <div />
+          <h2 style={{ margin: 0, color: '#374151', textAlign: 'center' }}>사용방법 안내서</h2>
           <button
             className="btn btn-secondary"
             onClick={() => navigate('/')}
-            style={{ minWidth: '120px' }}
+            style={{ minWidth: '120px', justifySelf: 'end' }}
           >
             대시보드로
           </button>
@@ -28,11 +36,11 @@ const UsageGuide = () => {
         <div className="card" style={{ marginBottom: '20px' }}>
           <h3 style={{ marginTop: 0, color: '#374151' }}>목차</h3>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '14px', justifyContent: 'center' }}>
-            <a href="#common">공통</a>
-            {showOwner && <a href="#owner">사업주</a>}
-            {showEmployee && <a href="#employee">직원</a>}
-            <a href="#homescreen">홈 화면 추가</a>
-            <a href="#troubleshooting">자주 발생하는 문제</a>
+            <a href="#common" onClick={(event) => handleTocClick(event, 'common')}>공통</a>
+            {showOwner && <a href="#owner" onClick={(event) => handleTocClick(event, 'owner')}>사업주</a>}
+            {showEmployee && <a href="#employee" onClick={(event) => handleTocClick(event, 'employee')}>직원</a>}
+            <a href="#homescreen" onClick={(event) => handleTocClick(event, 'homescreen')}>홈 화면 추가</a>
+            <a href="#troubleshooting" onClick={(event) => handleTocClick(event, 'troubleshooting')}>자주 발생하는 문제</a>
           </div>
         </div>
 

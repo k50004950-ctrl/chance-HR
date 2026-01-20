@@ -151,7 +151,8 @@ export const pastPayrollAPI = {
 export const pushAPI = {
   getPublicKey: () => api.get('/push/public-key'),
   subscribe: (data) => api.post('/push/subscribe', data),
-  unsubscribe: (data) => api.post('/push/unsubscribe', data)
+  unsubscribe: (data) => api.post('/push/unsubscribe', data),
+  sendTest: () => api.post('/push/test')
 };
 
 // 급여 변경 이력 API

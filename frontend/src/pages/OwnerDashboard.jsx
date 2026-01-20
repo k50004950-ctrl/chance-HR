@@ -48,6 +48,8 @@ const OwnerDashboard = () => {
   const [pushSupported, setPushSupported] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
+  const [pushPublicKeyReady, setPushPublicKeyReady] = useState(true);
+  const [qrCollapsed, setQrCollapsed] = useState(true);
   const [pastPayrollForm, setPastPayrollForm] = useState({
     start_date: '',
     end_date: '',
@@ -103,6 +105,12 @@ const OwnerDashboard = () => {
       setPushEnabled(false);
       return;
     }
+
+    pushAPI.getPublicKey().then((response) => {
+      setPushPublicKeyReady(!!response.data?.publicKey);
+    }).catch(() => {
+      setPushPublicKeyReady(false);
+    });
 
     navigator.serviceWorker.getRegistration().then((registration) => {
       if (!registration) {
@@ -568,6 +576,26 @@ const OwnerDashboard = () => {
       setMessage({
         type: 'error',
         text: error.response?.data?.message || '알림 해제에 실패했습니다.'
+      });
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const handleSendPushTest = async () => {
+    if (!pushEnabled) {
+      setMessage({ type: 'error', text: '알림을 먼저 켜주세요.' });
+      return;
+    }
+    setPushLoading(true);
+    setMessage({ type: '', text: '' });
+    try {
+      await pushAPI.sendTest();
+      setMessage({ type: 'success', text: '테스트 알림을 전송했습니다.' });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || '테스트 알림 전송에 실패했습니다.'
       });
     } finally {
       setPushLoading(false);
@@ -1642,6 +1670,12 @@ const OwnerDashboard = () => {
                   <h4 style={{ margin: 0, color: '#374151' }}>📷 QR 출퇴근</h4>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <button
+                      className="btn btn-secondary"
+                      onClick={() => setQrCollapsed(!qrCollapsed)}
+                    >
+                      {qrCollapsed ? '열기' : '접기'}
+                    </button>
+                    <button
                       className="btn btn-primary"
                       onClick={() => handleGenerateQr(false)}
                       disabled={qrLoading}
@@ -1659,46 +1693,50 @@ const OwnerDashboard = () => {
                   </div>
                 </div>
 
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '16px' }}>
-                  위치 인식이 어려운 경우 직원이 QR을 스캔해서 출퇴근을 기록할 수 있습니다. QR은 사업장별로 고정됩니다.
-                </div>
+                {!qrCollapsed && (
+                  <>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '16px' }}>
+                      위치 인식이 어려운 경우 직원이 QR을 스캔해서 출퇴근을 기록할 수 있습니다. QR은 사업장별로 고정됩니다.
+                    </div>
 
-                {qrData ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                    <div style={{ textAlign: 'center', padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #d1fae5' }}>
-                      <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#065f46' }}>출근 QR</div>
-                      <img src={qrData.checkInQr} alt="출근 QR" style={{ width: '180px', height: '180px' }} />
+                    {qrData ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                        <div style={{ textAlign: 'center', padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #d1fae5' }}>
+                          <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#065f46' }}>출근 QR</div>
+                          <img src={qrData.checkInQr} alt="출근 QR" style={{ width: '180px', height: '180px' }} />
+                        </div>
+                        <div style={{ textAlign: 'center', padding: '12px', background: '#fef3c7', borderRadius: '8px', border: '1px solid #fde68a' }}>
+                          <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#92400e' }}>퇴근 QR</div>
+                          <img src={qrData.checkOutQr} alt="퇴근 QR" style={{ width: '180px', height: '180px' }} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '24px', background: '#f9fafb', borderRadius: '8px', color: '#6b7280' }}>
+                        QR을 생성하면 이곳에 출근/퇴근 QR이 표시됩니다.
+                      </div>
+                    )}
+
+                    <div style={{ marginTop: '16px' }}>
+                      <label className="form-label">인쇄용 문구 (선택)</label>
+                      <textarea
+                        className="form-input"
+                        rows={5}
+                        value={qrPrintMessage}
+                        onChange={(e) => setQrPrintMessage(e.target.value)}
+                        placeholder={`예시\n1. 퇴근 전 보일러 체크!\n2. 출근 후 청소상태 확인\n3.\n4.`}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={handleSaveQrPrintMessage}
+                          disabled={qrPrintSaving}
+                        >
+                          {qrPrintSaving ? '저장 중...' : '문구 저장'}
+                        </button>
+                      </div>
                     </div>
-                    <div style={{ textAlign: 'center', padding: '12px', background: '#fef3c7', borderRadius: '8px', border: '1px solid #fde68a' }}>
-                      <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#92400e' }}>퇴근 QR</div>
-                      <img src={qrData.checkOutQr} alt="퇴근 QR" style={{ width: '180px', height: '180px' }} />
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '24px', background: '#f9fafb', borderRadius: '8px', color: '#6b7280' }}>
-                    QR을 생성하면 이곳에 출근/퇴근 QR이 표시됩니다.
-                  </div>
+                  </>
                 )}
-
-                <div style={{ marginTop: '16px' }}>
-                  <label className="form-label">인쇄용 문구 (선택)</label>
-                  <textarea
-                    className="form-input"
-                    rows={5}
-                    value={qrPrintMessage}
-                    onChange={(e) => setQrPrintMessage(e.target.value)}
-                    placeholder={`예시\n1. 퇴근 전 보일러 체크!\n2. 출근 후 청소상태 확인\n3.\n4.`}
-                  />
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-                    <button
-                      className="btn btn-secondary"
-                      onClick={handleSaveQrPrintMessage}
-                      disabled={qrPrintSaving}
-                    >
-                      {qrPrintSaving ? '저장 중...' : '문구 저장'}
-                    </button>
-                  </div>
-                </div>
               </div>
 
               {/* 웹 푸시 알림 */}
@@ -1718,11 +1756,18 @@ const OwnerDashboard = () => {
                       <button
                         className="btn btn-primary"
                         onClick={handleEnablePush}
-                        disabled={pushLoading || !pushSupported}
+                        disabled={pushLoading || !pushSupported || !pushPublicKeyReady}
                       >
                         {pushLoading ? '설정 중...' : '알림 켜기'}
                       </button>
                     )}
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleSendPushTest}
+                      disabled={pushLoading || !pushEnabled}
+                    >
+                      테스트 알림
+                    </button>
                   </div>
                 </div>
                 <p style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280' }}>
@@ -1732,6 +1777,11 @@ const OwnerDashboard = () => {
                 {!pushSupported && (
                   <p style={{ fontSize: '12px', color: '#dc2626' }}>
                     현재 브라우저에서는 웹 푸시를 지원하지 않습니다.
+                  </p>
+                )}
+                {pushSupported && !pushPublicKeyReady && (
+                  <p style={{ fontSize: '12px', color: '#dc2626' }}>
+                    웹 푸시 키가 설정되지 않았습니다. Railway 환경변수를 확인해주세요.
                   </p>
                 )}
               </div>

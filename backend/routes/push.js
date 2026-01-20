@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticate, authorizeRole } from '../middleware/auth.js';
-import { getVapidPublicKey, upsertSubscription, removeSubscription } from '../services/webPush.js';
+import { getVapidPublicKey, upsertSubscription, removeSubscription, sendPushToUser } from '../services/webPush.js';
 
 const router = express.Router();
 
@@ -44,6 +44,21 @@ router.post('/unsubscribe', authenticate, authorizeRole('owner', 'admin'), async
     res.json({ message: '구독이 해제되었습니다.' });
   } catch (error) {
     console.error('Push 구독 해제 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+router.post('/test', authenticate, authorizeRole('owner', 'admin'), async (req, res) => {
+  try {
+    const result = await sendPushToUser(req.user.id, {
+      title: '출퇴근 알림 테스트',
+      body: '알림이 정상적으로 설정되었습니다.',
+      url: `${process.env.FRONTEND_URL || ''}`
+    });
+
+    res.json({ message: '테스트 알림을 전송했습니다.', result });
+  } catch (error) {
+    console.error('Push 테스트 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 });

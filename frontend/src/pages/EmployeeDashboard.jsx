@@ -156,6 +156,14 @@ const EmployeeDashboard = () => {
       const url = new URL(payload);
       const tokenParam = url.searchParams.get('token');
       if (tokenParam) return tokenParam;
+      if (url.hash) {
+        const hashQueryIndex = url.hash.indexOf('?');
+        if (hashQueryIndex !== -1) {
+          const hashParams = new URLSearchParams(url.hash.slice(hashQueryIndex + 1));
+          const hashToken = hashParams.get('token');
+          if (hashToken) return hashToken;
+        }
+      }
     } catch (e) {
       // ignore URL parse error
     }

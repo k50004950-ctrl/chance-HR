@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
 import ConsentInfo from '../components/ConsentInfo';
 import QRCode from 'qrcode';
+import { searchAddress, getCoordinatesFromAddress } from '../utils/addressSearch';
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
@@ -63,6 +64,7 @@ const OwnerDashboard = () => {
   });
   const [workplaceSaving, setWorkplaceSaving] = useState(false);
   const [workplaceLocationLoading, setWorkplaceLocationLoading] = useState(false);
+  const [workplaceSearchLoading, setWorkplaceSearchLoading] = useState(false);
   const [pastPayrollForm, setPastPayrollForm] = useState({
     start_date: '',
     end_date: '',
@@ -563,6 +565,39 @@ const OwnerDashboard = () => {
         maximumAge: 0
       }
     );
+  };
+
+  const handleSearchWorkplaceAddress = async () => {
+    try {
+      setWorkplaceSearchLoading(true);
+      const result = await searchAddress();
+      const address = result.address || '';
+      setWorkplaceForm((prev) => ({
+        ...prev,
+        address
+      }));
+      if (address) {
+        try {
+          const coords = await getCoordinatesFromAddress(address);
+          setWorkplaceForm((prev) => ({
+            ...prev,
+            latitude: coords.latitude?.toFixed ? coords.latitude.toFixed(6) : coords.latitude,
+            longitude: coords.longitude?.toFixed ? coords.longitude.toFixed(6) : coords.longitude
+          }));
+          if (coords.success === false && coords.message) {
+            setMessage({ type: 'error', text: coords.message });
+          }
+        } catch (error) {
+          setMessage({ type: 'error', text: '주소 좌표 변환에 실패했습니다. 수동으로 입력해주세요.' });
+        }
+      }
+    } catch (error) {
+      if (error?.message) {
+        setMessage({ type: 'error', text: error.message });
+      }
+    } finally {
+      setWorkplaceSearchLoading(false);
+    }
   };
 
   const handleSaveWorkplace = async () => {
@@ -1371,88 +1406,7 @@ const OwnerDashboard = () => {
           </div>
         )}
 
-        {selectedWorkplace && (
-          <div className="card" style={{ marginBottom: '20px' }}>
-            <h3 style={{ marginTop: 0, color: '#374151' }}>사업장 주소/위치 수정</h3>
-            <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '12px' }}>
-              주소 변경 시 위치(위도/경도)를 함께 저장해야 출퇴근 범위가 정확히 적용됩니다.
-            </p>
-            <div className="grid grid-2">
-              <div className="form-group">
-                <label className="form-label">사업장명</label>
-                <input
-                  type="text"
-                  name="name"
-                  className="form-input"
-                  value={workplaceForm.name}
-                  onChange={handleWorkplaceFormChange}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">주소</label>
-                <input
-                  type="text"
-                  name="address"
-                  className="form-input"
-                  value={workplaceForm.address}
-                  onChange={handleWorkplaceFormChange}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">위도</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  name="latitude"
-                  className="form-input"
-                  value={workplaceForm.latitude}
-                  onChange={handleWorkplaceFormChange}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">경도</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  name="longitude"
-                  className="form-input"
-                  value={workplaceForm.longitude}
-                  onChange={handleWorkplaceFormChange}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">반경 (미터)</label>
-                <input
-                  type="number"
-                  name="radius"
-                  className="form-input"
-                  value={workplaceForm.radius}
-                  onChange={handleWorkplaceFormChange}
-                  placeholder="예: 100"
-                  min="10"
-                />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleSetWorkplaceLocation}
-                disabled={workplaceLocationLoading}
-              >
-                {workplaceLocationLoading ? '위치 불러오는 중...' : '현재 위치로 설정'}
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleSaveWorkplace}
-                disabled={workplaceSaving}
-              >
-                {workplaceSaving ? '저장 중...' : '사업장 정보 저장'}
-              </button>
-            </div>
-          </div>
-        )}
+        {/* 사업장 주소/위치 수정은 설정 탭으로 이동 */}
 
 
         {!selectedWorkplace ? (
@@ -1533,6 +1487,12 @@ const OwnerDashboard = () => {
                 onClick={() => setActiveTab('past-employees')}
               >
                 📂 과거 직원
+              </button>
+              <button
+                className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
+                onClick={() => setActiveTab('settings')}
+              >
+                ⚙️ 설정
               </button>
             </div>
 
@@ -2707,6 +2667,100 @@ const OwnerDashboard = () => {
                     등록된 과거 직원이 없습니다.
                   </p>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'settings' && (
+              <div className="card">
+                <h3 style={{ marginTop: 0, color: '#374151' }}>🏢 사업장 주소/위치 수정</h3>
+                <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '12px' }}>
+                  주소 변경 시 위치(위도/경도)를 함께 저장해야 출퇴근 범위가 정확히 적용됩니다.
+                </p>
+                <div className="grid grid-2">
+                  <div className="form-group">
+                    <label className="form-label">사업장명</label>
+                    <input
+                      type="text"
+                      name="name"
+                      className="form-input"
+                      value={workplaceForm.name}
+                      onChange={handleWorkplaceFormChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">주소</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="text"
+                        name="address"
+                        className="form-input"
+                        value={workplaceForm.address}
+                        onChange={handleWorkplaceFormChange}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={handleSearchWorkplaceAddress}
+                        disabled={workplaceSearchLoading}
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        {workplaceSearchLoading ? '검색 중...' : '주소 검색'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">위도</label>
+                    <input
+                      type="number"
+                      step="0.000001"
+                      name="latitude"
+                      className="form-input"
+                      value={workplaceForm.latitude}
+                      onChange={handleWorkplaceFormChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">경도</label>
+                    <input
+                      type="number"
+                      step="0.000001"
+                      name="longitude"
+                      className="form-input"
+                      value={workplaceForm.longitude}
+                      onChange={handleWorkplaceFormChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">반경 (미터)</label>
+                    <input
+                      type="number"
+                      name="radius"
+                      className="form-input"
+                      value={workplaceForm.radius}
+                      onChange={handleWorkplaceFormChange}
+                      placeholder="예: 100"
+                      min="10"
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleSetWorkplaceLocation}
+                    disabled={workplaceLocationLoading}
+                  >
+                    {workplaceLocationLoading ? '위치 불러오는 중...' : '현재 위치로 설정'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleSaveWorkplace}
+                    disabled={workplaceSaving}
+                  >
+                    {workplaceSaving ? '저장 중...' : '사업장 정보 저장'}
+                  </button>
+                </div>
               </div>
             )}
           </>

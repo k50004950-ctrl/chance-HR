@@ -266,7 +266,7 @@ export const initDatabase = async () => {
       
       // Add work_days column if it doesn't exist
       try {
-        await pool.query(`ALTER TABLE employee_details ADD COLUMN work_days VARCHAR(100)`);
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS work_days VARCHAR(100)`);
       } catch (e) {
         if (!e.message.includes('duplicate column') && !e.message.includes('already exists')) {
           console.error('Error adding work_days column to employee_details:', e);
@@ -274,45 +274,45 @@ export const initDatabase = async () => {
       }
 
       try {
-        await pool.query(`ALTER TABLE employee_details ADD COLUMN gender VARCHAR(10)`);
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS gender VARCHAR(10)`);
       } catch (e) {}
       try {
-        await pool.query(`ALTER TABLE employee_details ADD COLUMN birth_date DATE`);
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS birth_date DATE`);
       } catch (e) {}
       try {
-        await pool.query(`ALTER TABLE employee_details ADD COLUMN career TEXT`);
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS career TEXT`);
       } catch (e) {}
       try {
-        await pool.query(`ALTER TABLE employee_details ADD COLUMN job_type VARCHAR(255)`);
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS job_type VARCHAR(255)`);
       } catch (e) {}
       try {
-        await pool.query(`ALTER TABLE employee_details ADD COLUMN employment_renewal_date DATE`);
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS employment_renewal_date DATE`);
       } catch (e) {}
       try {
-        await pool.query(`ALTER TABLE employee_details ADD COLUMN contract_start_date DATE`);
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS contract_start_date DATE`);
       } catch (e) {}
       try {
-        await pool.query(`ALTER TABLE employee_details ADD COLUMN contract_end_date DATE`);
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS contract_end_date DATE`);
       } catch (e) {}
       try {
-        await pool.query(`ALTER TABLE employee_details ADD COLUMN employment_notes TEXT`);
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS employment_notes TEXT`);
       } catch (e) {}
       try {
-        await pool.query(`ALTER TABLE employee_details ADD COLUMN separation_type VARCHAR(50)`);
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS separation_type VARCHAR(50)`);
       } catch (e) {}
       try {
-        await pool.query(`ALTER TABLE employee_details ADD COLUMN separation_reason TEXT`);
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS separation_reason TEXT`);
       } catch (e) {}
       
       // Add id_card_file and family_cert_file columns if they don't exist
       try {
-        await pool.query(`ALTER TABLE employee_details ADD COLUMN id_card_file VARCHAR(500)`);
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS id_card_file VARCHAR(500)`);
       } catch (e) {
         // Column already exists, ignore
       }
       
       try {
-        await pool.query(`ALTER TABLE employee_details ADD COLUMN family_cert_file VARCHAR(500)`);
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS family_cert_file VARCHAR(500)`);
       } catch (e) {
         // Column already exists, ignore
       }

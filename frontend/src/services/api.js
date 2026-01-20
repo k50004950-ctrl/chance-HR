@@ -147,6 +147,13 @@ export const pastPayrollAPI = {
   delete: (employeeId, recordId) => api.delete(`/past-payroll/${employeeId}/${recordId}`)
 };
 
+// 웹 푸시 API
+export const pushAPI = {
+  getPublicKey: () => api.get('/push/public-key'),
+  subscribe: (data) => api.post('/push/subscribe', data),
+  unsubscribe: (data) => api.post('/push/unsubscribe', data)
+};
+
 // 급여 변경 이력 API
 export const salaryHistoryAPI = {
   getHistory: (employeeId) => api.get(`/salary-history/${employeeId}`)

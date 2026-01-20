@@ -154,6 +154,8 @@ export const initDatabase = async () => {
           approval_status VARCHAR(50) DEFAULT 'approved',
           additional_info TEXT,
           sales_rep VARCHAR(255),
+          marketing_consent BOOLEAN DEFAULT false,
+          marketing_consent_date TIMESTAMP,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
@@ -168,12 +170,28 @@ export const initDatabase = async () => {
           longitude DECIMAL(11, 8),
           radius INTEGER DEFAULT 100,
           default_off_days VARCHAR(50) DEFAULT '',
+          qr_print_message TEXT,
           qr_check_in_token VARCHAR(100),
           qr_check_out_token VARCHAR(100),
           qr_token_expires_at TIMESTAMP,
           owner_id INTEGER,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (owner_id) REFERENCES users(id)
+        )
+      `);
+
+      // Push 구독 테이블
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          workplace_id INTEGER,
+          endpoint TEXT NOT NULL,
+          subscription TEXT NOT NULL,
+          user_agent TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
 
@@ -189,6 +207,12 @@ export const initDatabase = async () => {
         await pool.query(`ALTER TABLE workplaces ADD COLUMN IF NOT EXISTS default_off_days VARCHAR(50) DEFAULT ''`);
       } catch (e) {
         console.log('default_off_days 컬럼은 이미 존재합니다.');
+      }
+      // QR 인쇄 문구 컬럼 추가 (마이그레이션)
+      try {
+        await pool.query(`ALTER TABLE workplaces ADD COLUMN IF NOT EXISTS qr_print_message TEXT`);
+      } catch (e) {
+        console.log('qr_print_message 컬럼은 이미 존재합니다.');
       }
       // QR 토큰 컬럼 추가 (마이그레이션)
       try {
@@ -454,6 +478,20 @@ export const initDatabase = async () => {
         // 컬럼이 이미 존재하면 무시
       }
 
+      // users 테이블에 marketing_consent 컬럼 추가
+      try {
+        await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS marketing_consent BOOLEAN DEFAULT false');
+        console.log('✅ users 테이블에 marketing_consent 컬럼 추가됨');
+      } catch (e) {
+        // 컬럼이 이미 존재하면 무시
+      }
+      try {
+        await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS marketing_consent_date TIMESTAMP');
+        console.log('✅ users 테이블에 marketing_consent_date 컬럼 추가됨');
+      } catch (e) {
+        // 컬럼이 이미 존재하면 무시
+      }
+
       // employee_details 테이블에 resignation_date 컬럼 추가
       try {
         await pool.query('ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS resignation_date DATE');
@@ -498,6 +536,8 @@ export const initDatabase = async () => {
           approval_status TEXT DEFAULT 'approved',
           additional_info TEXT,
           sales_rep TEXT,
+          marketing_consent INTEGER DEFAULT 0,
+          marketing_consent_date DATETIME,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
@@ -520,6 +560,12 @@ export const initDatabase = async () => {
         await run(`ALTER TABLE users ADD COLUMN sales_rep TEXT`);
       } catch (e) {}
       try {
+        await run(`ALTER TABLE users ADD COLUMN marketing_consent INTEGER DEFAULT 0`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE users ADD COLUMN marketing_consent_date DATETIME`);
+      } catch (e) {}
+      try {
         await run(`ALTER TABLE users ADD COLUMN employment_status TEXT DEFAULT 'active'`);
       } catch (e) {}
 
@@ -533,12 +579,28 @@ export const initDatabase = async () => {
           longitude REAL,
           radius INTEGER DEFAULT 100,
           default_off_days TEXT,
+          qr_print_message TEXT,
           qr_check_in_token TEXT,
           qr_check_out_token TEXT,
           qr_token_expires_at DATETIME,
           owner_id INTEGER,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (owner_id) REFERENCES users(id)
+        )
+      `);
+
+      // Push 구독 테이블
+      await run(`
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          workplace_id INTEGER,
+          endpoint TEXT NOT NULL,
+          subscription TEXT NOT NULL,
+          user_agent TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
 
@@ -549,6 +611,10 @@ export const initDatabase = async () => {
       // 기존 workplaces 테이블에 default_off_days 컬럼 추가 (마이그레이션)
       try {
         await run(`ALTER TABLE workplaces ADD COLUMN default_off_days TEXT`);
+      } catch (e) {}
+      // QR 인쇄 문구 컬럼 추가 (마이그레이션)
+      try {
+        await run(`ALTER TABLE workplaces ADD COLUMN qr_print_message TEXT`);
       } catch (e) {}
       // QR 토큰 컬럼 추가 (마이그레이션)
       try {

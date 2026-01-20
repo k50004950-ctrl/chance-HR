@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI } from '../services/api';
+import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI, pushAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
 import ConsentInfo from '../components/ConsentInfo';
@@ -43,6 +43,11 @@ const OwnerDashboard = () => {
   const [usernameCheckLoading, setUsernameCheckLoading] = useState(false);
   const [qrData, setQrData] = useState(null);
   const [qrLoading, setQrLoading] = useState(false);
+  const [qrPrintMessage, setQrPrintMessage] = useState('');
+  const [qrPrintSaving, setQrPrintSaving] = useState(false);
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
   const [pastPayrollForm, setPastPayrollForm] = useState({
     start_date: '',
     end_date: '',
@@ -84,6 +89,31 @@ const OwnerDashboard = () => {
   useEffect(() => {
     setQrData(null);
   }, [selectedWorkplace]);
+
+  useEffect(() => {
+    const currentWorkplace = workplaces.find((workplace) => workplace.id === selectedWorkplace);
+    setQrPrintMessage(currentWorkplace?.qr_print_message || '');
+  }, [workplaces, selectedWorkplace]);
+
+  useEffect(() => {
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    setPushSupported(supported);
+
+    if (!supported) {
+      setPushEnabled(false);
+      return;
+    }
+
+    navigator.serviceWorker.getRegistration().then((registration) => {
+      if (!registration) {
+        setPushEnabled(false);
+        return;
+      }
+      registration.pushManager.getSubscription().then((subscription) => {
+        setPushEnabled(!!subscription);
+      });
+    });
+  }, []);
 
   useEffect(() => {
     if (pastPayrollEmployeeId) {
@@ -355,8 +385,19 @@ const OwnerDashboard = () => {
     }
   };
 
+  const escapePrintMessage = (value) => {
+    if (!value) return '';
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
   const handlePrintQr = () => {
     if (!qrData) return;
+    const messageHtml = escapePrintMessage(qrPrintMessage).replace(/\n/g, '<br/>');
 
     const printWindow = window.open('', '_blank', 'width=720,height=900');
     if (!printWindow) return;
@@ -372,6 +413,8 @@ const OwnerDashboard = () => {
             .title { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
             img { width: 220px; height: 220px; }
             .hint { margin-top: 16px; font-size: 12px; color: #666; }
+            .memo { margin-top: 24px; padding: 16px; border: 1px dashed #bbb; border-radius: 8px; min-height: 120px; white-space: pre-wrap; }
+            .memo-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
           </style>
         </head>
         <body>
@@ -387,12 +430,148 @@ const OwnerDashboard = () => {
             </div>
           </div>
           <div class="hint">직원이 QR을 스캔하면 로그인 후 자동으로 출/퇴근이 기록됩니다.</div>
+          <div class="memo">
+            <div class="memo-title">인쇄용 문구</div>
+            ${messageHtml || ''}
+          </div>
         </body>
       </html>
     `);
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
+  };
+
+  const handleSaveQrPrintMessage = async () => {
+    const currentWorkplace = workplaces.find((workplace) => workplace.id === selectedWorkplace);
+    if (!currentWorkplace) {
+      setMessage({ type: 'error', text: '사업장을 선택해주세요.' });
+      return;
+    }
+
+    setQrPrintSaving(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      await workplaceAPI.update(currentWorkplace.id, {
+        name: currentWorkplace.name,
+        address: currentWorkplace.address,
+        latitude: currentWorkplace.latitude,
+        longitude: currentWorkplace.longitude,
+        radius: currentWorkplace.radius,
+        default_off_days: currentWorkplace.default_off_days || '',
+        qr_print_message: qrPrintMessage
+      });
+
+      setWorkplaces((prev) =>
+        prev.map((workplace) =>
+          workplace.id === currentWorkplace.id
+            ? { ...workplace, qr_print_message: qrPrintMessage }
+            : workplace
+        )
+      );
+      setMessage({ type: 'success', text: '인쇄용 문구가 저장되었습니다.' });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || '인쇄용 문구 저장에 실패했습니다.'
+      });
+    } finally {
+      setQrPrintSaving(false);
+    }
+  };
+
+  const urlBase64ToUint8Array = (base64String) => {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; i += 1) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
+  const handleEnablePush = async () => {
+    if (!pushSupported) {
+      setMessage({ type: 'error', text: '현재 브라우저는 웹 푸시를 지원하지 않습니다.' });
+      return;
+    }
+
+    setPushLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        setMessage({ type: 'error', text: '알림 권한이 필요합니다.' });
+        return;
+      }
+
+      const keyResponse = await pushAPI.getPublicKey();
+      const publicKey = keyResponse.data.publicKey;
+      if (!publicKey) {
+        setMessage({ type: 'error', text: '웹 푸시 키가 설정되지 않았습니다.' });
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      const existing = await registration.pushManager.getSubscription();
+      if (existing) {
+        setPushEnabled(true);
+        setMessage({ type: 'success', text: '이미 알림이 활성화되어 있습니다.' });
+        return;
+      }
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey)
+      });
+
+      await pushAPI.subscribe({
+        subscription,
+        userAgent: navigator.userAgent
+      });
+
+      setPushEnabled(true);
+      setMessage({ type: 'success', text: '출퇴근 알림이 활성화되었습니다.' });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || '알림 설정에 실패했습니다.'
+      });
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const handleDisablePush = async () => {
+    if (!pushSupported) {
+      setPushEnabled(false);
+      return;
+    }
+
+    setPushLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      const subscription = await registration?.pushManager.getSubscription();
+      if (subscription) {
+        await subscription.unsubscribe();
+        await pushAPI.unsubscribe({ endpoint: subscription.endpoint });
+      }
+
+      setPushEnabled(false);
+      setMessage({ type: 'success', text: '출퇴근 알림이 해제되었습니다.' });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || '알림 해제에 실패했습니다.'
+      });
+    } finally {
+      setPushLoading(false);
+    }
   };
 
   const loadSalary = async () => {
@@ -1499,6 +1678,61 @@ const OwnerDashboard = () => {
                   <div style={{ textAlign: 'center', padding: '24px', background: '#f9fafb', borderRadius: '8px', color: '#6b7280' }}>
                     QR을 생성하면 이곳에 출근/퇴근 QR이 표시됩니다.
                   </div>
+                )}
+
+                <div style={{ marginTop: '16px' }}>
+                  <label className="form-label">인쇄용 문구 (선택)</label>
+                  <textarea
+                    className="form-input"
+                    rows={5}
+                    value={qrPrintMessage}
+                    onChange={(e) => setQrPrintMessage(e.target.value)}
+                    placeholder={`예시\n1. 퇴근 전 보일러 체크!\n2. 출근 후 청소상태 확인\n3.\n4.`}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleSaveQrPrintMessage}
+                      disabled={qrPrintSaving}
+                    >
+                      {qrPrintSaving ? '저장 중...' : '문구 저장'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 웹 푸시 알림 */}
+              <div className="card" style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <h4 style={{ margin: 0, color: '#374151' }}>🔔 출퇴근 알림</h4>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {pushEnabled ? (
+                      <button
+                        className="btn btn-secondary"
+                        onClick={handleDisablePush}
+                        disabled={pushLoading}
+                      >
+                        알림 끄기
+                      </button>
+                    ) : (
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleEnablePush}
+                        disabled={pushLoading || !pushSupported}
+                      >
+                        {pushLoading ? '설정 중...' : '알림 켜기'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280' }}>
+                  직원이 출근/퇴근하면 대표자 브라우저로 무료 알림이 전송됩니다.
+                  알림 허용이 필요합니다.
+                </p>
+                {!pushSupported && (
+                  <p style={{ fontSize: '12px', color: '#dc2626' }}>
+                    현재 브라우저에서는 웹 푸시를 지원하지 않습니다.
+                  </p>
                 )}
               </div>
 

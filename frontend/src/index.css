@@ -25,6 +25,13 @@ body {
   padding: 24px;
 }
 
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+    padding: 32px;
+  }
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 12px;
@@ -454,6 +461,29 @@ h4 {
     padding: 8px 14px;
     min-height: auto;
     width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    align-items: stretch;
+  }
+
+  .header-nav {
+    gap: 6px;
+  }
+
+  .header .btn {
+    width: 100%;
+  }
+
+  .nav-tab {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .stat-card {
+    padding: 14px;
   }
 }
 

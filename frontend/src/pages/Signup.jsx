@@ -23,7 +23,8 @@ const Signup = () => {
       sales_rep: '',
     latitude: '',
     longitude: '',
-    radius: 100
+    radius: 100,
+    marketing_consent: false
   });
   const [locating, setLocating] = useState(false);
 
@@ -31,9 +32,10 @@ const Signup = () => {
     if (e.target.name === 'username') {
       setUsernameCheckStatus('unchecked');
     }
+    const { name, type, checked, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     });
   };
 
@@ -441,6 +443,21 @@ const Signup = () => {
               rows="3"
               placeholder="추가로 전달할 정보가 있다면 입력해주세요"
             />
+          </div>
+
+          <div className="form-group">
+            <label style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                name="marketing_consent"
+                checked={formData.marketing_consent}
+                onChange={handleChange}
+                style={{ marginTop: '4px' }}
+              />
+              <span style={{ fontSize: '14px', color: '#374151' }}>
+                [선택] 마케팅 정보 수신에 동의합니다.
+              </span>
+            </label>
           </div>
 
           <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>

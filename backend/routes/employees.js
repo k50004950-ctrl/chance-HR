@@ -358,6 +358,28 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
     const idCardFile = req.files && req.files['id_card_file'] ? req.files['id_card_file'][0].filename : undefined;
     const familyCertFile = req.files && req.files['family_cert_file'] ? req.files['family_cert_file'][0].filename : undefined;
 
+    // 직원 상세정보 기존 값 조회 (부분 업데이트 시 값 보존)
+    const existingDetails = await get('SELECT * FROM employee_details WHERE user_id = ?', [employeeId]);
+
+    const resolvedHireDate = hire_date !== undefined ? hire_date : existingDetails?.hire_date;
+    const resolvedGender = gender !== undefined ? gender : existingDetails?.gender;
+    const resolvedBirthDate = birth_date !== undefined ? birth_date : existingDetails?.birth_date;
+    const resolvedCareer = career !== undefined ? career : existingDetails?.career;
+    const resolvedJobType = job_type !== undefined ? job_type : existingDetails?.job_type;
+    const resolvedEmploymentRenewalDate = employment_renewal_date !== undefined ? employment_renewal_date : existingDetails?.employment_renewal_date;
+    const resolvedContractStartDate = contract_start_date !== undefined ? contract_start_date : existingDetails?.contract_start_date;
+    const resolvedContractEndDate = contract_end_date !== undefined ? contract_end_date : existingDetails?.contract_end_date;
+    const resolvedEmploymentNotes = employment_notes !== undefined ? employment_notes : existingDetails?.employment_notes;
+    const resolvedSeparationType = separation_type !== undefined ? separation_type : existingDetails?.separation_type;
+    const resolvedSeparationReason = separation_reason !== undefined ? separation_reason : existingDetails?.separation_reason;
+    const resolvedPosition = position !== undefined ? position : existingDetails?.position;
+    const resolvedDepartment = department !== undefined ? department : existingDetails?.department;
+    const resolvedNotes = notes !== undefined ? notes : existingDetails?.notes;
+    const resolvedWorkStartTime = work_start_time !== undefined ? work_start_time : existingDetails?.work_start_time;
+    const resolvedWorkEndTime = work_end_time !== undefined ? work_end_time : existingDetails?.work_end_time;
+    const resolvedWorkDays = work_days !== undefined ? work_days : existingDetails?.work_days;
+    const resolvedResignationDate = resignation_date !== undefined ? resignation_date : existingDetails?.resignation_date;
+
     // 직원 상세정보 수정
     let updateQuery = `UPDATE employee_details SET 
       hire_date = ?, gender = ?, birth_date = ?, career = ?, job_type = ?,
@@ -365,10 +387,11 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
       employment_notes = ?, separation_type = ?, separation_reason = ?,
       position = ?, department = ?, notes = ?, work_start_time = ?, work_end_time = ?, work_days = ?, resignation_date = ?`;
     let updateParams = [
-      hire_date, gender, birth_date, career, job_type,
-      employment_renewal_date, contract_start_date, contract_end_date,
-      employment_notes, separation_type, separation_reason,
-      position, department, notes, work_start_time, work_end_time, work_days, resignation_date || null
+      resolvedHireDate, resolvedGender, resolvedBirthDate, resolvedCareer, resolvedJobType,
+      resolvedEmploymentRenewalDate, resolvedContractStartDate, resolvedContractEndDate,
+      resolvedEmploymentNotes, resolvedSeparationType, resolvedSeparationReason,
+      resolvedPosition, resolvedDepartment, resolvedNotes, resolvedWorkStartTime, resolvedWorkEndTime, resolvedWorkDays,
+      resolvedResignationDate || null
     ];
     
     if (contractFile) {

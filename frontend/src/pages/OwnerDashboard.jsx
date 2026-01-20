@@ -2719,8 +2719,8 @@ const OwnerDashboard = () => {
                         name="address"
                         className="form-input"
                         value={workplaceForm.address}
-                        onChange={handleWorkplaceFormChange}
-                        onBlur={handleWorkplaceAddressBlur}
+                        onClick={handleSearchWorkplaceAddress}
+                        readOnly
                       />
                       <button
                         type="button"

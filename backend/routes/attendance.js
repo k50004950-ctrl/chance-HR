@@ -38,13 +38,24 @@ router.post('/check-in', authenticate, async (req, res) => {
       return res.status(404).json({ message: '사업장을 찾을 수 없습니다.' });
     }
 
+    const workplaceLat = Number(workplace.latitude);
+    const workplaceLng = Number(workplace.longitude);
+    if (!Number.isFinite(workplaceLat) || !Number.isFinite(workplaceLng)) {
+      return res.status(400).json({
+        message: '사업장 위치가 설정되지 않았습니다. 사업장 정보에서 위치를 다시 저장해주세요.',
+        allowCheckIn: false
+      });
+    }
+
+    const safeRadius = Number.isFinite(Number(workplace.radius)) ? Number(workplace.radius) : 100;
+
     // 위치 확인
     const withinRange = isWithinWorkplace(
       latitude,
       longitude,
-      workplace.latitude,
-      workplace.longitude,
-      workplace.radius,
+      workplaceLat,
+      workplaceLng,
+      safeRadius,
       accuracy
     );
 
@@ -179,13 +190,24 @@ router.post('/check-out', authenticate, async (req, res) => {
       return res.status(404).json({ message: '사업장을 찾을 수 없습니다.' });
     }
 
+    const workplaceLat = Number(workplace.latitude);
+    const workplaceLng = Number(workplace.longitude);
+    if (!Number.isFinite(workplaceLat) || !Number.isFinite(workplaceLng)) {
+      return res.status(400).json({
+        message: '사업장 위치가 설정되지 않았습니다. 사업장 정보에서 위치를 다시 저장해주세요.',
+        allowCheckOut: false
+      });
+    }
+
+    const safeRadius = Number.isFinite(Number(workplace.radius)) ? Number(workplace.radius) : 100;
+
     // 위치 확인
     const withinRange = isWithinWorkplace(
       latitude,
       longitude,
-      workplace.latitude,
-      workplace.longitude,
-      workplace.radius,
+      workplaceLat,
+      workplaceLng,
+      safeRadius,
       accuracy
     );
 

@@ -4203,21 +4203,34 @@ const OwnerDashboard = () => {
 
       {/* 급여명세서 작성/수정 모달 */}
       {showSlipModal && (
-        <div className="modal">
-          <div className="modal-content" style={{ maxWidth: '600px' }}>
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: '600px' }}>
             <div className="modal-header">
-              <h3>{editingSlipId ? '급여명세서 수정' : '급여명세서 작성'}</h3>
-              <button
-                className="modal-close"
-                onClick={() => {
-                  setShowSlipModal(false);
-                  setEditingSlipId(null);
-                }}
-              >
-                ×
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0 }}>{editingSlipId ? '급여명세서 수정' : '급여명세서 작성'}</h3>
+                <button
+                  className="modal-close"
+                  onClick={() => {
+                    setShowSlipModal(false);
+                    setEditingSlipId(null);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '28px',
+                    cursor: 'pointer',
+                    color: '#6b7280',
+                    lineHeight: '1',
+                    padding: '0',
+                    width: '32px',
+                    height: '32px'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
             </div>
-            <div className="modal-body">
+            <div style={{ marginTop: '20px' }}>
               <div className="form-group">
                 <label className="form-label">직원 선택 *</label>
                 <select

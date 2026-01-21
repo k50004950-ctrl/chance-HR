@@ -137,9 +137,9 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
       return res.status(404).json({ message: '급여 정보가 등록되지 않았습니다.' });
     }
 
-    // 출퇴근 기록 조회 (completed 및 auto_completed 포함)
+    // 출퇴근 기록 조회
     const attendanceRecords = await query(
-      "SELECT * FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ? AND status IN ('completed', 'auto_completed')",
+      "SELECT * FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ? AND status = 'completed'",
       [employeeId, startDate, endDate]
     );
 

@@ -61,40 +61,26 @@ export const checkIncompleteCheckouts = async () => {
         const checkInKst = new Date(checkInTime.getTime() + (9 * 60 * 60 * 1000)); // UTC -> KST
         const hoursElapsed = (now - checkInKst) / (1000 * 60 * 60); // 시간 차이
 
-        // 1. 6시간 경과 시 자동 퇴근 처리
-        if (hoursElapsed >= 6) {
-          const autoCheckOutTime = new Date(checkInKst.getTime() + (6 * 60 * 60 * 1000));
-          const workHours = 6;
+        // 1. 6시간 경과 시 경고 알림 (자동 처리 없음, 미완료 상태 유지)
+        if (hoursElapsed >= 6 && hoursElapsed < 6.5) {
+          // 6시간~6시간 30분 사이에만 알림 (중복 방지)
+          console.log(`[퇴근 미체크 경고] ${record.user_name} - 출근 후 6시간 경과`);
 
-          await run(
-            `UPDATE attendance 
-             SET check_out_time = ?, 
-                 work_hours = ?, 
-                 status = 'auto_completed',
-                 check_out_lat = check_in_lat,
-                 check_out_lng = check_in_lng
-             WHERE id = ?`,
-            [autoCheckOutTime.toISOString(), workHours, record.attendance_id]
-          );
-
-          console.log(`[자동 퇴근 처리] ${record.user_name} - 출근 후 6시간 경과`);
-
-          // 근로자에게 알림
+          // 근로자에게 경고 알림
           await sendPushToUser(record.user_id, {
-            title: '⚠️ 자동 퇴근 처리',
-            body: '출근 후 6시간이 경과하여 자동으로 퇴근 처리되었습니다. 퇴근 체크를 잊지 마세요!',
+            title: '🚨 퇴근 체크 필수!',
+            body: '출근 후 6시간이 경과했습니다. 반드시 퇴근 체크를 해주세요!',
             url: `${process.env.FRONTEND_URL || ''}`
           }).catch(err => console.error('근로자 알림 실패:', err));
 
-          // 사업주에게 알림
+          // 사업주에게 경고 알림
           if (record.owner_id) {
             await sendPushToUser(record.owner_id, {
-              title: '⚠️ 자동 퇴근 처리',
-              body: `${record.user_name}님이 퇴근 체크를 하지 않아 자동 처리되었습니다. (${record.workplace_name})`,
+              title: '🚨 퇴근 미체크 경고',
+              body: `${record.user_name}님이 출근 후 6시간이 경과했지만 퇴근 체크를 하지 않았습니다. 확인이 필요합니다. (${record.workplace_name})`,
               url: `${process.env.FRONTEND_URL || ''}`
             }).catch(err => console.error('사업주 알림 실패:', err));
-
-          continue; // 다음 레코드로
+          }
         }
 
         // 2. 근무 종료 시간 확인 및 알림

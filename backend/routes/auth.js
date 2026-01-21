@@ -388,4 +388,176 @@ router.put('/reset-password', authenticate, authorizeRole('admin'), async (req, 
   }
 });
 
+// 관리자: 테스트 계정 생성
+router.post('/create-test-workers', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const workplaceId = req.user.workplace_id;
+
+    // 비밀번호 해시
+    const hashedPassword = await bcrypt.hash('1234', 10);
+
+    const results = [];
+
+    // 1. 월급 근로자 (김월급)
+    let monthlyUser = await get("SELECT id FROM users WHERE username = 'test_monthly' AND workplace_id = ?", [workplaceId]);
+    
+    if (monthlyUser) {
+      await run("DELETE FROM attendance WHERE user_id = ?", [monthlyUser.id]);
+      await run("DELETE FROM salary_info WHERE user_id = ?", [monthlyUser.id]);
+      await run("DELETE FROM employee_details WHERE user_id = ?", [monthlyUser.id]);
+      await run("DELETE FROM users WHERE id = ?", [monthlyUser.id]);
+    }
+
+    const monthlyResult = await run(
+      `INSERT INTO users (username, password, name, role, workplace_id, phone, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      ['test_monthly', hashedPassword, '김월급', 'employee', workplaceId, '010-1111-1111']
+    );
+
+    let monthlyUserId = monthlyResult.lastID || monthlyResult.insertId;
+    if (!monthlyUserId) {
+      const user = await get("SELECT id FROM users WHERE username = 'test_monthly' AND workplace_id = ?", [workplaceId]);
+      monthlyUserId = user.id;
+    }
+
+    await run(
+      `INSERT INTO employee_details (user_id, hire_date, work_days, work_start_time, work_end_time)
+       VALUES (?, ?, ?, ?, ?)`,
+      [monthlyUserId, '2026-01-01', 'mon,tue,wed,thu,fri', '09:00', '18:00']
+    );
+
+    await run(
+      `INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, tax_type, weekly_holiday_type, weekly_holiday_pay)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [monthlyUserId, workplaceId, 'monthly', 2000000, '4대보험', 'included', 1]
+    );
+
+    results.push({ name: '김월급', username: 'test_monthly', id: monthlyUserId });
+
+    // 2. 시급 근로자 (박시급)
+    let hourlyUser = await get("SELECT id FROM users WHERE username = 'test_hourly' AND workplace_id = ?", [workplaceId]);
+    
+    if (hourlyUser) {
+      await run("DELETE FROM attendance WHERE user_id = ?", [hourlyUser.id]);
+      await run("DELETE FROM salary_info WHERE user_id = ?", [hourlyUser.id]);
+      await run("DELETE FROM employee_details WHERE user_id = ?", [hourlyUser.id]);
+      await run("DELETE FROM users WHERE id = ?", [hourlyUser.id]);
+    }
+
+    const hourlyResult = await run(
+      `INSERT INTO users (username, password, name, role, workplace_id, phone, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      ['test_hourly', hashedPassword, '박시급', 'employee', workplaceId, '010-2222-2222']
+    );
+
+    let hourlyUserId = hourlyResult.lastID || hourlyResult.insertId;
+    if (!hourlyUserId) {
+      const user = await get("SELECT id FROM users WHERE username = 'test_hourly' AND workplace_id = ?", [workplaceId]);
+      hourlyUserId = user.id;
+    }
+
+    await run(
+      `INSERT INTO employee_details (user_id, hire_date, work_days, work_start_time, work_end_time)
+       VALUES (?, ?, ?, ?, ?)`,
+      [hourlyUserId, '2026-01-01', 'mon,tue,wed,thu,fri', '09:00', '18:00']
+    );
+
+    await run(
+      `INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, tax_type, weekly_holiday_type, weekly_holiday_pay)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [hourlyUserId, workplaceId, 'hourly', 10000, '4대보험', 'separate', 1]
+    );
+
+    results.push({ name: '박시급', username: 'test_hourly', id: hourlyUserId });
+
+    // 3. 2026년 1월 출퇴근 기록 생성
+    const year = 2026;
+    const month = 1;
+    
+    for (let day = 1; day <= 31; day++) {
+      const date = new Date(year, month - 1, day);
+      const dayOfWeek = date.getDay();
+
+      if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+      // 월급 근로자 출근 기록
+      let monthlyStatus = 'completed';
+      let monthlyCheckIn = `${dateStr} 09:00:00`;
+      let monthlyCheckOut = `${dateStr} 18:00:00`;
+      let monthlyWorkHours = 8.0;
+
+      if (day === 7 || day === 21) {
+        monthlyStatus = 'absent';
+        monthlyCheckIn = null;
+        monthlyCheckOut = null;
+        monthlyWorkHours = 0;
+      } else if (day === 3 || day === 13 || day === 27) {
+        monthlyCheckIn = `${dateStr} 09:35:00`;
+      }
+
+      if (monthlyCheckIn) {
+        await run(
+          `INSERT INTO attendance (user_id, workplace_id, date, check_in_time, check_out_time, work_hours, status, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [monthlyUserId, workplaceId, dateStr, monthlyCheckIn, monthlyCheckOut, monthlyWorkHours, monthlyStatus, monthlyCheckIn]
+        );
+      }
+
+      // 시급 근로자 출근 기록
+      let hourlyStatus = 'completed';
+      let hourlyCheckIn = `${dateStr} 09:00:00`;
+      let hourlyCheckOut = `${dateStr} 18:00:00`;
+      let hourlyWorkHours = 8.0;
+
+      if (day === 10 || day === 24) {
+        hourlyStatus = 'absent';
+        hourlyCheckIn = null;
+        hourlyCheckOut = null;
+        hourlyWorkHours = 0;
+      } else if (day === 5 || day === 15 || day === 28) {
+        hourlyCheckIn = `${dateStr} 09:45:00`;
+      } else if (day === 8 || day === 22) {
+        hourlyCheckOut = `${dateStr} 17:00:00`;
+        hourlyWorkHours = 7.0;
+      }
+
+      if (hourlyCheckIn) {
+        await run(
+          `INSERT INTO attendance (user_id, workplace_id, date, check_in_time, check_out_time, work_hours, status, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [hourlyUserId, workplaceId, dateStr, hourlyCheckIn, hourlyCheckOut, hourlyWorkHours, hourlyStatus, hourlyCheckIn]
+        );
+      }
+    }
+
+    res.json({
+      message: '테스트 계정이 생성되었습니다.',
+      accounts: results,
+      info: {
+        monthly: {
+          name: '김월급',
+          username: 'test_monthly',
+          password: '1234',
+          salary: '월급 2,000,000원 (4대보험)'
+        },
+        hourly: {
+          name: '박시급',
+          username: 'test_hourly',
+          password: '1234',
+          salary: '시급 10,000원 (4대보험, 주휴수당 별도)'
+        }
+      }
+    });
+  } catch (error) {
+    console.error('테스트 계정 생성 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
+  }
+});
+
 export default router;

@@ -2963,6 +2963,7 @@ const OwnerDashboard = () => {
             )}
 
             {activeTab === 'settings' && (
+              <>
               <div className="card">
                 <h3 style={{ marginTop: 0, color: '#374151' }}>🏢 사업장 주소/위치 수정</h3>
                 <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '12px' }}>
@@ -3055,6 +3056,59 @@ const OwnerDashboard = () => {
                   </button>
                 </div>
               </div>
+
+              {/* 테스트 계정 생성 */}
+              <div className="card" style={{ marginTop: '20px' }}>
+                <h3 style={{ marginTop: 0, color: '#374151' }}>🧪 테스트 계정 생성</h3>
+                <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '16px' }}>
+                  개발/테스트 용도로 사용할 수 있는 샘플 근로자 계정을 생성합니다.
+                </p>
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+                    생성될 계정:
+                  </div>
+                  <ul style={{ fontSize: '13px', color: '#6b7280', margin: 0, paddingLeft: '20px' }}>
+                    <li><strong>김월급</strong> (test_monthly / 1234) - 월급 200만원, 4대보험, 2026-01-01 입사</li>
+                    <li><strong>박시급</strong> (test_hourly / 1234) - 시급 1만원, 4대보험, 2026-01-01 입사</li>
+                  </ul>
+                  <div style={{ fontSize: '12px', color: '#f59e0b', marginTop: '8px' }}>
+                    ⚠️ 2026년 1월 출퇴근 기록(지각/결근 포함)이 함께 생성됩니다.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-success"
+                  onClick={async () => {
+                    if (window.confirm('테스트 계정 2개(김월급, 박시급)를 생성하시겠습니까?\n\n- 이미 존재하는 경우 삭제 후 재생성됩니다.\n- 2026년 1월 출퇴근 기록이 함께 생성됩니다.')) {
+                      try {
+                        setLoading(true);
+                        const response = await authAPI.createTestWorkers();
+                        setMessage({ 
+                          type: 'success', 
+                          text: `테스트 계정이 생성되었습니다.\n- ${response.data.info.monthly.name} (${response.data.info.monthly.username})\n- ${response.data.info.hourly.name} (${response.data.info.hourly.username})` 
+                        });
+                        // 직원 목록 새로고침
+                        loadEmployees();
+                      } catch (error) {
+                        console.error('테스트 계정 생성 오류:', error);
+                        setMessage({ type: 'error', text: error.response?.data?.message || '테스트 계정 생성에 실패했습니다.' });
+                      } finally {
+                        setLoading(false);
+                      }
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? '생성 중...' : '🧪 테스트 계정 생성'}
+                </button>
+              </div>
+              </>
             )}
           </>
         )}

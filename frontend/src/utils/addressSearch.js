@@ -116,7 +116,10 @@ export const getCoordinatesFromAddress = async (address) => {
     }
 
     // Kakao REST API 키 없이 사용 가능한 대안: Nominatim (OpenStreetMap)
-    const encodedAddress = encodeURIComponent(address);
+    // 상세 주소는 찾기 어려우니 단순화해서 재시도
+    const simplifiedAddress = address.split(' ').slice(0, 3).join(' '); // 시/도까지만
+    const encodedAddress = encodeURIComponent(simplifiedAddress);
+    
     const response = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&countrycodes=kr&limit=1`,
       {
@@ -137,7 +140,8 @@ export const getCoordinatesFromAddress = async (address) => {
       return {
         latitude: parseFloat(data[0].lat),
         longitude: parseFloat(data[0].lon),
-        success: true
+        success: true,
+        message: `주소가 간소화되어 검색되었습니다 (${simplifiedAddress}). 정확한 위치는 "현재 위치로 설정" 버튼을 사용하거나 수동으로 조정해주세요.`
       };
     } else {
       // Nominatim에서 찾지 못한 경우, 대한민국 중심 좌표로 기본값 설정
@@ -145,7 +149,7 @@ export const getCoordinatesFromAddress = async (address) => {
         latitude: 37.5665,
         longitude: 126.9780,
         success: false,
-        message: '정확한 좌표를 찾을 수 없어 기본 위치(서울시청)로 설정되었습니다. 수동으로 조정해주세요.'
+        message: '정확한 좌표를 찾을 수 없어 기본 위치(서울시청)로 설정되었습니다. "현재 위치로 설정" 버튼을 사용하거나 수동으로 조정해주세요.'
       };
     }
   } catch (error) {

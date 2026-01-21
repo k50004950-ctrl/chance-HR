@@ -4389,7 +4389,39 @@ const OwnerDashboard = () => {
                   className="form-select"
                   value={slipFormData.userId}
                   disabled={editingSlipId !== null}
-                  onChange={(e) => setSlipFormData({ ...slipFormData, userId: e.target.value })}
+                  onChange={(e) => {
+                    const selectedUserId = e.target.value;
+                    const selectedEmployee = employees.find(emp => emp.id === parseInt(selectedUserId));
+                    
+                    // 직원 선택 시 급여 지급일 자동 계산
+                    let calculatedPayDate = '';
+                    if (selectedEmployee && slipFormData.payrollMonth) {
+                      const [year, month] = slipFormData.payrollMonth.split('-').map(Number);
+                      
+                      if (selectedEmployee.pay_schedule_type === '월말' && selectedEmployee.pay_day !== null && selectedEmployee.pay_day !== undefined) {
+                        // 월말 지급: 귀속월 다음 달의 지정일
+                        const nextMonth = month === 12 ? 1 : month + 1;
+                        const nextYear = month === 12 ? year + 1 : year;
+                        const payDay = selectedEmployee.pay_day === 0 ? new Date(nextYear, nextMonth, 0).getDate() : selectedEmployee.pay_day;
+                        calculatedPayDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(payDay).padStart(2, '0')}`;
+                      } else if (selectedEmployee.pay_schedule_type === '입사일 기준' && selectedEmployee.hire_date) {
+                        // 입사일 기준: 입사일의 일자를 기준으로 귀속월 다음 달의 해당 일자
+                        const hireDate = new Date(selectedEmployee.hire_date);
+                        const hireDay = hireDate.getDate();
+                        const nextMonth = month === 12 ? 1 : month + 1;
+                        const nextYear = month === 12 ? year + 1 : year;
+                        const lastDayOfNextMonth = new Date(nextYear, nextMonth, 0).getDate();
+                        const payDay = Math.min(hireDay, lastDayOfNextMonth); // 월말일보다 크면 월말로 조정
+                        calculatedPayDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(payDay).padStart(2, '0')}`;
+                      }
+                    }
+                    
+                    setSlipFormData({ 
+                      ...slipFormData, 
+                      userId: selectedUserId,
+                      payDate: calculatedPayDate || slipFormData.payDate
+                    });
+                  }}
                   required
                 >
                   <option value="">선택하세요</option>
@@ -4408,7 +4440,39 @@ const OwnerDashboard = () => {
                     type="month"
                     className="form-input"
                     value={slipFormData.payrollMonth}
-                    onChange={(e) => setSlipFormData({ ...slipFormData, payrollMonth: e.target.value })}
+                    onChange={(e) => {
+                      const newPayrollMonth = e.target.value;
+                      const selectedEmployee = employees.find(emp => emp.id === parseInt(slipFormData.userId));
+                      
+                      // 귀속월 변경 시 급여 지급일 자동 재계산
+                      let calculatedPayDate = '';
+                      if (selectedEmployee && newPayrollMonth) {
+                        const [year, month] = newPayrollMonth.split('-').map(Number);
+                        
+                        if (selectedEmployee.pay_schedule_type === '월말' && selectedEmployee.pay_day !== null && selectedEmployee.pay_day !== undefined) {
+                          // 월말 지급: 귀속월 다음 달의 지정일
+                          const nextMonth = month === 12 ? 1 : month + 1;
+                          const nextYear = month === 12 ? year + 1 : year;
+                          const payDay = selectedEmployee.pay_day === 0 ? new Date(nextYear, nextMonth, 0).getDate() : selectedEmployee.pay_day;
+                          calculatedPayDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(payDay).padStart(2, '0')}`;
+                        } else if (selectedEmployee.pay_schedule_type === '입사일 기준' && selectedEmployee.hire_date) {
+                          // 입사일 기준: 입사일의 일자를 기준으로 귀속월 다음 달의 해당 일자
+                          const hireDate = new Date(selectedEmployee.hire_date);
+                          const hireDay = hireDate.getDate();
+                          const nextMonth = month === 12 ? 1 : month + 1;
+                          const nextYear = month === 12 ? year + 1 : year;
+                          const lastDayOfNextMonth = new Date(nextYear, nextMonth, 0).getDate();
+                          const payDay = Math.min(hireDay, lastDayOfNextMonth); // 월말일보다 크면 월말로 조정
+                          calculatedPayDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(payDay).padStart(2, '0')}`;
+                        }
+                      }
+                      
+                      setSlipFormData({ 
+                        ...slipFormData, 
+                        payrollMonth: newPayrollMonth,
+                        payDate: calculatedPayDate || slipFormData.payDate
+                      });
+                    }}
                     required
                   />
                 </div>

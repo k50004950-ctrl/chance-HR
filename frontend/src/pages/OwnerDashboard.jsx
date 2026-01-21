@@ -36,9 +36,6 @@ const OwnerDashboard = () => {
   const [pastPayrollEmployeeId, setPastPayrollEmployeeId] = useState('');
   const [pastPayrollYear, setPastPayrollYear] = useState(() => new Date().getFullYear());
   const [pastPayrollMonth, setPastPayrollMonth] = useState('');
-  const [ledgerText, setLedgerText] = useState('');
-  const [ledgerImportResult, setLedgerImportResult] = useState(null);
-  const [ledgerImportLoading, setLedgerImportLoading] = useState(false);
   const [employmentStatusFilter, setEmploymentStatusFilter] = useState('all');
   const [rosterViewMode, setRosterViewMode] = useState(
     () => (typeof window !== 'undefined' && window.innerWidth >= 1024 ? 'cards' : 'table')
@@ -1368,37 +1365,6 @@ const OwnerDashboard = () => {
     XLSX.writeFile(wb, filename);
   };
 
-  const handleImportLedger = async () => {
-    if (!ledgerText.trim()) {
-      setMessage({ type: 'error', text: '급여대장 텍스트를 붙여넣어 주세요.' });
-      return;
-    }
-    if (!selectedWorkplace) {
-      setMessage({ type: 'error', text: '사업장을 먼저 선택해주세요.' });
-      return;
-    }
-
-    try {
-      setLedgerImportLoading(true);
-      const response = await salaryAPI.importLedger({
-        workplaceId: selectedWorkplace,
-        text: ledgerText
-      });
-      setLedgerImportResult(response.data);
-      setMessage({
-        type: 'success',
-        text: `${response.data.imported}명 급여명세서를 등록했습니다.`
-      });
-    } catch (error) {
-      console.error('급여대장 가져오기 오류:', error);
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || '급여대장 가져오기에 실패했습니다.'
-      });
-    } finally {
-      setLedgerImportLoading(false);
-    }
-  };
 
   return (
     <div>
@@ -2347,6 +2313,7 @@ const OwnerDashboard = () => {
                                 <th>기본 급여</th>
                               <th>주휴수당</th>
                                 <th>총 지급액</th>
+                                <th>급여일</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -2367,6 +2334,9 @@ const OwnerDashboard = () => {
                                     <td style={{ fontWeight: '700', color: '#667eea' }}>
                                   {formatCurrency(totalPay)}
                                     </td>
+                                    <td style={{ fontSize: '12px', color: '#374151' }}>
+                                      {emp.nextPayday || '-'}
+                                    </td>
                                   </tr>
                                 );
                               })}
@@ -2378,44 +2348,6 @@ const OwnerDashboard = () => {
 
                   </>
                 )}
-                <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
-                  <h4 style={{ color: '#374151', marginBottom: '8px' }}>📄 급여대장 붙여넣기</h4>
-                  <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '12px' }}>
-                    PDF/엑셀에서 텍스트를 복사해 붙여넣으면 직원 급여명세서가 생성됩니다. (직원명 기준 매칭)
-                  </p>
-                  <textarea
-                    className="form-input"
-                    rows={6}
-                    placeholder="급여대장 텍스트를 붙여넣어 주세요."
-                    value={ledgerText}
-                    onChange={(e) => setLedgerText(e.target.value)}
-                  />
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '12px' }}>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={handleImportLedger}
-                      disabled={ledgerImportLoading}
-                    >
-                      {ledgerImportLoading ? '가져오는 중...' : '급여대장 가져오기'}
-                    </button>
-                    {ledgerImportResult && (
-                      <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                        귀속 {ledgerImportResult.month || '-'} / 지급일 {ledgerImportResult.payDate ? formatDate(ledgerImportResult.payDate) : '-'}
-                      </span>
-                    )}
-                  </div>
-                  {ledgerImportResult && (
-                    <div style={{ marginTop: '10px', fontSize: '12px', color: '#374151' }}>
-                      등록 {ledgerImportResult.imported}명
-                      {ledgerImportResult.unmatched?.length > 0 && (
-                        <span style={{ color: '#ef4444' }}>
-                          {' '}· 미매칭 {ledgerImportResult.unmatched.join(', ')}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
               </div>
             )}
 

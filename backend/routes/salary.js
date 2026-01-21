@@ -1,6 +1,7 @@
 import express from 'express';
 import { query, get, run } from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
+import { getNextPayDate } from '../services/payrollSchedule.js';
 
 const router = express.Router();
 
@@ -442,6 +443,23 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       // 퇴직금/수기 과거 급여는 별도 표시 (총 급여에 포함하지 않음)
       totalSalary += totalPay;
 
+      // 다음 급여일 계산
+      const payScheduleInfo = await get(
+        'SELECT pay_schedule_type, pay_day, pay_after_days, hire_date FROM employee_details WHERE user_id = ?',
+        [employee.id]
+      );
+      
+      let nextPayday = '-';
+      if (payScheduleInfo) {
+        const nextPayDate = getNextPayDate(payScheduleInfo);
+        if (nextPayDate) {
+          const year = nextPayDate.getFullYear();
+          const month = String(nextPayDate.getMonth() + 1).padStart(2, '0');
+          const day = String(nextPayDate.getDate()).padStart(2, '0');
+          nextPayday = `${year}-${month}-${day}`;
+        }
+      }
+
       salaryResults.push({
         employeeId: employee.id,
         employeeName: employee.name,
@@ -459,6 +477,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         baseSalaryAmount: Math.round(baseSalaryAmount),
         severancePay: severancePay,
         totalPay: Math.round(totalPay),
+        nextPayday,
         absence: {
           absentDays,
           deduction: absenceDeduction

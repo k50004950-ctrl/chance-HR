@@ -112,8 +112,9 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), async (req, res)
 // 사업장 수정
 router.put('/:id', authenticate, authorizeRole('admin', 'owner'), async (req, res) => {
   try {
-    const { name, address, latitude, longitude, radius, default_off_days } = req.body;
+    const { name, address, latitude, longitude, radius, default_off_days, qr_print_message } = req.body;
     const workplaceId = req.params.id;
+    let existingWorkplace = null;
 
     // 권한 확인
     if (req.user.role === 'owner') {
@@ -121,11 +122,21 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), async (req, re
       if (!workplace || workplace.owner_id !== req.user.id) {
         return res.status(403).json({ message: '권한이 없습니다.' });
       }
+      existingWorkplace = workplace;
     }
 
+    if (!existingWorkplace) {
+      existingWorkplace = await get('SELECT * FROM workplaces WHERE id = ?', [workplaceId]);
+    }
+
+    const nextQrMessage =
+      qr_print_message !== undefined && qr_print_message !== null
+        ? qr_print_message
+        : (existingWorkplace?.qr_print_message || '');
+
     await run(
-      'UPDATE workplaces SET name = ?, address = ?, latitude = ?, longitude = ?, radius = ?, default_off_days = ? WHERE id = ?',
-      [name, address, latitude, longitude, radius, default_off_days || '', workplaceId]
+      'UPDATE workplaces SET name = ?, address = ?, latitude = ?, longitude = ?, radius = ?, default_off_days = ?, qr_print_message = ? WHERE id = ?',
+      [name, address, latitude, longitude, radius, default_off_days || '', nextQrMessage, workplaceId]
     );
 
     res.json({ message: '사업장 정보가 수정되었습니다.' });

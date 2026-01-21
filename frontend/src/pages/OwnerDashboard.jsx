@@ -47,6 +47,23 @@ const OwnerDashboard = () => {
   const [qrLoading, setQrLoading] = useState(false);
   const [qrPrintMessage, setQrPrintMessage] = useState('');
   const [qrPrintSaving, setQrPrintSaving] = useState(false);
+  const [showSlipModal, setShowSlipModal] = useState(false);
+  const [slipFormData, setSlipFormData] = useState({
+    userId: '',
+    payrollMonth: '',
+    payDate: '',
+    taxType: '4대보험',
+    basePay: '',
+    nationalPension: '',
+    healthInsurance: '',
+    employmentInsurance: '',
+    longTermCare: '',
+    incomeTax: '',
+    localIncomeTax: ''
+  });
+  const [editingSlipId, setEditingSlipId] = useState(null);
+  const [selectedSlipEmployee, setSelectedSlipEmployee] = useState(null);
+  const [employeeSlips, setEmployeeSlips] = useState([]);
   const [pushSupported, setPushSupported] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
@@ -1365,7 +1382,6 @@ const OwnerDashboard = () => {
     XLSX.writeFile(wb, filename);
   };
 
-
   return (
     <div>
       <Header />
@@ -1465,6 +1481,12 @@ const OwnerDashboard = () => {
                 onClick={() => setActiveTab('salary')}
               >
                 💰 급여 계산
+              </button>
+              <button
+                className={`nav-tab ${activeTab === 'salary-slips' ? 'active' : ''}`}
+                onClick={() => setActiveTab('salary-slips')}
+              >
+                📝 급여명세서
               </button>
               <button
                 className={`nav-tab ${activeTab === 'severance' ? 'active' : ''}`}
@@ -2307,23 +2329,34 @@ const OwnerDashboard = () => {
                                 <th>직원명</th>
                                 <th>급여유형</th>
                                 <th>인건비 신고</th>
+                                <th>급여일</th>
                                 <th>기본급</th>
                                 <th>근무일수</th>
                                 <th>근무시간</th>
                                 <th>기본 급여</th>
                               <th>주휴수당</th>
                                 <th>총 지급액</th>
-                                <th>급여일</th>
                               </tr>
                             </thead>
                             <tbody>
                               {salaryData.employees.map((emp) => {
                                 const totalPay = emp.totalPay ?? emp.calculatedSalary;
+                                // 급여일 계산
+                                const getPayDayText = () => {
+                                  if (emp.payScheduleType === 'monthly') {
+                                    if (emp.payDay === 0) return '말일';
+                                    return `매월 ${emp.payDay}일`;
+                                  } else if (emp.payScheduleType === 'hire_date') {
+                                    return `입사일 기준`;
+                                  }
+                                  return '-';
+                                };
                                 return (
                                   <tr key={emp.employeeId}>
                                     <td style={{ fontWeight: '600' }}>{emp.employeeName}</td>
                                     <td>{getSalaryTypeName(emp.salaryType)}</td>
                                     <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.taxType || '4대보험'}</td>
+                                    <td style={{ fontSize: '12px', color: '#6366f1' }}>{getPayDayText()}</td>
                                 <td>{formatCurrency(emp.baseAmount)}</td>
                                     <td>{emp.totalWorkDays}일</td>
                                     <td>{emp.totalWorkHours}h</td>
@@ -2333,9 +2366,6 @@ const OwnerDashboard = () => {
                                 </td>
                                     <td style={{ fontWeight: '700', color: '#667eea' }}>
                                   {formatCurrency(totalPay)}
-                                    </td>
-                                    <td style={{ fontSize: '12px', color: '#374151' }}>
-                                      {emp.nextPayday || '-'}
                                     </td>
                                   </tr>
                                 );
@@ -2347,6 +2377,157 @@ const OwnerDashboard = () => {
                     )}
 
                   </>
+                )}
+              </div>
+            )}
+
+            {/* 급여명세서 */}
+            {activeTab === 'salary-slips' && (
+              <div className="card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ color: '#374151' }}>📝 급여명세서 관리</h3>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setEditingSlipId(null);
+                      setSlipFormData({
+                        userId: '',
+                        payrollMonth: (() => {
+                          const now = new Date();
+                          return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                        })(),
+                        payDate: '',
+                        taxType: '4대보험',
+                        basePay: '',
+                        nationalPension: '',
+                        healthInsurance: '',
+                        employmentInsurance: '',
+                        longTermCare: '',
+                        incomeTax: '',
+                        localIncomeTax: ''
+                      });
+                      setShowSlipModal(true);
+                    }}
+                  >
+                    + 급여명세서 작성
+                  </button>
+                </div>
+
+                <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>
+                  직원별 급여명세서를 작성하고 관리합니다. 프리랜서는 3.3% 원천징수가 자동 계산됩니다.
+                </p>
+
+                {/* 직원 선택 */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label className="form-label">직원 선택</label>
+                  <select
+                    className="form-select"
+                    value={selectedSlipEmployee || ''}
+                    onChange={async (e) => {
+                      const userId = e.target.value;
+                      setSelectedSlipEmployee(userId ? parseInt(userId) : null);
+                      if (userId) {
+                        try {
+                          const response = await salaryAPI.getEmployeeSlips(userId);
+                          setEmployeeSlips(response.data || []);
+                        } catch (error) {
+                          console.error('급여명세서 조회 오류:', error);
+                          setEmployeeSlips([]);
+                        }
+                      } else {
+                        setEmployeeSlips([]);
+                      }
+                    }}
+                  >
+                    <option value="">전체 직원</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.name} ({emp.username})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedSlipEmployee && (
+                  <div style={{ overflowX: 'auto' }}>
+                    {employeeSlips.length === 0 ? (
+                      <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
+                        등록된 급여명세서가 없습니다.
+                      </p>
+                    ) : (
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>귀속월</th>
+                            <th>지급일</th>
+                            <th>인건비 구분</th>
+                            <th>기본급</th>
+                            <th>공제합계</th>
+                            <th>실수령액</th>
+                            <th>관리</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {employeeSlips.map((slip) => (
+                            <tr key={slip.id}>
+                              <td style={{ fontWeight: '600' }}>{slip.payroll_month}</td>
+                              <td>{formatDate(slip.pay_date)}</td>
+                              <td style={{ fontSize: '12px', color: '#6366f1' }}>{slip.tax_type || '4대보험'}</td>
+                              <td>{formatCurrency(slip.base_pay)}</td>
+                              <td style={{ color: '#ef4444' }}>-{formatCurrency(slip.total_deductions)}</td>
+                              <td style={{ fontWeight: '700', color: '#667eea' }}>{formatCurrency(slip.net_pay)}</td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <button
+                                    className="btn btn-secondary"
+                                    style={{ fontSize: '12px', padding: '4px 12px' }}
+                                    onClick={() => {
+                                      setEditingSlipId(slip.id);
+                                      setSlipFormData({
+                                        userId: slip.user_id,
+                                        payrollMonth: slip.payroll_month,
+                                        payDate: slip.pay_date,
+                                        taxType: slip.tax_type || '4대보험',
+                                        basePay: slip.base_pay,
+                                        nationalPension: slip.national_pension,
+                                        healthInsurance: slip.health_insurance,
+                                        employmentInsurance: slip.employment_insurance,
+                                        longTermCare: slip.long_term_care,
+                                        incomeTax: slip.income_tax,
+                                        localIncomeTax: slip.local_income_tax
+                                      });
+                                      setShowSlipModal(true);
+                                    }}
+                                  >
+                                    수정
+                                  </button>
+                                  <button
+                                    className="btn btn-danger"
+                                    style={{ fontSize: '12px', padding: '4px 12px' }}
+                                    onClick={async () => {
+                                      if (window.confirm('급여명세서를 삭제하시겠습니까?')) {
+                                        try {
+                                          await salaryAPI.deleteSlip(slip.id);
+                                          setMessage({ type: 'success', text: '급여명세서가 삭제되었습니다.' });
+                                          const response = await salaryAPI.getEmployeeSlips(selectedSlipEmployee);
+                                          setEmployeeSlips(response.data || []);
+                                        } catch (error) {
+                                          console.error('삭제 오류:', error);
+                                          setMessage({ type: 'error', text: '삭제에 실패했습니다.' });
+                                        }
+                                      }
+                                    }}
+                                  >
+                                    삭제
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -4016,6 +4197,294 @@ const OwnerDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 급여명세서 작성/수정 모달 */}
+      {showSlipModal && (
+        <div className="modal">
+          <div className="modal-content" style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h3>{editingSlipId ? '급여명세서 수정' : '급여명세서 작성'}</h3>
+              <button
+                className="modal-close"
+                onClick={() => {
+                  setShowSlipModal(false);
+                  setEditingSlipId(null);
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">직원 선택 *</label>
+                <select
+                  className="form-select"
+                  value={slipFormData.userId}
+                  disabled={editingSlipId !== null}
+                  onChange={(e) => setSlipFormData({ ...slipFormData, userId: e.target.value })}
+                  required
+                >
+                  <option value="">선택하세요</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name} ({emp.username})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label className="form-label">귀속월 *</label>
+                  <input
+                    type="month"
+                    className="form-input"
+                    value={slipFormData.payrollMonth}
+                    onChange={(e) => setSlipFormData({ ...slipFormData, payrollMonth: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">지급일</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={slipFormData.payDate}
+                    onChange={(e) => setSlipFormData({ ...slipFormData, payDate: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">인건비 신고 구분 *</label>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="taxType"
+                      value="4대보험"
+                      checked={slipFormData.taxType === '4대보험'}
+                      onChange={(e) => setSlipFormData({ ...slipFormData, taxType: e.target.value })}
+                      style={{ marginRight: '6px' }}
+                    />
+                    4대보험
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="taxType"
+                      value="3.3%"
+                      checked={slipFormData.taxType === '3.3%'}
+                      onChange={(e) => setSlipFormData({ ...slipFormData, taxType: e.target.value })}
+                      style={{ marginRight: '6px' }}
+                    />
+                    프리랜서 (3.3%)
+                  </label>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">기본급 (세전) *</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={slipFormData.basePay}
+                  onChange={(e) => setSlipFormData({ ...slipFormData, basePay: e.target.value })}
+                  placeholder="0"
+                  required
+                />
+              </div>
+
+              {slipFormData.taxType === '3.3%' ? (
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>
+                    자동 계산 (프리랜서)
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '14px', color: '#374151' }}>원천징수 (3.3%)</span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#ef4444' }}>
+                      {formatCurrency(Math.round((parseFloat(slipFormData.basePay) || 0) * 0.033))}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #e5e7eb' }}>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>실수령액</span>
+                    <span style={{ fontSize: '16px', fontWeight: '700', color: '#667eea' }}>
+                      {formatCurrency((parseFloat(slipFormData.basePay) || 0) - Math.round((parseFloat(slipFormData.basePay) || 0) * 0.033))}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+                    공제 항목 (4대보험)
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="form-group">
+                      <label className="form-label">국민연금</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={slipFormData.nationalPension}
+                        onChange={(e) => setSlipFormData({ ...slipFormData, nationalPension: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">건강보험</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={slipFormData.healthInsurance}
+                        onChange={(e) => setSlipFormData({ ...slipFormData, healthInsurance: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">장기요양보험</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={slipFormData.longTermCare}
+                        onChange={(e) => setSlipFormData({ ...slipFormData, longTermCare: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">고용보험</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={slipFormData.employmentInsurance}
+                        onChange={(e) => setSlipFormData({ ...slipFormData, employmentInsurance: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">소득세</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={slipFormData.incomeTax}
+                        onChange={(e) => setSlipFormData({ ...slipFormData, incomeTax: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">지방소득세</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={slipFormData.localIncomeTax}
+                        onChange={(e) => setSlipFormData({ ...slipFormData, localIncomeTax: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{
+                    padding: '16px',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    marginTop: '16px'
+                  }}>
+                    <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>
+                      계산 결과
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '14px', color: '#374151' }}>총 공제액</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#ef4444' }}>
+                        {formatCurrency(
+                          (parseFloat(slipFormData.nationalPension) || 0) +
+                          (parseFloat(slipFormData.healthInsurance) || 0) +
+                          (parseFloat(slipFormData.employmentInsurance) || 0) +
+                          (parseFloat(slipFormData.longTermCare) || 0) +
+                          (parseFloat(slipFormData.incomeTax) || 0) +
+                          (parseFloat(slipFormData.localIncomeTax) || 0)
+                        )}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #e5e7eb' }}>
+                      <span style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>실수령액</span>
+                      <span style={{ fontSize: '16px', fontWeight: '700', color: '#667eea' }}>
+                        {formatCurrency(
+                          (parseFloat(slipFormData.basePay) || 0) -
+                          ((parseFloat(slipFormData.nationalPension) || 0) +
+                          (parseFloat(slipFormData.healthInsurance) || 0) +
+                          (parseFloat(slipFormData.employmentInsurance) || 0) +
+                          (parseFloat(slipFormData.longTermCare) || 0) +
+                          (parseFloat(slipFormData.incomeTax) || 0) +
+                          (parseFloat(slipFormData.localIncomeTax) || 0))
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowSlipModal(false);
+                  setEditingSlipId(null);
+                }}
+              >
+                취소
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  if (!slipFormData.userId || !slipFormData.payrollMonth || !slipFormData.basePay) {
+                    setMessage({ type: 'error', text: '필수 항목을 모두 입력해주세요.' });
+                    return;
+                  }
+
+                  try {
+                    if (editingSlipId) {
+                      await salaryAPI.updateSlip(editingSlipId, slipFormData);
+                      setMessage({ type: 'success', text: '급여명세서가 수정되었습니다.' });
+                    } else {
+                      await salaryAPI.createSlip({
+                        ...slipFormData,
+                        workplaceId: selectedWorkplace
+                      });
+                      setMessage({ type: 'success', text: '급여명세서가 작성되었습니다.' });
+                    }
+
+                    setShowSlipModal(false);
+                    setEditingSlipId(null);
+
+                    // 선택된 직원의 급여명세서 새로고침
+                    if (selectedSlipEmployee) {
+                      const response = await salaryAPI.getEmployeeSlips(selectedSlipEmployee);
+                      setEmployeeSlips(response.data || []);
+                    }
+                  } catch (error) {
+                    console.error('급여명세서 저장 오류:', error);
+                    setMessage({ type: 'error', text: '저장에 실패했습니다.' });
+                  }
+                }}
+              >
+                {editingSlipId ? '수정' : '저장'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -132,7 +132,11 @@ export const salaryAPI = {
   calculateWorkplace: (workplaceId, params) => api.get(`/salary/workplace/${workplaceId}`, { params }),
   getSeverance: (employeeId) => api.get(`/salary/severance/${employeeId}`),
   importLedger: (data) => api.post('/salary/ledger/import', data),
-  getMySlips: (params) => api.get('/salary/slips/my', { params })
+  getMySlips: (params) => api.get('/salary/slips/my', { params }),
+  getEmployeeSlips: (userId, params) => api.get(`/salary/slips/employee/${userId}`, { params }),
+  createSlip: (data) => api.post('/salary/slips', data),
+  updateSlip: (id, data) => api.put(`/salary/slips/${id}`, data),
+  deleteSlip: (id) => api.delete(`/salary/slips/${id}`)
 };
 
 // 과거 직원 API

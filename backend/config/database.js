@@ -477,6 +477,7 @@ export const initDatabase = async () => {
           user_id INTEGER NOT NULL,
           payroll_month VARCHAR(7) NOT NULL,
           pay_date DATE,
+          tax_type VARCHAR(20) DEFAULT '4대보험',
           base_pay DECIMAL(15, 2) DEFAULT 0,
           national_pension DECIMAL(15, 2) DEFAULT 0,
           health_insurance DECIMAL(15, 2) DEFAULT 0,
@@ -491,6 +492,12 @@ export const initDatabase = async () => {
           FOREIGN KEY (user_id) REFERENCES users(id),
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
+      `);
+      
+      // salary_slips에 tax_type 컬럼 추가 (기존 DB 대응)
+      await pool.query(`
+        ALTER TABLE salary_slips 
+        ADD COLUMN IF NOT EXISTS tax_type VARCHAR(20) DEFAULT '4대보험'
       `);
 
       // 기본 관리자 계정 생성 (없을 경우)
@@ -938,6 +945,7 @@ export const initDatabase = async () => {
           user_id INTEGER NOT NULL,
           payroll_month TEXT NOT NULL,
           pay_date DATE,
+          tax_type TEXT DEFAULT '4대보험',
           base_pay REAL DEFAULT 0,
           national_pension REAL DEFAULT 0,
           health_insurance REAL DEFAULT 0,
@@ -953,6 +961,13 @@ export const initDatabase = async () => {
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
+
+      // salary_slips에 tax_type 컬럼 추가 (기존 DB 대응)
+      const slipsColumns = await query('PRAGMA table_info(salary_slips)');
+      const hasTaxTypeInSlips = slipsColumns.some((col) => col.name === 'tax_type');
+      if (!hasTaxTypeInSlips) {
+        await run(`ALTER TABLE salary_slips ADD COLUMN tax_type TEXT DEFAULT '4대보험'`);
+      }
 
       // 기본 관리자 계정 생성
       const adminExists = await get('SELECT * FROM users WHERE username = ?', ['admin']);

@@ -795,41 +795,121 @@ const EmployeeDashboard = () => {
 
         {/* 급여명세서 */}
         <div className="card" style={{ marginBottom: '24px' }}>
-          <h3 style={{ marginBottom: '16px', color: '#374151' }}>📄 급여명세서</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ color: '#374151', margin: 0 }}>📄 급여명세서</h3>
+            <input
+              type="month"
+              className="form-input"
+              style={{ width: 'auto' }}
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            />
+          </div>
           {salarySlipsLoading ? (
             <p style={{ color: '#6b7280' }}>불러오는 중...</p>
           ) : salarySlips.length === 0 ? (
-            <p style={{ color: '#6b7280' }}>이번 달 급여명세서가 없습니다.</p>
+            <p style={{ color: '#6b7280' }}>선택한 월의 급여명세서가 없습니다.</p>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>귀속월</th>
-                    <th>지급일</th>
-                    <th>기본급</th>
-                    <th>공제합계</th>
-                    <th>차인지급액</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {salarySlips.map((slip) => (
-                    <tr key={slip.id}>
-                      <td style={{ fontWeight: '600' }}>{slip.payroll_month || '-'}</td>
-                      <td>{formatDate(slip.pay_date)}</td>
-                      <td>{formatCurrency(slip.base_pay)}</td>
-                      <td>{formatCurrency(slip.total_deductions)}</td>
-                      <td style={{ fontWeight: '700', color: '#667eea' }}>{formatCurrency(slip.net_pay)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {salarySlips.length > 0 && (
-            <p style={{ marginTop: '10px', fontSize: '12px', color: '#6b7280' }}>
-              상세 공제 항목은 사업주가 업로드한 급여대장 기준입니다.
-            </p>
+            <>
+              {salarySlips.map((slip) => (
+                <div key={slip.id} style={{
+                  padding: '16px',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '8px',
+                  marginBottom: '16px',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                    <div>
+                      <span style={{ fontSize: '12px', color: '#6b7280', display: 'block' }}>귀속월</span>
+                      <span style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>{slip.payroll_month || '-'}</span>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '12px', color: '#6b7280', display: 'block' }}>지급일</span>
+                      <span style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>{formatDate(slip.pay_date)}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ 
+                    padding: '12px', 
+                    backgroundColor: '#fff',
+                    borderRadius: '6px',
+                    marginBottom: '12px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '14px', color: '#374151' }}>인건비 구분</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#6366f1' }}>{slip.tax_type || '4대보험'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '14px', color: '#374151' }}>기본급 (세전)</span>
+                      <span style={{ fontSize: '14px', fontWeight: '600' }}>{formatCurrency(slip.base_pay)}</span>
+                    </div>
+
+                    {slip.tax_type === '3.3%' ? (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '14px', color: '#ef4444' }}>원천징수 (3.3%)</span>
+                        <span style={{ fontSize: '14px', color: '#ef4444' }}>-{formatCurrency(slip.total_deductions)}</span>
+                      </div>
+                    ) : (
+                      <>
+                        {slip.national_pension > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '13px' }}>
+                            <span style={{ color: '#6b7280' }}>- 국민연금</span>
+                            <span style={{ color: '#6b7280' }}>{formatCurrency(slip.national_pension)}</span>
+                          </div>
+                        )}
+                        {slip.health_insurance > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '13px' }}>
+                            <span style={{ color: '#6b7280' }}>- 건강보험</span>
+                            <span style={{ color: '#6b7280' }}>{formatCurrency(slip.health_insurance)}</span>
+                          </div>
+                        )}
+                        {slip.long_term_care > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '13px' }}>
+                            <span style={{ color: '#6b7280' }}>- 장기요양보험</span>
+                            <span style={{ color: '#6b7280' }}>{formatCurrency(slip.long_term_care)}</span>
+                          </div>
+                        )}
+                        {slip.employment_insurance > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '13px' }}>
+                            <span style={{ color: '#6b7280' }}>- 고용보험</span>
+                            <span style={{ color: '#6b7280' }}>{formatCurrency(slip.employment_insurance)}</span>
+                          </div>
+                        )}
+                        {slip.income_tax > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '13px' }}>
+                            <span style={{ color: '#6b7280' }}>- 소득세</span>
+                            <span style={{ color: '#6b7280' }}>{formatCurrency(slip.income_tax)}</span>
+                          </div>
+                        )}
+                        {slip.local_income_tax > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '13px' }}>
+                            <span style={{ color: '#6b7280' }}>- 지방소득세</span>
+                            <span style={{ color: '#6b7280' }}>{formatCurrency(slip.local_income_tax)}</span>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #e5e7eb' }}>
+                          <span style={{ fontSize: '14px', color: '#ef4444' }}>총 공제액</span>
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: '#ef4444' }}>-{formatCurrency(slip.total_deductions)}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div style={{
+                    padding: '12px',
+                    backgroundColor: '#667eea',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#fff' }}>실수령액</span>
+                    <span style={{ fontSize: '20px', fontWeight: '700', color: '#fff' }}>{formatCurrency(slip.net_pay)}</span>
+                  </div>
+                </div>
+              ))}
+            </>
           )}
         </div>
 

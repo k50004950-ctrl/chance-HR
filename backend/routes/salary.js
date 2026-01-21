@@ -1,7 +1,6 @@
 import express from 'express';
 import { query, get, run } from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
-import { getNextPayDate } from '../services/payrollSchedule.js';
 
 const router = express.Router();
 
@@ -355,7 +354,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       }
 
       const detailsForAbsence = await get(
-        'SELECT work_days, deduct_absence, hire_date FROM employee_details WHERE user_id = ?',
+        'SELECT work_days, deduct_absence, hire_date, pay_schedule_type, pay_day, pay_after_days FROM employee_details WHERE user_id = ?',
         [employee.id]
       );
 
@@ -443,23 +442,6 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       // 퇴직금/수기 과거 급여는 별도 표시 (총 급여에 포함하지 않음)
       totalSalary += totalPay;
 
-      // 다음 급여일 계산
-      const payScheduleInfo = await get(
-        'SELECT pay_schedule_type, pay_day, pay_after_days, hire_date FROM employee_details WHERE user_id = ?',
-        [employee.id]
-      );
-      
-      let nextPayday = '-';
-      if (payScheduleInfo) {
-        const nextPayDate = getNextPayDate(payScheduleInfo);
-        if (nextPayDate) {
-          const year = nextPayDate.getFullYear();
-          const month = String(nextPayDate.getMonth() + 1).padStart(2, '0');
-          const day = String(nextPayDate.getDate()).padStart(2, '0');
-          nextPayday = `${year}-${month}-${day}`;
-        }
-      }
-
       salaryResults.push({
         employeeId: employee.id,
         employeeName: employee.name,
@@ -477,7 +459,9 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         baseSalaryAmount: Math.round(baseSalaryAmount),
         severancePay: severancePay,
         totalPay: Math.round(totalPay),
-        nextPayday,
+        payScheduleType: detailsForAbsence?.pay_schedule_type || 'monthly',
+        payDay: detailsForAbsence?.pay_day,
+        payAfterDays: detailsForAbsence?.pay_after_days,
         absence: {
           absentDays,
           deduction: absenceDeduction
@@ -708,6 +692,229 @@ router.get('/slips/my', authenticate, async (req, res) => {
     res.json(slips);
   } catch (error) {
     console.error('급여명세서 조회 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 사업주: 특정 직원의 급여명세서 조회
+router.get('/slips/employee/:userId', authenticate, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { month } = req.query;
+
+    // 사업주 권한 확인
+    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    // 직원의 workplace 확인
+    const employee = await get('SELECT workplace_id FROM users WHERE id = ?', [userId]);
+    if (!employee) {
+      return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
+    }
+
+    // 사업주의 사업장 확인
+    const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [employee.workplace_id, req.user.id]);
+    if (!workplace) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const params = [userId];
+    let sql = 'SELECT * FROM salary_slips WHERE user_id = ?';
+    if (month) {
+      sql += ' AND payroll_month = ?';
+      params.push(month);
+    }
+    sql += ' ORDER BY payroll_month DESC, pay_date DESC';
+
+    const slips = await query(sql, params);
+    res.json(slips);
+  } catch (error) {
+    console.error('급여명세서 조회 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 사업주: 급여명세서 작성
+router.post('/slips', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const {
+      workplaceId,
+      userId,
+      payrollMonth,
+      payDate,
+      taxType,
+      basePay,
+      nationalPension,
+      healthInsurance,
+      employmentInsurance,
+      longTermCare,
+      incomeTax,
+      localIncomeTax
+    } = req.body;
+
+    // 사업장 권한 확인
+    const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, req.user.id]);
+    if (!workplace) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    // 직원 확인
+    const employee = await get('SELECT * FROM users WHERE id = ? AND workplace_id = ?', [userId, workplaceId]);
+    if (!employee) {
+      return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
+    }
+
+    // 총 공제액 및 실수령액 계산
+    let totalDeductions = 0;
+    let netPay = parseFloat(basePay) || 0;
+
+    if (taxType === '3.3%') {
+      // 프리랜서: 원천징수 3.3%
+      totalDeductions = Math.round(netPay * 0.033);
+      netPay = netPay - totalDeductions;
+    } else {
+      // 4대보험
+      totalDeductions = 
+        (parseFloat(nationalPension) || 0) +
+        (parseFloat(healthInsurance) || 0) +
+        (parseFloat(employmentInsurance) || 0) +
+        (parseFloat(longTermCare) || 0) +
+        (parseFloat(incomeTax) || 0) +
+        (parseFloat(localIncomeTax) || 0);
+      netPay = netPay - totalDeductions;
+    }
+
+    // 급여명세서 저장
+    const result = await run(
+      `INSERT INTO salary_slips (
+        workplace_id, user_id, payroll_month, pay_date, tax_type,
+        base_pay, national_pension, health_insurance, employment_insurance,
+        long_term_care, income_tax, local_income_tax, total_deductions, net_pay
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        workplaceId, userId, payrollMonth, payDate, taxType || '4대보험',
+        basePay, nationalPension || 0, healthInsurance || 0, employmentInsurance || 0,
+        longTermCare || 0, incomeTax || 0, localIncomeTax || 0, totalDeductions, netPay
+      ]
+    );
+
+    res.json({
+      message: '급여명세서가 저장되었습니다.',
+      slipId: result.lastID || result.insertId
+    });
+  } catch (error) {
+    console.error('급여명세서 저장 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 사업주: 급여명세서 수정
+router.put('/slips/:id', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const { id } = req.params;
+    const {
+      payrollMonth,
+      payDate,
+      taxType,
+      basePay,
+      nationalPension,
+      healthInsurance,
+      employmentInsurance,
+      longTermCare,
+      incomeTax,
+      localIncomeTax
+    } = req.body;
+
+    // 급여명세서 존재 확인
+    const slip = await get('SELECT * FROM salary_slips WHERE id = ?', [id]);
+    if (!slip) {
+      return res.status(404).json({ message: '급여명세서를 찾을 수 없습니다.' });
+    }
+
+    // 사업장 권한 확인
+    const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [slip.workplace_id, req.user.id]);
+    if (!workplace) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    // 총 공제액 및 실수령액 계산
+    let totalDeductions = 0;
+    let netPay = parseFloat(basePay) || 0;
+
+    if (taxType === '3.3%') {
+      // 프리랜서: 원천징수 3.3%
+      totalDeductions = Math.round(netPay * 0.033);
+      netPay = netPay - totalDeductions;
+    } else {
+      // 4대보험
+      totalDeductions = 
+        (parseFloat(nationalPension) || 0) +
+        (parseFloat(healthInsurance) || 0) +
+        (parseFloat(employmentInsurance) || 0) +
+        (parseFloat(longTermCare) || 0) +
+        (parseFloat(incomeTax) || 0) +
+        (parseFloat(localIncomeTax) || 0);
+      netPay = netPay - totalDeductions;
+    }
+
+    // 급여명세서 수정
+    await run(
+      `UPDATE salary_slips SET
+        payroll_month = ?, pay_date = ?, tax_type = ?,
+        base_pay = ?, national_pension = ?, health_insurance = ?, employment_insurance = ?,
+        long_term_care = ?, income_tax = ?, local_income_tax = ?, 
+        total_deductions = ?, net_pay = ?
+      WHERE id = ?`,
+      [
+        payrollMonth, payDate, taxType || '4대보험',
+        basePay, nationalPension || 0, healthInsurance || 0, employmentInsurance || 0,
+        longTermCare || 0, incomeTax || 0, localIncomeTax || 0,
+        totalDeductions, netPay, id
+      ]
+    );
+
+    res.json({ message: '급여명세서가 수정되었습니다.' });
+  } catch (error) {
+    console.error('급여명세서 수정 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 사업주: 급여명세서 삭제
+router.delete('/slips/:id', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const { id } = req.params;
+
+    // 급여명세서 존재 확인
+    const slip = await get('SELECT * FROM salary_slips WHERE id = ?', [id]);
+    if (!slip) {
+      return res.status(404).json({ message: '급여명세서를 찾을 수 없습니다.' });
+    }
+
+    // 사업장 권한 확인
+    const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [slip.workplace_id, req.user.id]);
+    if (!workplace) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    await run('DELETE FROM salary_slips WHERE id = ?', [id]);
+
+    res.json({ message: '급여명세서가 삭제되었습니다.' });
+  } catch (error) {
+    console.error('급여명세서 삭제 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 });

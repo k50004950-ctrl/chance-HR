@@ -174,7 +174,7 @@ router.post('/register', async (req, res) => {
 });
 
 // 사업주 목록 조회 (관리자만)
-router.get('/owners', authenticate, authorizeRole('admin'), async (req, res) => {
+router.get('/owners', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const owners = await query(`
       SELECT 
@@ -198,7 +198,7 @@ router.get('/owners', authenticate, authorizeRole('admin'), async (req, res) => 
 });
 
 // 승인 대기 중인 대표자 목록 조회 (관리자만)
-router.get('/pending-owners', authenticate, authorizeRole('admin'), async (req, res) => {
+router.get('/pending-owners', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const pendingOwners = await query(`
       SELECT 
@@ -216,7 +216,7 @@ router.get('/pending-owners', authenticate, authorizeRole('admin'), async (req, 
 });
 
 // 대표자 승인/거부 (관리자만)
-router.post('/approve-owner/:id', authenticate, authorizeRole('admin'), async (req, res) => {
+router.post('/approve-owner/:id', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const ownerId = req.params.id;
     const { action } = req.body; // 'approve' or 'reject'
@@ -242,7 +242,7 @@ router.post('/approve-owner/:id', authenticate, authorizeRole('admin'), async (r
 });
 
 // 사업주 계정 활성화/비활성화 (관리자만)
-router.put('/owners/:id/toggle-status', authenticate, authorizeRole('admin'), async (req, res) => {
+router.put('/owners/:id/toggle-status', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const ownerId = req.params.id;
 
@@ -273,7 +273,7 @@ router.put('/owners/:id/toggle-status', authenticate, authorizeRole('admin'), as
 });
 
 // 사업주 계정 삭제 (관리자만)
-router.delete('/owners/:id', authenticate, authorizeRole('admin'), async (req, res) => {
+router.delete('/owners/:id', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const ownerId = req.params.id;
 
@@ -361,7 +361,7 @@ router.put('/change-password', authenticate, async (req, res) => {
 });
 
 // 관리자 비밀번호 초기화
-router.put('/reset-password', authenticate, authorizeRole('admin'), async (req, res) => {
+router.put('/reset-password', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const { username, newPassword } = req.body;
 

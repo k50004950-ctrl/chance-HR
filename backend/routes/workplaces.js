@@ -5,7 +5,7 @@ import { authenticate, authorizeRole } from '../middleware/auth.js';
 const router = express.Router();
 
 // 모든 사업장 조회 (관리자만)
-router.get('/', authenticate, authorizeRole('admin'), async (req, res) => {
+router.get('/', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const workplaces = await query(`
       SELECT 
@@ -46,7 +46,7 @@ router.get('/', authenticate, authorizeRole('admin'), async (req, res) => {
 });
 
 // 내 사업장 조회 (사업주)
-router.get('/my', authenticate, authorizeRole('owner'), async (req, res) => {
+router.get('/my', authenticate, authorizeRole(['owner']), async (req, res) => {
   try {
     const workplaces = await query(
       'SELECT * FROM workplaces WHERE owner_id = ? ORDER BY created_at DESC',
@@ -84,7 +84,7 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 // 사업장 등록
-router.post('/', authenticate, authorizeRole('admin', 'owner'), async (req, res) => {
+router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']), async (req, res) => {
   try {
     const { name, address, latitude, longitude, radius, owner_id, default_off_days } = req.body;
 
@@ -110,7 +110,7 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), async (req, res)
 });
 
 // 사업장 수정
-router.put('/:id', authenticate, authorizeRole('admin', 'owner'), async (req, res) => {
+router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']), async (req, res) => {
   try {
     const { name, address, latitude, longitude, radius, default_off_days, qr_print_message } = req.body;
     const workplaceId = req.params.id;
@@ -147,7 +147,7 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), async (req, re
 });
 
 // 사업장 삭제
-router.delete('/:id', authenticate, authorizeRole('admin'), async (req, res) => {
+router.delete('/:id', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {
     await run('DELETE FROM workplaces WHERE id = ?', [req.params.id]);
     res.json({ message: '사업장이 삭제되었습니다.' });

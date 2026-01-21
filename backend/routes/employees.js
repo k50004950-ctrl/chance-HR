@@ -166,7 +166,7 @@ router.put('/:id/consent', authenticate, async (req, res) => {
 });
 
 // 직원 등록
-router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, async (req, res) => {
+router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']), uploadFiles, async (req, res) => {
   try {
     let {
       username, password, name, phone, email, ssn, address,
@@ -276,7 +276,7 @@ router.post('/', authenticate, authorizeRole('admin', 'owner'), uploadFiles, asy
 });
 
 // 직원 정보 수정
-router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, async (req, res) => {
+router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']), uploadFiles, async (req, res) => {
   try {
     const employeeId = req.params.id;
     
@@ -557,7 +557,7 @@ router.put('/:id', authenticate, authorizeRole('admin', 'owner'), uploadFiles, a
 });
 
 // 직원 삭제
-router.delete('/:id', authenticate, authorizeRole('admin', 'owner'), async (req, res) => {
+router.delete('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']), async (req, res) => {
   try {
     const employeeId = req.params.id;
 

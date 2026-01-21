@@ -12,7 +12,7 @@ router.get('/public-key', (req, res) => {
   res.json({ publicKey });
 });
 
-router.post('/subscribe', authenticate, authorizeRole('owner', 'admin'), async (req, res) => {
+router.post('/subscribe', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
   try {
     const { subscription, userAgent } = req.body;
     if (!subscription?.endpoint) {
@@ -33,7 +33,7 @@ router.post('/subscribe', authenticate, authorizeRole('owner', 'admin'), async (
   }
 });
 
-router.post('/unsubscribe', authenticate, authorizeRole('owner', 'admin'), async (req, res) => {
+router.post('/unsubscribe', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
   try {
     const { endpoint } = req.body;
     if (!endpoint) {
@@ -48,7 +48,7 @@ router.post('/unsubscribe', authenticate, authorizeRole('owner', 'admin'), async
   }
 });
 
-router.post('/test', authenticate, authorizeRole('owner', 'admin'), async (req, res) => {
+router.post('/test', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
   try {
     const result = await sendPushToUser(req.user.id, {
       title: '출퇴근 알림 테스트',

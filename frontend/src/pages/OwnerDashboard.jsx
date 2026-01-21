@@ -2384,37 +2384,72 @@ const OwnerDashboard = () => {
             {/* 급여명세서 */}
             {activeTab === 'salary-slips' && (
               <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h3 style={{ color: '#374151' }}>📝 급여명세서 관리</h3>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => {
-                      setEditingSlipId(null);
-                      setSlipFormData({
-                        userId: '',
-                        payrollMonth: (() => {
-                          const now = new Date();
-                          return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-                        })(),
-                        payDate: '',
-                        taxType: '4대보험',
-                        basePay: '',
-                        nationalPension: '',
-                        healthInsurance: '',
-                        employmentInsurance: '',
-                        longTermCare: '',
-                        incomeTax: '',
-                        localIncomeTax: ''
-                      });
-                      setShowSlipModal(true);
-                    }}
-                  >
-                    + 급여명세서 작성
-                  </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                  <h3 style={{ color: '#374151', margin: 0 }}>📝 급여명세서 관리</h3>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                      className="btn btn-success"
+                      onClick={async () => {
+                        const payrollMonth = prompt('급여명세서를 생성할 귀속월을 입력하세요 (예: 2026-01)');
+                        if (!payrollMonth) return;
+
+                        const payDate = prompt('지급일을 입력하세요 (예: 2026-02-05, 선택사항)');
+
+                        if (window.confirm(`${payrollMonth} 월 급여명세서를 자동 생성하시겠습니까?\n\n- 모든 직원의 출근 기록 기반으로 세전 급여 자동 계산\n- 공제 항목은 0원으로 생성되므로 나중에 수정 필요\n- 이미 생성된 직원은 건너뜁니다`)) {
+                          try {
+                            const response = await salaryAPI.generateMonthlySlips(selectedWorkplace, {
+                              payrollMonth,
+                              payDate: payDate || null
+                            });
+                            setMessage({ 
+                              type: 'success', 
+                              text: `${response.data.created}개 생성, ${response.data.skipped}개 건너뜀. 직원을 선택하여 공제 항목을 수정한 후 배포하세요.` 
+                            });
+                            // 선택된 직원 새로고침
+                            if (selectedSlipEmployee) {
+                              const slipsResponse = await salaryAPI.getEmployeeSlips(selectedSlipEmployee);
+                              setEmployeeSlips(slipsResponse.data || []);
+                            }
+                          } catch (error) {
+                            console.error('자동 생성 오류:', error);
+                            setMessage({ type: 'error', text: error.response?.data?.message || '자동 생성에 실패했습니다.' });
+                          }
+                        }
+                      }}
+                    >
+                      📅 월별 자동 생성
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        setEditingSlipId(null);
+                        setSlipFormData({
+                          userId: '',
+                          payrollMonth: (() => {
+                            const now = new Date();
+                            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                          })(),
+                          payDate: '',
+                          taxType: '4대보험',
+                          basePay: '',
+                          nationalPension: '',
+                          healthInsurance: '',
+                          employmentInsurance: '',
+                          longTermCare: '',
+                          incomeTax: '',
+                          localIncomeTax: ''
+                        });
+                        setShowSlipModal(true);
+                      }}
+                    >
+                      + 급여명세서 작성
+                    </button>
+                  </div>
                 </div>
 
                 <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>
-                  직원별 급여명세서를 작성하고 관리합니다. 프리랜서는 3.3% 원천징수가 자동 계산됩니다.
+                  💡 <strong>월별 자동 생성</strong>: 모든 직원의 출근 기록 기반으로 세전 급여가 자동 계산됩니다 (공제 항목 0원). 수정 후 배포하세요.<br/>
+                  📝 프리랜서(3.3%)는 원천징수가 자동 계산되며, 4대보험은 공제 항목을 직접 입력하세요.
                 </p>
 
                 {/* 직원 선택 */}

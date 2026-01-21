@@ -2384,57 +2384,24 @@ const OwnerDashboard = () => {
             {/* 급여명세서 */}
             {activeTab === 'salary-slips' && (
               <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-                  <h3 style={{ color: '#374151', margin: 0 }}>📝 급여명세서 관리</h3>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <button
-                      className="btn btn-success"
-                      onClick={async () => {
-                        const payrollMonth = prompt('급여명세서를 생성할 귀속월을 입력하세요 (예: 2025-12)');
-                        if (!payrollMonth) return;
-
-                        const payDate = prompt('지급일을 입력하세요 (예: 2026-01-15, 선택사항)');
-
-                        if (window.confirm(`${payrollMonth} 월 급여명세서를 자동 생성하시겠습니까?`)) {
-                          try {
-                            const response = await salaryAPI.generateMonthlySlips(selectedWorkplace, {
-                              payrollMonth,
-                              payDate: payDate || null
-                            });
-                            setMessage({ 
-                              type: 'success', 
-                              text: `${response.data.created}개 생성, ${response.data.skipped}개 건너뜀` 
-                            });
-                            // 선택된 직원 새로고침
-                            if (selectedSlipEmployee) {
-                              const slipsResponse = await salaryAPI.getEmployeeSlips(selectedSlipEmployee);
-                              setEmployeeSlips(slipsResponse.data || []);
-                            }
-                          } catch (error) {
-                            console.error('자동 생성 오류:', error);
-                            setMessage({ type: 'error', text: error.response?.data?.message || '자동 생성에 실패했습니다.' });
-                          }
-                        }
-                      }}
-                    >
-                      📅 월별 자동 생성
-                    </button>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => {
-                        setEditingSlipId(null);
-                        setSlipFormData({
-                          userId: '',
-                          payrollMonth: (() => {
-                            const now = new Date();
-                            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-                          })(),
-                          payDate: '',
-                          taxType: '4대보험',
-                          basePay: '',
-                          nationalPension: '',
-                          healthInsurance: '',
-                          employmentInsurance: '',
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ color: '#374151' }}>📝 급여명세서 관리</h3>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setEditingSlipId(null);
+                      setSlipFormData({
+                        userId: '',
+                        payrollMonth: (() => {
+                          const now = new Date();
+                          return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                        })(),
+                        payDate: '',
+                        taxType: '4대보험',
+                        basePay: '',
+                        nationalPension: '',
+                        healthInsurance: '',
+                        employmentInsurance: '',
                         longTermCare: '',
                         incomeTax: '',
                         localIncomeTax: ''
@@ -2497,7 +2464,6 @@ const OwnerDashboard = () => {
                             <th>기본급</th>
                             <th>공제합계</th>
                             <th>실수령액</th>
-                            <th>배포 상태</th>
                             <th>관리</th>
                           </tr>
                         </thead>
@@ -2511,53 +2477,7 @@ const OwnerDashboard = () => {
                               <td style={{ color: '#ef4444' }}>-{formatCurrency(slip.total_deductions)}</td>
                               <td style={{ fontWeight: '700', color: '#667eea' }}>{formatCurrency(slip.net_pay)}</td>
                               <td>
-                                {slip.published || slip.published === 1 ? (
-                                  <span style={{ 
-                                    padding: '4px 12px', 
-                                    backgroundColor: '#10b981', 
-                                    color: 'white', 
-                                    borderRadius: '12px', 
-                                    fontSize: '12px',
-                                    fontWeight: '600'
-                                  }}>
-                                    배포됨
-                                  </span>
-                                ) : (
-                                  <span style={{ 
-                                    padding: '4px 12px', 
-                                    backgroundColor: '#6b7280', 
-                                    color: 'white', 
-                                    borderRadius: '12px', 
-                                    fontSize: '12px',
-                                    fontWeight: '600'
-                                  }}>
-                                    미배포
-                                  </span>
-                                )}
-                              </td>
-                              <td>
-                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                  {!(slip.published || slip.published === 1) && (
-                                    <button
-                                      className="btn btn-success"
-                                      style={{ fontSize: '12px', padding: '4px 12px' }}
-                                      onClick={async () => {
-                                        if (window.confirm('급여명세서를 배포하시겠습니까? 배포 후 근로자가 확인할 수 있습니다.')) {
-                                          try {
-                                            await salaryAPI.publishSlip(slip.id);
-                                            setMessage({ type: 'success', text: '급여명세서가 배포되었습니다.' });
-                                            const response = await salaryAPI.getEmployeeSlips(selectedSlipEmployee);
-                                            setEmployeeSlips(response.data || []);
-                                          } catch (error) {
-                                            console.error('배포 오류:', error);
-                                            setMessage({ type: 'error', text: '배포에 실패했습니다.' });
-                                          }
-                                        }
-                                      }}
-                                    >
-                                      배포
-                                    </button>
-                                  )}
+                                <div style={{ display: 'flex', gap: '8px' }}>
                                   <button
                                     className="btn btn-secondary"
                                     style={{ fontSize: '12px', padding: '4px 12px' }}
@@ -4283,34 +4203,25 @@ const OwnerDashboard = () => {
 
       {/* 급여명세서 작성/수정 모달 */}
       {showSlipModal && (
-        <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: '600px' }}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0 }}>{editingSlipId ? '급여명세서 수정' : '급여명세서 작성'}</h3>
+        <div className="modal-overlay" onClick={() => {
+          setShowSlipModal(false);
+          setEditingSlipId(null);
+        }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content" style={{ maxWidth: '600px' }}>
+              <div className="modal-header">
+                <h3>{editingSlipId ? '급여명세서 수정' : '급여명세서 작성'}</h3>
                 <button
                   className="modal-close"
                   onClick={() => {
                     setShowSlipModal(false);
                     setEditingSlipId(null);
                   }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '28px',
-                    cursor: 'pointer',
-                    color: '#6b7280',
-                    lineHeight: '1',
-                    padding: '0',
-                    width: '32px',
-                    height: '32px'
-                  }}
                 >
                   ×
                 </button>
               </div>
-            </div>
-            <div style={{ marginTop: '20px' }}>
+            <div className="modal-body">
               <div className="form-group">
                 <label className="form-label">직원 선택 *</label>
                 <select
@@ -4577,6 +4488,7 @@ const OwnerDashboard = () => {
               >
                 {editingSlipId ? '수정' : '저장'}
               </button>
+            </div>
             </div>
           </div>
         </div>

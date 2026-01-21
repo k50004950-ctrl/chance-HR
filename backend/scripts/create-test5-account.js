@@ -5,10 +5,10 @@ const createTest5Account = async () => {
   try {
     console.log('테스트5 계정 생성 시작...');
 
-    // 테스터 사업주의 사업장 찾기
-    const workplace = await get("SELECT id FROM workplaces WHERE name LIKE '%즈즈를%'");
+    // 첫 번째 사업장 찾기
+    const workplace = await get("SELECT id, name FROM workplaces ORDER BY id LIMIT 1");
     if (!workplace) {
-      console.error('즈즈를 사업장을 찾을 수 없습니다.');
+      console.error('사업장을 찾을 수 없습니다. 먼저 사업장을 생성해주세요.');
       return;
     }
 
@@ -26,9 +26,9 @@ const createTest5Account = async () => {
 
     // 사용자 생성
     const userResult = await run(
-      `INSERT INTO users (username, password, name, role, workplace_id, phone, employment_status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      ['test5', hashedPassword, '테스트5', 'employee', workplace.id, '010-5555-5555', 'active']
+      `INSERT INTO users (username, password, name, role, workplace_id, phone, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      ['test5', hashedPassword, '테스트5', 'employee', workplace.id, '010-5555-5555']
     );
 
     const userId = userResult.lastID || userResult.insertId;
@@ -38,16 +38,15 @@ const createTest5Account = async () => {
     await run(
       `INSERT INTO employee_details (
         user_id, hire_date, work_days, work_start_time, work_end_time, 
-        business_registration, privacy_consent, location_consent,
+        privacy_consent, location_consent,
         pay_schedule_type, pay_day, payroll_period_start_day, payroll_period_end_day, deduct_absence
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
         '2025-01-01', // 2025년 입사
         'mon,tue,wed,thu,fri', // 평일 근무
         '09:00',
         '18:00',
-        true,
         true,
         true,
         'monthly', // 월급제

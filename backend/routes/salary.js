@@ -1066,4 +1066,142 @@ router.post('/slips/generate/:workplaceId', authenticate, async (req, res) => {
   }
 });
 
+// 사업주: 특정 직원의 입사일부터 현재까지 급여명세서 일괄 생성
+router.post('/slips/generate-history/:userId', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const { userId } = req.params;
+
+    // 직원 정보 조회
+    const employee = await get(
+      `SELECT u.*, ed.hire_date, si.salary_type, si.amount, si.tax_type, si.weekly_holiday_type
+       FROM users u
+       LEFT JOIN employee_details ed ON u.id = ed.user_id
+       LEFT JOIN salary_info si ON u.id = si.user_id
+       WHERE u.id = ?`,
+      [userId]
+    );
+
+    if (!employee) {
+      return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
+    }
+
+    // 사업장 권한 확인
+    const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [employee.workplace_id, req.user.id]);
+    if (!workplace) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    if (!employee.hire_date) {
+      return res.status(400).json({ message: '입사일 정보가 없습니다.' });
+    }
+
+    if (!employee.salary_type) {
+      return res.status(400).json({ message: '급여 정보가 없습니다.' });
+    }
+
+    // 입사일부터 현재까지 월 목록 생성
+    const hireDate = new Date(employee.hire_date);
+    const currentDate = new Date();
+    
+    let year = hireDate.getFullYear();
+    let month = hireDate.getMonth() + 1;
+    
+    let created = 0;
+    let skipped = 0;
+
+    while (year < currentDate.getFullYear() || (year === currentDate.getFullYear() && month <= currentDate.getMonth() + 1)) {
+      const payrollMonth = `${year}-${String(month).padStart(2, '0')}`;
+      
+      // 이미 해당 월 급여명세서가 있는지 확인
+      const existing = await get(
+        'SELECT id FROM salary_slips WHERE user_id = ? AND payroll_month = ?',
+        [userId, payrollMonth]
+      );
+
+      if (existing) {
+        skipped++;
+      } else {
+        // 해당 월의 시작일과 종료일
+        const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+        const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+
+        // 출근 기록 조회
+        const attendanceRecords = await query(
+          "SELECT * FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ? AND status = 'completed'",
+          [userId, startDate, endDate]
+        );
+
+        let basePay = 0;
+        let totalWorkHours = 0;
+
+        if (employee.salary_type === 'hourly') {
+          totalWorkHours = attendanceRecords.reduce((sum, record) => sum + (parseFloat(record.work_hours) || 0), 0);
+          basePay = totalWorkHours * employee.amount;
+
+          // 주휴수당 계산
+          const weeklyHolidayType = employee.weekly_holiday_type || 'included';
+          if (weeklyHolidayType === 'separate' && totalWorkHours >= 15) {
+            const days = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
+            const weeks = Math.ceil(days / 7);
+            const avgWeeklyHours = totalWorkHours / (weeks || 1);
+            const weeklyHolidayHours = Math.min(avgWeeklyHours / 5, 8);
+            basePay += weeklyHolidayHours * weeks * employee.amount;
+          }
+        } else if (employee.salary_type === 'monthly') {
+          basePay = employee.amount;
+        } else if (employee.salary_type === 'annual') {
+          basePay = employee.amount / 12;
+        }
+
+        basePay = Math.round(basePay);
+
+        // 세금 타입 결정
+        const taxType = employee.tax_type || '4대보험';
+        let totalDeductions = 0;
+        let netPay = basePay;
+
+        if (taxType === '3.3%') {
+          totalDeductions = Math.round(basePay * 0.033);
+          netPay = basePay - totalDeductions;
+        }
+
+        // 급여명세서 생성
+        await run(
+          `INSERT INTO salary_slips (
+            workplace_id, user_id, payroll_month, pay_date, tax_type,
+            base_pay, total_deductions, net_pay, published
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [employee.workplace_id, userId, payrollMonth, null, taxType, basePay, totalDeductions, netPay, false]
+        );
+
+        created++;
+      }
+
+      // 다음 월로
+      month++;
+      if (month > 12) {
+        month = 1;
+        year++;
+      }
+    }
+
+    res.json({
+      message: '과거 급여명세서가 생성되었습니다.',
+      created,
+      skipped,
+      employee: {
+        name: employee.name,
+        hireDate: employee.hire_date
+      }
+    });
+  } catch (error) {
+    console.error('과거 급여명세서 일괄 생성 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 export default router;

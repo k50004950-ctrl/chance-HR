@@ -2454,33 +2454,65 @@ const OwnerDashboard = () => {
 
                 {/* 직원 선택 */}
                 <div style={{ marginBottom: '20px' }}>
-                  <label className="form-label">직원 선택</label>
-                  <select
-                    className="form-select"
-                    value={selectedSlipEmployee || ''}
-                    onChange={async (e) => {
-                      const userId = e.target.value;
-                      setSelectedSlipEmployee(userId ? parseInt(userId) : null);
-                      if (userId) {
-                        try {
-                          const response = await salaryAPI.getEmployeeSlips(userId);
-                          setEmployeeSlips(response.data || []);
-                        } catch (error) {
-                          console.error('급여명세서 조회 오류:', error);
-                          setEmployeeSlips([]);
-                        }
-                      } else {
-                        setEmployeeSlips([]);
-                      }
-                    }}
-                  >
-                    <option value="">전체 직원</option>
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.name} ({emp.username})
-                      </option>
-                    ))}
-                  </select>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '8px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label className="form-label">직원 선택</label>
+                      <select
+                        className="form-select"
+                        value={selectedSlipEmployee || ''}
+                        onChange={async (e) => {
+                          const userId = e.target.value;
+                          setSelectedSlipEmployee(userId ? parseInt(userId) : null);
+                          if (userId) {
+                            try {
+                              const response = await salaryAPI.getEmployeeSlips(userId);
+                              setEmployeeSlips(response.data || []);
+                            } catch (error) {
+                              console.error('급여명세서 조회 오류:', error);
+                              setEmployeeSlips([]);
+                            }
+                          } else {
+                            setEmployeeSlips([]);
+                          }
+                        }}
+                      >
+                        <option value="">전체 직원</option>
+                        {employees.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.name} ({emp.username})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {selectedSlipEmployee && (
+                      <button
+                        className="btn btn-success"
+                        style={{ whiteSpace: 'nowrap' }}
+                        onClick={async () => {
+                          const selectedEmp = employees.find(e => e.id === selectedSlipEmployee);
+                          if (!selectedEmp) return;
+
+                          if (window.confirm(`${selectedEmp.name}님의 입사일(${formatDate(selectedEmp.hire_date)})부터 현재까지의 급여명세서를 일괄 생성하시겠습니까?\n\n- 출근 기록 기반으로 세전 급여 자동 계산\n- 공제 항목은 0원 (3.3%는 자동)\n- 이미 생성된 월은 건너뜁니다`)) {
+                            try {
+                              const response = await salaryAPI.generateEmployeeHistory(selectedSlipEmployee);
+                              setMessage({ 
+                                type: 'success', 
+                                text: `${response.data.employee.name}님의 과거 급여명세서 ${response.data.created}개 생성, ${response.data.skipped}개 건너뜀. 공제 항목을 수정한 후 배포하세요.` 
+                              });
+                              // 급여명세서 목록 새로고침
+                              const slipsResponse = await salaryAPI.getEmployeeSlips(selectedSlipEmployee);
+                              setEmployeeSlips(slipsResponse.data || []);
+                            } catch (error) {
+                              console.error('과거 급여 일괄 생성 오류:', error);
+                              setMessage({ type: 'error', text: error.response?.data?.message || '일괄 생성에 실패했습니다.' });
+                            }
+                          }
+                        }}
+                      >
+                        📋 입사일부터 일괄 생성
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {selectedSlipEmployee && (

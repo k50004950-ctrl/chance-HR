@@ -2464,6 +2464,7 @@ const OwnerDashboard = () => {
                             <th>기본급</th>
                             <th>공제합계</th>
                             <th>실수령액</th>
+                            <th>배포 상태</th>
                             <th>관리</th>
                           </tr>
                         </thead>
@@ -2477,7 +2478,53 @@ const OwnerDashboard = () => {
                               <td style={{ color: '#ef4444' }}>-{formatCurrency(slip.total_deductions)}</td>
                               <td style={{ fontWeight: '700', color: '#667eea' }}>{formatCurrency(slip.net_pay)}</td>
                               <td>
-                                <div style={{ display: 'flex', gap: '8px' }}>
+                                {slip.published || slip.published === 1 ? (
+                                  <span style={{ 
+                                    padding: '4px 12px', 
+                                    backgroundColor: '#10b981', 
+                                    color: 'white', 
+                                    borderRadius: '12px', 
+                                    fontSize: '12px',
+                                    fontWeight: '600'
+                                  }}>
+                                    배포됨
+                                  </span>
+                                ) : (
+                                  <span style={{ 
+                                    padding: '4px 12px', 
+                                    backgroundColor: '#6b7280', 
+                                    color: 'white', 
+                                    borderRadius: '12px', 
+                                    fontSize: '12px',
+                                    fontWeight: '600'
+                                  }}>
+                                    미배포
+                                  </span>
+                                )}
+                              </td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                  {!(slip.published || slip.published === 1) && (
+                                    <button
+                                      className="btn btn-success"
+                                      style={{ fontSize: '12px', padding: '4px 12px' }}
+                                      onClick={async () => {
+                                        if (window.confirm('급여명세서를 배포하시겠습니까? 배포 후 근로자가 확인할 수 있습니다.')) {
+                                          try {
+                                            await salaryAPI.publishSlip(slip.id);
+                                            setMessage({ type: 'success', text: '급여명세서가 배포되었습니다.' });
+                                            const response = await salaryAPI.getEmployeeSlips(selectedSlipEmployee);
+                                            setEmployeeSlips(response.data || []);
+                                          } catch (error) {
+                                            console.error('배포 오류:', error);
+                                            setMessage({ type: 'error', text: '배포에 실패했습니다.' });
+                                          }
+                                        }
+                                      }}
+                                    >
+                                      배포
+                                    </button>
+                                  )}
                                   <button
                                     className="btn btn-secondary"
                                     style={{ fontSize: '12px', padding: '4px 12px' }}

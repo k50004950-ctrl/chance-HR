@@ -18,13 +18,16 @@ export const authenticate = (req, res, next) => {
   }
 };
 
-export const authorizeRole = (...roles) => {
+export const authorizeRole = (roles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ message: '인증이 필요합니다.' });
     }
 
-    if (!roles.includes(req.user.role)) {
+    // roles가 배열이 아니면 배열로 변환
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+
+    if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ message: '권한이 없습니다.' });
     }
 

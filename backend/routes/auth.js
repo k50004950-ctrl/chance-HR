@@ -47,16 +47,16 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: '사용자명 또는 비밀번호가 올바르지 않습니다.' });
     }
 
-    // 승인 상태 확인 (관리자는 제외)
-    if (user.role !== 'admin' && user.approval_status === 'pending') {
+    // 승인 상태 확인 (관리자/총관리자는 제외)
+    if (user.role !== 'admin' && user.role !== 'super_admin' && user.approval_status === 'pending') {
       return res.status(403).json({ message: '관리자 승인 대기 중입니다. 승인 후 로그인하실 수 있습니다.' });
     }
 
-    if (user.role !== 'admin' && user.approval_status === 'rejected') {
+    if (user.role !== 'admin' && user.role !== 'super_admin' && user.approval_status === 'rejected') {
       return res.status(403).json({ message: '가입이 거부되었습니다. 관리자에게 문의하세요.' });
     }
 
-    if (user.role !== 'admin' && user.approval_status === 'suspended') {
+    if (user.role !== 'admin' && user.role !== 'super_admin' && user.approval_status === 'suspended') {
       return res.status(403).json({ message: '계정이 일시 중지되었습니다. 관리자에게 문의하세요.' });
     }
 

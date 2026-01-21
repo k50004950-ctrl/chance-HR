@@ -93,7 +93,7 @@ router.post('/signup', async (req, res) => {
   try {
     const { 
       username, password, name, phone, email, address,
-      business_name, business_number, additional_info, sales_rep,
+      business_name, business_number, additional_info, sales_rep, tax_office_name,
       latitude, longitude, radius, marketing_consent, service_consent
     } = req.body;
 
@@ -112,11 +112,11 @@ router.post('/signup', async (req, res) => {
     const result = await run(
       `INSERT INTO users (
         username, password, name, role, phone, email, address,
-        business_name, business_number, additional_info, sales_rep, approval_status,
+        business_name, business_number, additional_info, sales_rep, tax_office_name, approval_status,
         marketing_consent, marketing_consent_date, service_consent, service_consent_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [username, hashedPassword, name, 'owner', phone, email, address, 
-       business_name, business_number, additional_info, sales_rep, 'approved',
+       business_name, business_number, additional_info, sales_rep, tax_office_name, 'approved',
        !!marketing_consent, marketing_consent ? new Date().toISOString() : null,
        true, new Date().toISOString()]
     );

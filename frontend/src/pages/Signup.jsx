@@ -20,7 +20,8 @@ const Signup = () => {
     email: '',
     address: '',
     additional_info: '',
-      sales_rep: '',
+    sales_rep: '',
+    tax_office_name: '',
     latitude: '',
     longitude: '',
     radius: 100,
@@ -343,6 +344,18 @@ const Signup = () => {
               value={formData.sales_rep}
               onChange={handleChange}
               placeholder="담당 영업사원 이름"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">세무사 상호</label>
+            <input
+              type="text"
+              name="tax_office_name"
+              className="form-input"
+              value={formData.tax_office_name}
+              onChange={handleChange}
+              placeholder="세무사 사무소 이름"
             />
           </div>
 

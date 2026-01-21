@@ -372,6 +372,7 @@ const AdminDashboard = () => {
                       <th>전화번호</th>
                       <th>이메일</th>
                       <th>담당 영업사원</th>
+                      <th>세무사 상호</th>
                       <th>서비스 동의</th>
                       <th>관리 사업장</th>
                       <th>직원 수</th>
@@ -404,6 +405,7 @@ const AdminDashboard = () => {
                         <td>{owner.phone || '-'}</td>
                         <td>{owner.email || '-'}</td>
                         <td>{owner.sales_rep || '-'}</td>
+                        <td>{owner.tax_office_name || '-'}</td>
                         <td style={{ textAlign: 'center' }}>
                           <span style={{
                             padding: '4px 8px',
@@ -657,6 +659,10 @@ const AdminDashboard = () => {
             <div className="form-group">
               <label className="form-label">담당 영업사원</label>
               <div>{selectedOwner.sales_rep || '-'}</div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">세무사 상호</label>
+              <div>{selectedOwner.tax_office_name || '-'}</div>
             </div>
             <div className="form-group">
               <label className="form-label">전화번호</label>

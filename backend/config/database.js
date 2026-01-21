@@ -571,6 +571,12 @@ export const initDatabase = async () => {
       } catch (e) {
         // 컬럼이 이미 존재하면 무시
       }
+      try {
+        await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS tax_office_name VARCHAR(255)');
+        console.log('✅ users 테이블에 tax_office_name 컬럼 추가됨');
+      } catch (e) {
+        // 컬럼이 이미 존재하면 무시
+      }
 
       // employee_details 테이블에 resignation_date 컬럼 추가
       try {
@@ -683,6 +689,9 @@ export const initDatabase = async () => {
       } catch (e) {}
       try {
         await run(`ALTER TABLE users ADD COLUMN employment_status TEXT DEFAULT 'active'`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE users ADD COLUMN tax_office_name TEXT`);
       } catch (e) {}
 
       // Workplaces 테이블

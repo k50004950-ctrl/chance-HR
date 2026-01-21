@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import { workplaceAPI, authAPI, announcementsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const AdminDashboard = () => {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
   const [activeTab, setActiveTab] = useState('owners');
   const [workplaces, setWorkplaces] = useState([]);
   const [owners, setOwners] = useState([]);
@@ -228,12 +231,14 @@ const AdminDashboard = () => {
           >
             사업장 목록
           </button>
-          <button
-            className={`nav-tab ${activeTab === 'announcements' ? 'active' : ''}`}
-            onClick={() => setActiveTab('announcements')}
-          >
-            📢 공지사항
-          </button>
+          {isSuperAdmin && (
+            <button
+              className={`nav-tab ${activeTab === 'announcements' ? 'active' : ''}`}
+              onClick={() => setActiveTab('announcements')}
+            >
+              📢 공지사항
+            </button>
+          )}
         </div>
 
         {/* 사업장 관리 */}
@@ -514,7 +519,7 @@ const AdminDashboard = () => {
         )}
 
         {/* 공지사항 관리 */}
-        {activeTab === 'announcements' && (
+        {activeTab === 'announcements' && isSuperAdmin && (
           <div>
             {/* 공지사항 작성 */}
             <div className="card" style={{ marginBottom: '24px' }}>

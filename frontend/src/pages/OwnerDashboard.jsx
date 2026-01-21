@@ -2762,14 +2762,55 @@ const OwnerDashboard = () => {
                                     <td>{Number(record.amount).toLocaleString()}원</td>
                                     <td>{record.notes || '-'}</td>
                                     <td>
-                                      <button
-                                        type="button"
-                                        className="btn btn-danger"
-                                        style={{ fontSize: '12px', padding: '4px 8px' }}
-                                        onClick={() => handleDeletePastPayroll(record.id)}
-                                      >
-                                        삭제
-                                      </button>
+                                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                        <button
+                                          type="button"
+                                          className="btn btn-primary"
+                                          style={{ fontSize: '12px', padding: '4px 8px' }}
+                                          onClick={async () => {
+                                            if (window.confirm('이 과거 급여 기록을 급여명세서로 생성하시겠습니까?')) {
+                                              try {
+                                                // 귀속월 계산 (종료일 기준)
+                                                const endDate = new Date(record.end_date);
+                                                const payrollMonth = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`;
+                                                
+                                                await salaryAPI.createSlip({
+                                                  workplaceId: selectedWorkplace,
+                                                  userId: pastPayrollEmployeeId,
+                                                  payrollMonth: payrollMonth,
+                                                  payDate: record.end_date,
+                                                  taxType: '4대보험',
+                                                  basePay: record.amount,
+                                                  nationalPension: 0,
+                                                  healthInsurance: 0,
+                                                  employmentInsurance: 0,
+                                                  longTermCare: 0,
+                                                  incomeTax: 0,
+                                                  localIncomeTax: 0
+                                                });
+                                                
+                                                setMessage({ 
+                                                  type: 'success', 
+                                                  text: `급여명세서가 생성되었습니다 (귀속월: ${payrollMonth}). 급여명세서 탭에서 확인하고 공제 항목을 수정한 후 배포하세요.` 
+                                                });
+                                              } catch (error) {
+                                                console.error('급여명세서 생성 오류:', error);
+                                                setMessage({ type: 'error', text: error.response?.data?.message || '급여명세서 생성에 실패했습니다.' });
+                                              }
+                                            }
+                                          }}
+                                        >
+                                          📝 명세서 생성
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="btn btn-danger"
+                                          style={{ fontSize: '12px', padding: '4px 8px' }}
+                                          onClick={() => handleDeletePastPayroll(record.id)}
+                                        >
+                                          삭제
+                                        </button>
+                                      </div>
                                     </td>
                                   </tr>
                                 ))}

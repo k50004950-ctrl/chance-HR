@@ -681,7 +681,8 @@ router.get('/slips/my', authenticate, async (req, res) => {
 
     const { month } = req.query;
     const params = [req.user.id];
-    let sql = 'SELECT * FROM salary_slips WHERE user_id = ?';
+    let sql = 'SELECT * FROM salary_slips WHERE user_id = ? AND (published = ? OR published = ?)';
+    params.push(true, 1); // PostgreSQL boolean과 SQLite integer 모두 처리
     if (month) {
       sql += ' AND payroll_month = ?';
       params.push(month);
@@ -915,6 +916,152 @@ router.delete('/slips/:id', authenticate, async (req, res) => {
     res.json({ message: '급여명세서가 삭제되었습니다.' });
   } catch (error) {
     console.error('급여명세서 삭제 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 사업주: 급여명세서 배포
+router.put('/slips/:id/publish', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const { id } = req.params;
+
+    // 급여명세서 존재 확인
+    const slip = await get('SELECT * FROM salary_slips WHERE id = ?', [id]);
+    if (!slip) {
+      return res.status(404).json({ message: '급여명세서를 찾을 수 없습니다.' });
+    }
+
+    // 사업장 권한 확인
+    const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [slip.workplace_id, req.user.id]);
+    if (!workplace) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    await run('UPDATE salary_slips SET published = ? WHERE id = ?', [true, id]);
+
+    res.json({ message: '급여명세서가 배포되었습니다.' });
+  } catch (error) {
+    console.error('급여명세서 배포 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 사업주: 월별 급여명세서 자동 생성
+router.post('/slips/generate/:workplaceId', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const { workplaceId } = req.params;
+    const { payrollMonth, payDate } = req.body;
+
+    if (!payrollMonth) {
+      return res.status(400).json({ message: '귀속월을 입력해주세요.' });
+    }
+
+    // 사업장 권한 확인
+    const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, req.user.id]);
+    if (!workplace) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    // 해당 월의 시작일과 종료일 계산
+    const [year, month] = payrollMonth.split('-');
+    const startDate = `${year}-${month}-01`;
+    const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
+
+    // 사업장의 모든 직원 조회
+    const employees = await query(
+      "SELECT id, name FROM users WHERE workplace_id = ? AND role = 'employee' AND (employment_status IS NULL OR employment_status != 'resigned')",
+      [workplaceId]
+    );
+
+    let created = 0;
+    let skipped = 0;
+
+    for (const employee of employees) {
+      // 이미 해당 월 급여명세서가 있는지 확인
+      const existing = await get(
+        'SELECT id FROM salary_slips WHERE user_id = ? AND payroll_month = ?',
+        [employee.id, payrollMonth]
+      );
+
+      if (existing) {
+        skipped++;
+        continue;
+      }
+
+      // 급여 정보 조회
+      const salaryInfo = await get('SELECT * FROM salary_info WHERE user_id = ?', [employee.id]);
+      if (!salaryInfo) {
+        skipped++;
+        continue;
+      }
+
+      // 출근 기록 조회
+      const attendanceRecords = await query(
+        "SELECT * FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ? AND status = 'completed'",
+        [employee.id, startDate, endDate]
+      );
+
+      let basePay = 0;
+      let totalWorkHours = 0;
+
+      if (salaryInfo.salary_type === 'hourly') {
+        totalWorkHours = attendanceRecords.reduce((sum, record) => sum + (parseFloat(record.work_hours) || 0), 0);
+        basePay = totalWorkHours * salaryInfo.amount;
+
+        // 주휴수당 계산
+        const weeklyHolidayType = salaryInfo.weekly_holiday_type || 'included';
+        if (weeklyHolidayType === 'separate' && totalWorkHours >= 15) {
+          const days = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
+          const weeks = Math.ceil(days / 7);
+          const avgWeeklyHours = totalWorkHours / (weeks || 1);
+          const weeklyHolidayHours = Math.min(avgWeeklyHours / 5, 8);
+          basePay += weeklyHolidayHours * weeks * salaryInfo.amount;
+        }
+      } else if (salaryInfo.salary_type === 'monthly') {
+        basePay = salaryInfo.amount;
+      } else if (salaryInfo.salary_type === 'annual') {
+        basePay = salaryInfo.amount / 12;
+      }
+
+      basePay = Math.round(basePay);
+
+      // 세금 타입 결정
+      const taxType = salaryInfo.tax_type || '4대보험';
+      let totalDeductions = 0;
+      let netPay = basePay;
+
+      if (taxType === '3.3%') {
+        totalDeductions = Math.round(basePay * 0.033);
+        netPay = basePay - totalDeductions;
+      }
+
+      // 급여명세서 생성
+      await run(
+        `INSERT INTO salary_slips (
+          workplace_id, user_id, payroll_month, pay_date, tax_type,
+          base_pay, total_deductions, net_pay, published
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [workplaceId, employee.id, payrollMonth, payDate, taxType, basePay, totalDeductions, netPay, false]
+      );
+
+      created++;
+    }
+
+    res.json({
+      message: '급여명세서가 생성되었습니다.',
+      created,
+      skipped
+    });
+  } catch (error) {
+    console.error('급여명세서 자동 생성 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 });

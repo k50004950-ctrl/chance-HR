@@ -487,6 +487,7 @@ export const initDatabase = async () => {
           local_income_tax DECIMAL(15, 2) DEFAULT 0,
           total_deductions DECIMAL(15, 2) DEFAULT 0,
           net_pay DECIMAL(15, 2) DEFAULT 0,
+          published BOOLEAN DEFAULT FALSE,
           source_text TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id),
@@ -498,6 +499,12 @@ export const initDatabase = async () => {
       await pool.query(`
         ALTER TABLE salary_slips 
         ADD COLUMN IF NOT EXISTS tax_type VARCHAR(20) DEFAULT '4대보험'
+      `);
+      
+      // salary_slips에 published 컬럼 추가 (기존 DB 대응)
+      await pool.query(`
+        ALTER TABLE salary_slips 
+        ADD COLUMN IF NOT EXISTS published BOOLEAN DEFAULT FALSE
       `);
 
       // 기본 관리자 계정 생성 (없을 경우)
@@ -955,6 +962,7 @@ export const initDatabase = async () => {
           local_income_tax REAL DEFAULT 0,
           total_deductions REAL DEFAULT 0,
           net_pay REAL DEFAULT 0,
+          published INTEGER DEFAULT 0,
           source_text TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id),
@@ -967,6 +975,12 @@ export const initDatabase = async () => {
       const hasTaxTypeInSlips = slipsColumns.some((col) => col.name === 'tax_type');
       if (!hasTaxTypeInSlips) {
         await run(`ALTER TABLE salary_slips ADD COLUMN tax_type TEXT DEFAULT '4대보험'`);
+      }
+      
+      // salary_slips에 published 컬럼 추가 (기존 DB 대응)
+      const hasPublishedInSlips = slipsColumns.some((col) => col.name === 'published');
+      if (!hasPublishedInSlips) {
+        await run(`ALTER TABLE salary_slips ADD COLUMN published INTEGER DEFAULT 0`);
       }
 
       // 기본 관리자 계정 생성

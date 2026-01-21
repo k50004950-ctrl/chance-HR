@@ -136,7 +136,9 @@ export const salaryAPI = {
   getEmployeeSlips: (userId, params) => api.get(`/salary/slips/employee/${userId}`, { params }),
   createSlip: (data) => api.post('/salary/slips', data),
   updateSlip: (id, data) => api.put(`/salary/slips/${id}`, data),
-  deleteSlip: (id) => api.delete(`/salary/slips/${id}`)
+  deleteSlip: (id) => api.delete(`/salary/slips/${id}`),
+  publishSlip: (id) => api.put(`/salary/slips/${id}/publish`),
+  generateMonthlySlips: (workplaceId, data) => api.post(`/salary/slips/generate/${workplaceId}`, data)
 };
 
 // 과거 직원 API

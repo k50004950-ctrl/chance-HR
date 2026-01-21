@@ -1985,53 +1985,6 @@ const OwnerDashboard = () => {
                 )}
               </div>
 
-              {/* 웹 푸시 알림 */}
-              <div className="card" style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  <h4 style={{ margin: 0, color: '#374151' }}>🔔 출퇴근 알림</h4>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {pushEnabled ? (
-                      <button
-                        className="btn btn-secondary"
-                        onClick={handleDisablePush}
-                        disabled={pushLoading}
-                      >
-                        알림 끄기
-                      </button>
-                    ) : (
-                      <button
-                        className="btn btn-primary"
-                        onClick={handleEnablePush}
-                        disabled={pushLoading || !pushSupported || !pushPublicKeyReady}
-                      >
-                        {pushLoading ? '설정 중...' : '알림 켜기'}
-                      </button>
-                    )}
-                    <button
-                      className="btn btn-secondary"
-                      onClick={handleSendPushTest}
-                      disabled={pushLoading || !pushEnabled}
-                    >
-                      테스트 알림
-                    </button>
-                  </div>
-                </div>
-                <p style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280' }}>
-                  직원이 출근/퇴근하면 대표자 브라우저로 무료 알림이 전송됩니다.
-                  알림 허용이 필요합니다.
-                </p>
-                {!pushSupported && (
-                  <p style={{ fontSize: '12px', color: '#dc2626' }}>
-                    현재 브라우저에서는 웹 푸시를 지원하지 않습니다.
-                  </p>
-                )}
-                {pushSupported && !pushPublicKeyReady && (
-                  <p style={{ fontSize: '12px', color: '#dc2626' }}>
-                    웹 푸시 키가 설정되지 않았습니다. Railway 환경변수를 확인해주세요.
-                  </p>
-                )}
-              </div>
-
                 {/* 통계 카드 */}
                 {attendanceStats && (
                   <div style={{ 
@@ -3054,6 +3007,56 @@ const OwnerDashboard = () => {
                   >
                     {workplaceSaving ? '저장 중...' : '사업장 정보 저장'}
                   </button>
+                </div>
+              </div>
+
+              {/* 출퇴근 알림 설정 */}
+              <div className="card" style={{ marginTop: '20px' }}>
+                <h3 style={{ marginTop: 0, color: '#374151' }}>🔔 출퇴근 알림 설정</h3>
+                <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '16px' }}>
+                  직원이 출근/퇴근하면 브라우저로 무료 알림이 전송됩니다. 알림 허용이 필요합니다.
+                </p>
+                {!pushSupported && (
+                  <div style={{ padding: '12px', backgroundColor: '#fef2f2', borderRadius: '8px', marginBottom: '16px' }}>
+                    <p style={{ fontSize: '13px', color: '#dc2626', margin: 0 }}>
+                      ⚠️ 현재 브라우저에서는 웹 푸시를 지원하지 않습니다.
+                    </p>
+                  </div>
+                )}
+                {pushSupported && !pushPublicKeyReady && (
+                  <div style={{ padding: '12px', backgroundColor: '#fef2f2', borderRadius: '8px', marginBottom: '16px' }}>
+                    <p style={{ fontSize: '13px', color: '#dc2626', margin: 0 }}>
+                      ⚠️ 웹 푸시 키가 설정되지 않았습니다.
+                    </p>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  {pushEnabled ? (
+                    <>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={handleDisablePush}
+                        disabled={pushLoading}
+                      >
+                        {pushLoading ? '처리 중...' : '알림 끄기'}
+                      </button>
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleSendPushTest}
+                        disabled={pushLoading}
+                      >
+                        테스트 알림 보내기
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="btn btn-primary"
+                      onClick={handleEnablePush}
+                      disabled={pushLoading || !pushSupported || !pushPublicKeyReady}
+                    >
+                      {pushLoading ? '설정 중...' : '알림 켜기'}
+                    </button>
+                  )}
                 </div>
               </div>
 

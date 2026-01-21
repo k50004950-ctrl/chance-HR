@@ -39,15 +39,55 @@ body {
 
   /* 제목 크기 조정 */
   h2 {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   h3 {
-    font-size: 18px;
+    font-size: 17px;
   }
 
   h4 {
-    font-size: 16px;
+    font-size: 15px;
+  }
+
+  /* 텍스트 크기 조정 */
+  p, td, th {
+    font-size: 13px !important;
+  }
+
+  /* 작은 텍스트 */
+  .small-text {
+    font-size: 11px !important;
+  }
+
+  /* 캘린더 모바일 최적화 */
+  .calendar-day {
+    min-height: 80px !important;
+    padding: 4px !important;
+    font-size: 11px !important;
+  }
+
+  .calendar-day-header {
+    font-size: 10px !important;
+  }
+
+  /* 버튼 그룹 */
+  .btn-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  /* 통계 카드 작게 */
+  .stat-card {
+    padding: 12px !important;
+  }
+
+  .stat-card-value {
+    font-size: 24px !important;
+  }
+
+  .stat-card-label {
+    font-size: 11px !important;
   }
 }
 

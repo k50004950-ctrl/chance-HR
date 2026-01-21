@@ -170,4 +170,14 @@ export const salaryHistoryAPI = {
   getHistory: (employeeId) => api.get(`/salary-history/${employeeId}`)
 };
 
+// 공지사항 API
+export const announcementsAPI = {
+  create: (data) => api.post('/announcements', data),
+  getAll: () => api.get('/announcements/all'),
+  getActive: () => api.get('/announcements/active'),
+  markAsRead: (id) => api.post(`/announcements/${id}/read`),
+  deactivate: (id) => api.put(`/announcements/${id}/deactivate`),
+  delete: (id) => api.delete(`/announcements/${id}`)
+};
+
 export default api;

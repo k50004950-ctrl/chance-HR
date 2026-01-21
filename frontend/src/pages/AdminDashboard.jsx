@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { workplaceAPI, authAPI } from '../services/api';
+import { workplaceAPI, authAPI, announcementsAPI } from '../services/api';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('owners');
@@ -14,10 +14,14 @@ const AdminDashboard = () => {
   const [resetUsername, setResetUsername] = useState('');
   const [resetPassword, setResetPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
+  const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
+  const [announcementLoading, setAnnouncementLoading] = useState(false);
 
   useEffect(() => {
     loadWorkplaces();
     loadOwners();
+    loadAnnouncements();
   }, []);
 
   const handleToggleOwnerStatus = async (ownerId, ownerName) => {
@@ -68,6 +72,60 @@ const AdminDashboard = () => {
       setOwners(response.data);
     } catch (error) {
       console.error('사업주 조회 오류:', error);
+    }
+  };
+
+  const loadAnnouncements = async () => {
+    try {
+      const response = await announcementsAPI.getAll();
+      setAnnouncements(response.data);
+    } catch (error) {
+      console.error('공지사항 조회 오류:', error);
+    }
+  };
+
+  const handleCreateAnnouncement = async (e) => {
+    e.preventDefault();
+    if (!announcementForm.title || !announcementForm.content) {
+      setMessage({ type: 'error', text: '제목과 내용을 모두 입력해주세요.' });
+      return;
+    }
+
+    try {
+      setAnnouncementLoading(true);
+      await announcementsAPI.create(announcementForm);
+      setMessage({ type: 'success', text: '공지사항이 생성되었습니다.' });
+      setAnnouncementForm({ title: '', content: '' });
+      loadAnnouncements();
+    } catch (error) {
+      console.error('공지사항 생성 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '공지사항 생성에 실패했습니다.' });
+    } finally {
+      setAnnouncementLoading(false);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id) => {
+    if (!window.confirm('이 공지사항을 삭제하시겠습니까?')) return;
+
+    try {
+      await announcementsAPI.delete(id);
+      setMessage({ type: 'success', text: '공지사항이 삭제되었습니다.' });
+      loadAnnouncements();
+    } catch (error) {
+      console.error('공지사항 삭제 오류:', error);
+      setMessage({ type: 'error', text: '삭제에 실패했습니다.' });
+    }
+  };
+
+  const handleDeactivateAnnouncement = async (id) => {
+    try {
+      await announcementsAPI.deactivate(id);
+      setMessage({ type: 'success', text: '공지사항이 비활성화되었습니다.' });
+      loadAnnouncements();
+    } catch (error) {
+      console.error('공지사항 비활성화 오류:', error);
+      setMessage({ type: 'error', text: '비활성화에 실패했습니다.' });
     }
   };
 
@@ -169,6 +227,12 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('workplaces')}
           >
             사업장 목록
+          </button>
+          <button
+            className={`nav-tab ${activeTab === 'announcements' ? 'active' : ''}`}
+            onClick={() => setActiveTab('announcements')}
+          >
+            📢 공지사항
           </button>
         </div>
 
@@ -444,6 +508,129 @@ const AdminDashboard = () => {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* 공지사항 관리 */}
+        {activeTab === 'announcements' && (
+          <div>
+            {/* 공지사항 작성 */}
+            <div className="card" style={{ marginBottom: '24px' }}>
+              <h3 style={{ color: '#374151', marginBottom: '16px' }}>📢 공지사항 작성</h3>
+              <form onSubmit={handleCreateAnnouncement}>
+                <div className="form-group">
+                  <label className="form-label">제목 *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={announcementForm.title}
+                    onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                    placeholder="공지사항 제목을 입력하세요"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">내용 *</label>
+                  <textarea
+                    className="form-input"
+                    value={announcementForm.content}
+                    onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
+                    placeholder="공지사항 내용을 입력하세요"
+                    rows="6"
+                    required
+                    style={{ resize: 'vertical' }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={announcementLoading}
+                >
+                  {announcementLoading ? '전송 중...' : '📤 모든 사용자에게 전송'}
+                </button>
+              </form>
+            </div>
+
+            {/* 공지사항 목록 */}
+            <div className="card">
+              <h3 style={{ color: '#374151', marginBottom: '16px' }}>공지사항 목록</h3>
+              {announcements.length === 0 ? (
+                <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
+                  등록된 공지사항이 없습니다.
+                </p>
+              ) : (
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {announcements.map((announcement) => (
+                    <div
+                      key={announcement.id}
+                      style={{
+                        padding: '16px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        backgroundColor: announcement.is_active ? '#ffffff' : '#f9fafb'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px',
+                            marginBottom: '8px' 
+                          }}>
+                            <h4 style={{ margin: 0, color: '#374151', fontSize: '16px' }}>
+                              {announcement.title}
+                            </h4>
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: announcement.is_active ? '#dbeafe' : '#f3f4f6',
+                              color: announcement.is_active ? '#1e40af' : '#6b7280'
+                            }}>
+                              {announcement.is_active ? '활성' : '비활성'}
+                            </span>
+                          </div>
+                          <div style={{ 
+                            color: '#6b7280', 
+                            fontSize: '14px',
+                            whiteSpace: 'pre-wrap',
+                            marginBottom: '8px'
+                          }}>
+                            {announcement.content.length > 100 
+                              ? announcement.content.substring(0, 100) + '...' 
+                              : announcement.content}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#9ca3af' }}>
+                            작성: {announcement.creator_name} | {' '}
+                            {new Date(announcement.created_at).toLocaleString('ko-KR')}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', marginLeft: '12px' }}>
+                          {announcement.is_active && (
+                            <button
+                              className="btn btn-secondary"
+                              onClick={() => handleDeactivateAnnouncement(announcement.id)}
+                              style={{ fontSize: '13px', padding: '6px 12px' }}
+                            >
+                              비활성화
+                            </button>
+                          )}
+                          <button
+                            className="btn btn-danger"
+                            onClick={() => handleDeleteAnnouncement(announcement.id)}
+                            style={{ fontSize: '13px', padding: '6px 12px' }}
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

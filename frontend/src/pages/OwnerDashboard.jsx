@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI, pushAPI } from '../services/api';
+import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI, pushAPI, announcementsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
 import ConsentInfo from '../components/ConsentInfo';
 import QRCode from 'qrcode';
 import { searchAddress, getCoordinatesFromAddress } from '../utils/addressSearch';
+import AnnouncementModal from '../components/AnnouncementModal';
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
@@ -69,6 +70,8 @@ const OwnerDashboard = () => {
   const [pushLoading, setPushLoading] = useState(false);
   const [pushPublicKeyReady, setPushPublicKeyReady] = useState(true);
   const [qrCollapsed, setQrCollapsed] = useState(true);
+  const [currentAnnouncement, setCurrentAnnouncement] = useState(null);
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [workplaceForm, setWorkplaceForm] = useState({
     name: '',
     address: '',
@@ -101,7 +104,32 @@ const OwnerDashboard = () => {
 
   useEffect(() => {
     loadWorkplaces();
+    checkAnnouncements();
   }, []);
+
+  const checkAnnouncements = async () => {
+    try {
+      const response = await announcementsAPI.getActive();
+      if (response.data && response.data.length > 0) {
+        setCurrentAnnouncement(response.data[0]); // 첫 번째 공지만 표시
+        setShowAnnouncementModal(true);
+      }
+    } catch (error) {
+      console.error('공지사항 확인 오류:', error);
+    }
+  };
+
+  const handleCloseAnnouncement = async () => {
+    if (currentAnnouncement) {
+      try {
+        await announcementsAPI.markAsRead(currentAnnouncement.id);
+      } catch (error) {
+        console.error('공지사항 읽음 처리 오류:', error);
+      }
+    }
+    setShowAnnouncementModal(false);
+    setCurrentAnnouncement(null);
+  };
 
   useEffect(() => {
     if (selectedWorkplace) {
@@ -1256,14 +1284,43 @@ const OwnerDashboard = () => {
   };
 
   const handleDeleteEmployee = async (id) => {
-    if (!window.confirm('정말로 삭제하시겠습니까?')) return;
+    const employee = employees.find(emp => emp.id === id);
+    const employeeName = employee?.name || '직원';
+    
+    // 1단계: 강력한 경고
+    const firstConfirm = window.confirm(
+      `⚠️ 경고: 직원 삭제 확인\n\n` +
+      `${employeeName}의 계정을 삭제하시겠습니까?\n\n` +
+      `삭제 시 다음 데이터가 모두 삭제되며 복구가 불가능합니다:\n` +
+      `• 직원 정보 (개인정보, 계약서 등)\n` +
+      `• 출퇴근 기록\n` +
+      `• 급여 정보 및 급여명세서\n` +
+      `• 급여 변경 이력\n` +
+      `• 과거 급여 기록\n\n` +
+      `계속하시겠습니까?`
+    );
+    
+    if (!firstConfirm) return;
+    
+    // 2단계: 최종 확인
+    const finalConfirm = window.confirm(
+      `🔴 최종 확인\n\n` +
+      `${employeeName}의 모든 데이터가 영구 삭제됩니다.\n` +
+      `이 작업은 되돌릴 수 없습니다.\n\n` +
+      `정말 삭제하시겠습니까?`
+    );
+    
+    if (!finalConfirm) return;
 
     try {
+      setLoading(true);
       await employeeAPI.delete(id);
-      setMessage({ type: 'success', text: '직원이 삭제되었습니다.' });
+      setMessage({ type: 'success', text: `${employeeName}의 모든 데이터가 삭제되었습니다.` });
       loadEmployees();
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || '오류가 발생했습니다.' });
+      setMessage({ type: 'error', text: error.response?.data?.message || '삭제 중 오류가 발생했습니다.' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -4717,6 +4774,14 @@ const OwnerDashboard = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 공지사항 모달 */}
+      {showAnnouncementModal && currentAnnouncement && (
+        <AnnouncementModal
+          announcement={currentAnnouncement}
+          onClose={handleCloseAnnouncement}
+        />
       )}
     </div>
   );

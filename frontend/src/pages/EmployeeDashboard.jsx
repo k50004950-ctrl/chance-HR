@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
-import { attendanceAPI, salaryAPI, employeeAPI } from '../services/api';
+import { attendanceAPI, salaryAPI, employeeAPI, announcementsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import AnnouncementModal from '../components/AnnouncementModal';
 import { Html5Qrcode } from 'html5-qrcode';
 
 const EmployeeDashboard = () => {
@@ -31,12 +32,39 @@ const EmployeeDashboard = () => {
   const [consentData, setConsentData] = useState({ privacy_consent: false, location_consent: false });
   const [employeeWorkDays, setEmployeeWorkDays] = useState([]);
   const [employeeProfile, setEmployeeProfile] = useState(null);
+  const [currentAnnouncement, setCurrentAnnouncement] = useState(null);
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
 
   useEffect(() => {
     checkConsent();
     loadTodayStatus();
     loadAttendanceRecords();
+    checkAnnouncements();
   }, []);
+
+  const checkAnnouncements = async () => {
+    try {
+      const response = await announcementsAPI.getActive();
+      if (response.data && response.data.length > 0) {
+        setCurrentAnnouncement(response.data[0]); // 첫 번째 공지만 표시
+        setShowAnnouncementModal(true);
+      }
+    } catch (error) {
+      console.error('공지사항 확인 오류:', error);
+    }
+  };
+
+  const handleCloseAnnouncement = async () => {
+    if (currentAnnouncement) {
+      try {
+        await announcementsAPI.markAsRead(currentAnnouncement.id);
+      } catch (error) {
+        console.error('공지사항 읽음 처리 오류:', error);
+      }
+    }
+    setShowAnnouncementModal(false);
+    setCurrentAnnouncement(null);
+  };
 
   const checkConsent = async () => {
     try {
@@ -1391,6 +1419,14 @@ const EmployeeDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* 공지사항 모달 */}
+      {showAnnouncementModal && currentAnnouncement && (
+        <AnnouncementModal
+          announcement={currentAnnouncement}
+          onClose={handleCloseAnnouncement}
+        />
+      )}
     </div>
   );
 };

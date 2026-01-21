@@ -21,6 +21,7 @@ import pastEmployeesRoutes from './routes/pastEmployees.js';
 import salaryHistoryRoutes from './routes/salaryHistory.js';
 import pastPayrollRoutes from './routes/pastPayroll.js';
 import pushRoutes from './routes/push.js';
+import announcementsRoutes from './routes/announcements.js';
 import { startPaydayScheduler } from './services/payrollSchedule.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -72,6 +73,7 @@ app.use('/api/past-employees', pastEmployeesRoutes);
 app.use('/api/salary-history', salaryHistoryRoutes);
 app.use('/api/past-payroll', pastPayrollRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/announcements', announcementsRoutes);
 
 // 기본 라우트
 app.get('/', (req, res) => {

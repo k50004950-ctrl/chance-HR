@@ -591,6 +591,34 @@ export const initDatabase = async () => {
         // 컬럼이 이미 존재하면 무시
       }
 
+      // Announcements 테이블 (공지사항)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS announcements (
+          id SERIAL PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          content TEXT NOT NULL,
+          created_by INTEGER NOT NULL,
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (created_by) REFERENCES users(id)
+        )
+      `);
+
+      // User_announcements 테이블 (사용자별 공지 읽음 상태)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS user_announcements (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          announcement_id INTEGER NOT NULL,
+          is_read BOOLEAN DEFAULT false,
+          read_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE,
+          UNIQUE(user_id, announcement_id)
+        )
+      `);
+
       console.log('PostgreSQL 데이터베이스 초기화 완료');
     } else {
       // SQLite 초기화 (기존 코드)
@@ -982,6 +1010,34 @@ export const initDatabase = async () => {
       if (!hasPublishedInSlips) {
         await run(`ALTER TABLE salary_slips ADD COLUMN published INTEGER DEFAULT 0`);
       }
+
+      // Announcements 테이블 (공지사항)
+      await run(`
+        CREATE TABLE IF NOT EXISTS announcements (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          created_by INTEGER NOT NULL,
+          is_active INTEGER DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (created_by) REFERENCES users(id)
+        )
+      `);
+
+      // User_announcements 테이블 (사용자별 공지 읽음 상태)
+      await run(`
+        CREATE TABLE IF NOT EXISTS user_announcements (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          announcement_id INTEGER NOT NULL,
+          is_read INTEGER DEFAULT 0,
+          read_at DATETIME,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE,
+          UNIQUE(user_id, announcement_id)
+        )
+      `);
 
       // 기본 관리자 계정 생성
       const adminExists = await get('SELECT * FROM users WHERE username = ?', ['admin']);

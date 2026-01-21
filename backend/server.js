@@ -23,6 +23,7 @@ import pastPayrollRoutes from './routes/pastPayroll.js';
 import pushRoutes from './routes/push.js';
 import announcementsRoutes from './routes/announcements.js';
 import { startPaydayScheduler } from './services/payrollSchedule.js';
+import { startAttendanceScheduler } from './services/attendanceScheduler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -122,6 +123,7 @@ const startServer = async () => {
     });
 
     startPaydayScheduler();
+    startAttendanceScheduler();
   } catch (error) {
     console.error('서버 시작 오류:', error);
     process.exit(1);

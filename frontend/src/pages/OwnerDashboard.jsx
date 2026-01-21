@@ -422,7 +422,7 @@ const OwnerDashboard = () => {
       }
       
       employeeStats[record.user_id].totalDays++;
-      if (record.status === 'completed') {
+      if (record.status === 'completed' || record.status === 'auto_completed') {
         employeeStats[record.user_id].completedDays++;
         employeeStats[record.user_id].totalHours += Number(record.work_hours) || 0;
       } else {
@@ -432,8 +432,8 @@ const OwnerDashboard = () => {
 
     setAttendanceStats({
       totalRecords: attendanceData.length,
-      completedRecords: attendanceData.filter(r => r.status === 'completed').length,
-      incompleteRecords: attendanceData.filter(r => r.status !== 'completed').length,
+      completedRecords: attendanceData.filter(r => r.status === 'completed' || r.status === 'auto_completed').length,
+      incompleteRecords: attendanceData.filter(r => r.status !== 'completed' && r.status !== 'auto_completed').length,
       totalWorkHours: attendanceData.reduce((sum, r) => sum + (Number(r.work_hours) || 0), 0),
       employeeStats: Object.values(employeeStats)
     });
@@ -2219,10 +2219,13 @@ const OwnerDashboard = () => {
                                     borderRadius: '4px',
                                     fontSize: '12px',
                                     fontWeight: '600',
-                                    background: record.status === 'completed' ? '#d1fae5' : '#fee2e2',
-                                    color: record.status === 'completed' ? '#065f46' : '#991b1b'
+                                    background: record.status === 'completed' ? '#d1fae5' : 
+                                               record.status === 'auto_completed' ? '#fef3c7' : '#fee2e2',
+                                    color: record.status === 'completed' ? '#065f46' : 
+                                           record.status === 'auto_completed' ? '#92400e' : '#991b1b'
                                   }}>
-                                    {record.status === 'completed' ? '✓ 완료' : '⏱ 미완료'}
+                                    {record.status === 'completed' ? '✓ 완료' : 
+                                     record.status === 'auto_completed' ? '⚠ 자동완료' : '⏱ 미완료'}
                                   </span>
                                 )}
                               </td>

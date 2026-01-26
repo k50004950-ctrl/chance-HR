@@ -6850,14 +6850,6 @@ const OwnerDashboard = () => {
           onClose={() => setToast(null)}
         />
       )}
-      
-      {/* 모바일 하단 네비게이션 */}
-      {isMobile && (
-        <MobileBottomNav 
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-      )}
     </div>
   );
 };

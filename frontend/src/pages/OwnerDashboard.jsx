@@ -15,7 +15,6 @@ import MobileLayout from '../components/MobileLayout';
 import MobileDashboard from '../components/MobileDashboard';
 import MobileActionCard from '../components/MobileActionCard';
 import useIsMobile from '../hooks/useIsMobile';
-import OwnerLayout from '../layouts/OwnerLayout';
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
@@ -1821,7 +1820,7 @@ const OwnerDashboard = () => {
   };
 
   return (
-    <OwnerLayout user={user} activeTab={activeTab} onTabChange={setActiveTab}>
+    <div>
       <Header />
       <div className="container" style={{
         ...(isMobile && {
@@ -7097,7 +7096,7 @@ const OwnerDashboard = () => {
           onClose={() => setToast(null)}
         />
       )}
-    </OwnerLayout>
+    </div>
   );
 };
 

@@ -1825,8 +1825,8 @@ const OwnerDashboard = () => {
       <div className="container" style={{
         ...(isMobile && {
           padding: '0',
-          maxWidth: '100%',
-          paddingBottom: '80px' // 하단 네비게이션 공간
+          maxWidth: '100%'
+          // paddingBottom은 CSS에서 처리 (safe-area 포함)
         })
       }}>
         {/* 모바일 헤더 */}

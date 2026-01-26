@@ -1363,6 +1363,19 @@ h4 {
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
     background: #f9fafb;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  
+  /* 모든 텍스트 요소 줄바꿈 최적화 */
+  h1, h2, h3, h4, h5, h6,
+  p, span, div, a, button,
+  label, li, td, th {
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    max-width: 100%;
   }
   
   /* 터치 액션 최적화 */

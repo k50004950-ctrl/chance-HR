@@ -859,6 +859,15 @@ router.post('/calculate-insurance', authenticate, async (req, res) => {
     
     const totalInsurance = nationalPension + healthInsurance + longTermCare + employmentInsurance;
     
+    // 사업주 부담금 계산
+    const employerNationalPension = Math.floor(pensionBase * rates.national_pension_rate); // 국민연금: 근로자와 동일
+    const employerHealthInsurance = Math.floor(healthBase * rates.health_insurance_rate); // 건강보험: 근로자와 동일
+    const employerLongTermCare = Math.floor(employerHealthInsurance * rates.long_term_care_rate); // 장기요양: 건강보험의 일정 비율
+    // 고용보험: 사업주는 0.9% + 실업급여 0.8% = 1.7% (2026년 기준, 근로자는 0.9%만)
+    const employerEmploymentInsurance = Math.floor(basePay * (rates.employment_insurance_rate + 0.008)); // 근로자 부담분 + 실업급여 부담분
+    
+    const totalEmployerBurden = employerNationalPension + employerHealthInsurance + employerLongTermCare + employerEmploymentInsurance;
+    
     res.json({
       basePay,
       rates: {
@@ -877,6 +886,13 @@ router.post('/calculate-insurance', authenticate, async (req, res) => {
         longTermCare,
         employmentInsurance,
         total: totalInsurance
+      },
+      employerBurden: {
+        nationalPension: employerNationalPension,
+        healthInsurance: employerHealthInsurance,
+        longTermCare: employerLongTermCare,
+        employmentInsurance: employerEmploymentInsurance,
+        total: totalEmployerBurden
       }
     });
   } catch (error) {
@@ -904,7 +920,11 @@ router.post('/slips', authenticate, async (req, res) => {
       employmentInsurance,
       longTermCare,
       incomeTax,
-      localIncomeTax
+      localIncomeTax,
+      employerNationalPension,
+      employerHealthInsurance,
+      employerEmploymentInsurance,
+      employerLongTermCare
     } = req.body;
 
     // 사업장 권한 확인
@@ -939,17 +959,28 @@ router.post('/slips', authenticate, async (req, res) => {
       netPay = netPay - totalDeductions;
     }
 
+    // 사업주 총 부담금 계산
+    const totalEmployerBurden = 
+      (parseFloat(employerNationalPension) || 0) +
+      (parseFloat(employerHealthInsurance) || 0) +
+      (parseFloat(employerEmploymentInsurance) || 0) +
+      (parseFloat(employerLongTermCare) || 0);
+
     // 급여명세서 저장
     const result = await run(
       `INSERT INTO salary_slips (
         workplace_id, user_id, payroll_month, pay_date, tax_type,
         base_pay, national_pension, health_insurance, employment_insurance,
-        long_term_care, income_tax, local_income_tax, total_deductions, net_pay
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        long_term_care, income_tax, local_income_tax, total_deductions, net_pay,
+        employer_national_pension, employer_health_insurance, employer_employment_insurance,
+        employer_long_term_care, total_employer_burden
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         workplaceId, userId, payrollMonth, payDate, taxType || '4대보험',
         basePay, nationalPension || 0, healthInsurance || 0, employmentInsurance || 0,
-        longTermCare || 0, incomeTax || 0, localIncomeTax || 0, totalDeductions, netPay
+        longTermCare || 0, incomeTax || 0, localIncomeTax || 0, totalDeductions, netPay,
+        employerNationalPension || 0, employerHealthInsurance || 0, employerEmploymentInsurance || 0,
+        employerLongTermCare || 0, totalEmployerBurden
       ]
     );
 
@@ -981,7 +1012,11 @@ router.put('/slips/:id', authenticate, async (req, res) => {
       employmentInsurance,
       longTermCare,
       incomeTax,
-      localIncomeTax
+      localIncomeTax,
+      employerNationalPension,
+      employerHealthInsurance,
+      employerEmploymentInsurance,
+      employerLongTermCare
     } = req.body;
 
     // 급여명세서 존재 확인
@@ -1016,19 +1051,30 @@ router.put('/slips/:id', authenticate, async (req, res) => {
       netPay = netPay - totalDeductions;
     }
 
+    // 사업주 총 부담금 계산
+    const totalEmployerBurden = 
+      (parseFloat(employerNationalPension) || 0) +
+      (parseFloat(employerHealthInsurance) || 0) +
+      (parseFloat(employerEmploymentInsurance) || 0) +
+      (parseFloat(employerLongTermCare) || 0);
+
     // 급여명세서 수정
     await run(
       `UPDATE salary_slips SET
         payroll_month = ?, pay_date = ?, tax_type = ?,
         base_pay = ?, national_pension = ?, health_insurance = ?, employment_insurance = ?,
         long_term_care = ?, income_tax = ?, local_income_tax = ?, 
-        total_deductions = ?, net_pay = ?
+        total_deductions = ?, net_pay = ?,
+        employer_national_pension = ?, employer_health_insurance = ?, employer_employment_insurance = ?,
+        employer_long_term_care = ?, total_employer_burden = ?
       WHERE id = ?`,
       [
         payrollMonth, payDate, taxType || '4대보험',
         basePay, nationalPension || 0, healthInsurance || 0, employmentInsurance || 0,
         longTermCare || 0, incomeTax || 0, localIncomeTax || 0,
-        totalDeductions, netPay, id
+        totalDeductions, netPay,
+        employerNationalPension || 0, employerHealthInsurance || 0, employerEmploymentInsurance || 0,
+        employerLongTermCare || 0, totalEmployerBurden, id
       ]
     );
 
@@ -1065,6 +1111,76 @@ router.delete('/slips/:id', authenticate, async (req, res) => {
     res.json({ message: '급여명세서가 삭제되었습니다.' });
   } catch (error) {
     console.error('급여명세서 삭제 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 사업주: 월별 급여대장 전체보기
+router.get('/payroll-ledger/:workplaceId/:payrollMonth', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const { workplaceId, payrollMonth } = req.params;
+
+    // 사업장 권한 확인
+    const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, req.user.id]);
+    if (!workplace) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    // 해당 월의 모든 급여명세서 조회
+    const slips = await query(
+      `SELECT 
+        ss.*,
+        u.name as employee_name,
+        u.username as employee_username
+      FROM salary_slips ss
+      JOIN users u ON ss.user_id = u.id
+      WHERE ss.workplace_id = ? AND ss.payroll_month = ?
+      ORDER BY u.name`,
+      [workplaceId, payrollMonth]
+    );
+
+    // 합계 계산
+    const totals = {
+      basePay: 0,
+      nationalPension: 0,
+      healthInsurance: 0,
+      employmentInsurance: 0,
+      longTermCare: 0,
+      incomeTax: 0,
+      localIncomeTax: 0,
+      totalDeductions: 0,
+      netPay: 0,
+      employerNationalPension: 0,
+      employerHealthInsurance: 0,
+      employerEmploymentInsurance: 0,
+      employerLongTermCare: 0,
+      totalEmployerBurden: 0
+    };
+
+    slips.forEach(slip => {
+      totals.basePay += parseFloat(slip.base_pay) || 0;
+      totals.nationalPension += parseFloat(slip.national_pension) || 0;
+      totals.healthInsurance += parseFloat(slip.health_insurance) || 0;
+      totals.employmentInsurance += parseFloat(slip.employment_insurance) || 0;
+      totals.longTermCare += parseFloat(slip.long_term_care) || 0;
+      totals.incomeTax += parseFloat(slip.income_tax) || 0;
+      totals.localIncomeTax += parseFloat(slip.local_income_tax) || 0;
+      totals.totalDeductions += parseFloat(slip.total_deductions) || 0;
+      totals.netPay += parseFloat(slip.net_pay) || 0;
+      totals.employerNationalPension += parseFloat(slip.employer_national_pension) || 0;
+      totals.employerHealthInsurance += parseFloat(slip.employer_health_insurance) || 0;
+      totals.employerEmploymentInsurance += parseFloat(slip.employer_employment_insurance) || 0;
+      totals.employerLongTermCare += parseFloat(slip.employer_long_term_care) || 0;
+      totals.totalEmployerBurden += parseFloat(slip.total_employer_burden) || 0;
+    });
+
+    res.json({ slips, totals });
+  } catch (error) {
+    console.error('급여대장 조회 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 });

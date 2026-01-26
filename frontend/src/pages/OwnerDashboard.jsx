@@ -60,11 +60,23 @@ const OwnerDashboard = () => {
     employmentInsurance: '',
     longTermCare: '',
     incomeTax: '',
-    localIncomeTax: ''
+    localIncomeTax: '',
+    employerNationalPension: '',
+    employerHealthInsurance: '',
+    employerEmploymentInsurance: '',
+    employerLongTermCare: ''
   });
   const [editingSlipId, setEditingSlipId] = useState(null);
   const [selectedSlipEmployee, setSelectedSlipEmployee] = useState(null);
   const [employeeSlips, setEmployeeSlips] = useState([]);
+  const [showPayrollLedger, setShowPayrollLedger] = useState(false);
+  const [payrollLedgerData, setPayrollLedgerData] = useState(null);
+  const [payrollLedgerMonth, setPayrollLedgerMonth] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  });
   const [pushSupported, setPushSupported] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
@@ -2398,7 +2410,7 @@ const OwnerDashboard = () => {
               <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                   <h3 style={{ color: '#374151', margin: 0 }}>📝 급여명세서 관리</h3>
-                  <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button
                       className="btn btn-success"
                       onClick={async () => {
@@ -2430,6 +2442,15 @@ const OwnerDashboard = () => {
                       }}
                     >
                       📅 월별 자동 생성
+                    </button>
+                    <button
+                      className="btn"
+                      style={{ background: '#10b981', color: 'white' }}
+                      onClick={() => {
+                        setShowPayrollLedger(true);
+                      }}
+                    >
+                      📊 월별 급여대장 보기
                     </button>
                     <button
                       className="btn btn-primary"
@@ -4624,13 +4645,18 @@ const OwnerDashboard = () => {
                             slipFormData.payrollMonth
                           );
                           const insurance = response.data.insurance;
+                          const employerBurden = response.data.employerBurden;
                           
                           setSlipFormData({
                             ...slipFormData,
                             nationalPension: insurance.nationalPension,
                             healthInsurance: insurance.healthInsurance,
                             longTermCare: insurance.longTermCare,
-                            employmentInsurance: insurance.employmentInsurance
+                            employmentInsurance: insurance.employmentInsurance,
+                            employerNationalPension: employerBurden.nationalPension,
+                            employerHealthInsurance: employerBurden.healthInsurance,
+                            employerLongTermCare: employerBurden.longTermCare,
+                            employerEmploymentInsurance: employerBurden.employmentInsurance
                           });
                           setMessage({ type: 'success', text: `4대보험료가 자동 계산되었습니다! (${slipFormData.payrollMonth || '현재'} 기준 요율 적용)` });
                         } catch (error) {
@@ -4711,6 +4737,56 @@ const OwnerDashboard = () => {
                       />
                     </div>
                   </div>
+
+                  {/* 사업주 부담금 (4대보험인 경우만 표시) */}
+                  {slipFormData.taxType === '4대보험' && (
+                    <div style={{
+                      padding: '16px',
+                      backgroundColor: '#fef3c7',
+                      borderRadius: '8px',
+                      border: '1px solid #fbbf24',
+                      marginTop: '16px'
+                    }}>
+                      <div style={{ fontSize: '14px', color: '#92400e', fontWeight: '600', marginBottom: '12px' }}>
+                        💼 사업주 부담금 (참고용)
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#78350f' }}>국민연금:</span>
+                          <span style={{ fontWeight: '600' }}>{formatCurrency(parseFloat(slipFormData.employerNationalPension) || 0)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#78350f' }}>건강보험:</span>
+                          <span style={{ fontWeight: '600' }}>{formatCurrency(parseFloat(slipFormData.employerHealthInsurance) || 0)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#78350f' }}>고용보험:</span>
+                          <span style={{ fontWeight: '600' }}>{formatCurrency(parseFloat(slipFormData.employerEmploymentInsurance) || 0)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#78350f' }}>장기요양:</span>
+                          <span style={{ fontWeight: '600' }}>{formatCurrency(parseFloat(slipFormData.employerLongTermCare) || 0)}</span>
+                        </div>
+                      </div>
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        marginTop: '12px', 
+                        paddingTop: '12px', 
+                        borderTop: '2px solid #fbbf24' 
+                      }}>
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#92400e' }}>사업주 부담금 합계</span>
+                        <span style={{ fontSize: '14px', fontWeight: '700', color: '#92400e' }}>
+                          {formatCurrency(
+                            (parseFloat(slipFormData.employerNationalPension) || 0) +
+                            (parseFloat(slipFormData.employerHealthInsurance) || 0) +
+                            (parseFloat(slipFormData.employerEmploymentInsurance) || 0) +
+                            (parseFloat(slipFormData.employerLongTermCare) || 0)
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   <div style={{
                     padding: '16px',
@@ -4800,6 +4876,137 @@ const OwnerDashboard = () => {
                 {editingSlipId ? '수정' : '저장'}
               </button>
             </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 월별 급여대장 모달 */}
+      {showPayrollLedger && (
+        <div className="modal-overlay" onClick={() => setShowPayrollLedger(false)}>
+          <div className="modal" style={{ maxWidth: '95%', width: '1400px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h3>📊 월별 급여대장 - {payrollLedgerMonth}</h3>
+                <button onClick={() => setShowPayrollLedger(false)}>×</button>
+              </div>
+
+              <div className="modal-body">
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label className="form-label">조회 월 선택</label>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <input
+                      type="month"
+                      className="form-input"
+                      value={payrollLedgerMonth}
+                      onChange={(e) => setPayrollLedgerMonth(e.target.value)}
+                      style={{ flex: 1, maxWidth: '300px' }}
+                    />
+                    <button
+                      className="btn btn-primary"
+                      onClick={async () => {
+                        try {
+                          setLoading(true);
+                          const response = await salaryAPI.getPayrollLedger(selectedWorkplace, payrollLedgerMonth);
+                          setPayrollLedgerData(response.data);
+                          setMessage({ type: 'success', text: `${payrollLedgerMonth} 급여대장을 조회했습니다.` });
+                        } catch (error) {
+                          console.error('급여대장 조회 오류:', error);
+                          setMessage({ type: 'error', text: error.response?.data?.message || '조회에 실패했습니다.' });
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    >
+                      조회
+                    </button>
+                  </div>
+                </div>
+
+                {payrollLedgerData && (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="data-table" style={{ fontSize: '12px' }}>
+                      <thead>
+                        <tr>
+                          <th rowSpan="2">직원명</th>
+                          <th rowSpan="2">인건비구분</th>
+                          <th rowSpan="2">기본급</th>
+                          <th colSpan="4">근로자 부담금</th>
+                          <th colSpan="2">세금</th>
+                          <th rowSpan="2">공제합계</th>
+                          <th rowSpan="2">실수령액</th>
+                          <th colSpan="4">사업주 부담금</th>
+                          <th rowSpan="2">사업주 부담금 합계</th>
+                          <th rowSpan="2">지급일</th>
+                        </tr>
+                        <tr>
+                          <th>국민연금</th>
+                          <th>건강보험</th>
+                          <th>고용보험</th>
+                          <th>장기요양</th>
+                          <th>소득세</th>
+                          <th>지방세</th>
+                          <th>국민연금</th>
+                          <th>건강보험</th>
+                          <th>고용보험</th>
+                          <th>장기요양</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {payrollLedgerData.slips && payrollLedgerData.slips.length > 0 ? (
+                          <>
+                            {payrollLedgerData.slips.map((slip) => (
+                              <tr key={slip.id}>
+                                <td>{slip.employee_name}</td>
+                                <td>{slip.tax_type}</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(slip.base_pay).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(slip.national_pension || 0).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(slip.health_insurance || 0).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(slip.employment_insurance || 0).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(slip.long_term_care || 0).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(slip.income_tax || 0).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(slip.local_income_tax || 0).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(slip.total_deductions || 0).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{parseInt(slip.net_pay || 0).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(slip.employer_national_pension || 0).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(slip.employer_health_insurance || 0).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(slip.employer_employment_insurance || 0).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(slip.employer_long_term_care || 0).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right', fontWeight: 'bold', background: '#fef3c7' }}>{parseInt(slip.total_employer_burden || 0).toLocaleString()}원</td>
+                                <td>{slip.pay_date || '-'}</td>
+                              </tr>
+                            ))}
+                            <tr style={{ background: '#f3f4f6', fontWeight: 'bold' }}>
+                              <td colSpan="2">합계</td>
+                              <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.basePay).toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.nationalPension).toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.healthInsurance).toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.employmentInsurance).toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.longTermCare).toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.incomeTax).toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.localIncomeTax).toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.totalDeductions).toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.netPay).toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right', background: '#fbbf24' }}>{parseInt(payrollLedgerData.totals.employerNationalPension).toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right', background: '#fbbf24' }}>{parseInt(payrollLedgerData.totals.employerHealthInsurance).toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right', background: '#fbbf24' }}>{parseInt(payrollLedgerData.totals.employerEmploymentInsurance).toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right', background: '#fbbf24' }}>{parseInt(payrollLedgerData.totals.employerLongTermCare).toLocaleString()}원</td>
+                              <td style={{ textAlign: 'right', background: '#fbbf24' }}>{parseInt(payrollLedgerData.totals.totalEmployerBurden).toLocaleString()}원</td>
+                              <td>-</td>
+                            </tr>
+                          </>
+                        ) : (
+                          <tr>
+                            <td colSpan="16" style={{ textAlign: 'center', padding: '40px' }}>
+                              해당 월의 급여명세서가 없습니다.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

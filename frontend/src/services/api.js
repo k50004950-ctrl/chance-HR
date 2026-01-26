@@ -142,7 +142,8 @@ export const salaryAPI = {
   deleteSlip: (id) => api.delete(`/salary/slips/${id}`),
   publishSlip: (id) => api.put(`/salary/slips/${id}/publish`),
   generateMonthlySlips: (workplaceId, data) => api.post(`/salary/slips/generate/${workplaceId}`, data),
-  generateEmployeeHistory: (userId) => api.post(`/salary/slips/generate-history/${userId}`)
+  generateEmployeeHistory: (userId) => api.post(`/salary/slips/generate-history/${userId}`),
+  getPayrollLedger: (workplaceId, payrollMonth) => api.get(`/salary/payroll-ledger/${workplaceId}/${payrollMonth}`)
 };
 
 // 과거 직원 API

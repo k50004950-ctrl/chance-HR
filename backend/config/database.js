@@ -487,6 +487,11 @@ export const initDatabase = async () => {
           local_income_tax DECIMAL(15, 2) DEFAULT 0,
           total_deductions DECIMAL(15, 2) DEFAULT 0,
           net_pay DECIMAL(15, 2) DEFAULT 0,
+          employer_national_pension DECIMAL(15, 2) DEFAULT 0,
+          employer_health_insurance DECIMAL(15, 2) DEFAULT 0,
+          employer_employment_insurance DECIMAL(15, 2) DEFAULT 0,
+          employer_long_term_care DECIMAL(15, 2) DEFAULT 0,
+          total_employer_burden DECIMAL(15, 2) DEFAULT 0,
           published BOOLEAN DEFAULT FALSE,
           source_text TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -500,6 +505,33 @@ export const initDatabase = async () => {
         ALTER TABLE salary_slips 
         ADD COLUMN IF NOT EXISTS tax_type VARCHAR(20) DEFAULT '4대보험'
       `);
+      
+      // salary_slips에 사업주 부담금 컬럼 추가 (기존 DB 대응)
+      try {
+        await pool.query(`ALTER TABLE salary_slips ADD COLUMN IF NOT EXISTS employer_national_pension DECIMAL(15, 2) DEFAULT 0`);
+      } catch (e) {
+        console.log('employer_national_pension 컬럼은 이미 존재합니다.');
+      }
+      try {
+        await pool.query(`ALTER TABLE salary_slips ADD COLUMN IF NOT EXISTS employer_health_insurance DECIMAL(15, 2) DEFAULT 0`);
+      } catch (e) {
+        console.log('employer_health_insurance 컬럼은 이미 존재합니다.');
+      }
+      try {
+        await pool.query(`ALTER TABLE salary_slips ADD COLUMN IF NOT EXISTS employer_employment_insurance DECIMAL(15, 2) DEFAULT 0`);
+      } catch (e) {
+        console.log('employer_employment_insurance 컬럼은 이미 존재합니다.');
+      }
+      try {
+        await pool.query(`ALTER TABLE salary_slips ADD COLUMN IF NOT EXISTS employer_long_term_care DECIMAL(15, 2) DEFAULT 0`);
+      } catch (e) {
+        console.log('employer_long_term_care 컬럼은 이미 존재합니다.');
+      }
+      try {
+        await pool.query(`ALTER TABLE salary_slips ADD COLUMN IF NOT EXISTS total_employer_burden DECIMAL(15, 2) DEFAULT 0`);
+      } catch (e) {
+        console.log('total_employer_burden 컬럼은 이미 존재합니다.');
+      }
       
       // salary_slips에 published 컬럼 추가 (기존 DB 대응)
       await pool.query(`
@@ -1070,6 +1102,11 @@ export const initDatabase = async () => {
           local_income_tax REAL DEFAULT 0,
           total_deductions REAL DEFAULT 0,
           net_pay REAL DEFAULT 0,
+          employer_national_pension REAL DEFAULT 0,
+          employer_health_insurance REAL DEFAULT 0,
+          employer_employment_insurance REAL DEFAULT 0,
+          employer_long_term_care REAL DEFAULT 0,
+          total_employer_burden REAL DEFAULT 0,
           published INTEGER DEFAULT 0,
           source_text TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -1089,6 +1126,28 @@ export const initDatabase = async () => {
       const hasPublishedInSlips = slipsColumns.some((col) => col.name === 'published');
       if (!hasPublishedInSlips) {
         await run(`ALTER TABLE salary_slips ADD COLUMN published INTEGER DEFAULT 0`);
+      }
+      
+      // salary_slips에 사업주 부담금 컬럼 추가 (기존 DB 대응)
+      const hasEmployerNationalPension = slipsColumns.some((col) => col.name === 'employer_national_pension');
+      if (!hasEmployerNationalPension) {
+        await run(`ALTER TABLE salary_slips ADD COLUMN employer_national_pension REAL DEFAULT 0`);
+      }
+      const hasEmployerHealthInsurance = slipsColumns.some((col) => col.name === 'employer_health_insurance');
+      if (!hasEmployerHealthInsurance) {
+        await run(`ALTER TABLE salary_slips ADD COLUMN employer_health_insurance REAL DEFAULT 0`);
+      }
+      const hasEmployerEmploymentInsurance = slipsColumns.some((col) => col.name === 'employer_employment_insurance');
+      if (!hasEmployerEmploymentInsurance) {
+        await run(`ALTER TABLE salary_slips ADD COLUMN employer_employment_insurance REAL DEFAULT 0`);
+      }
+      const hasEmployerLongTermCare = slipsColumns.some((col) => col.name === 'employer_long_term_care');
+      if (!hasEmployerLongTermCare) {
+        await run(`ALTER TABLE salary_slips ADD COLUMN employer_long_term_care REAL DEFAULT 0`);
+      }
+      const hasTotalEmployerBurden = slipsColumns.some((col) => col.name === 'total_employer_burden');
+      if (!hasTotalEmployerBurden) {
+        await run(`ALTER TABLE salary_slips ADD COLUMN total_employer_burden REAL DEFAULT 0`);
       }
 
       // Announcements 테이블 (공지사항)

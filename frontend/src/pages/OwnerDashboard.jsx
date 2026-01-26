@@ -2644,64 +2644,97 @@ const OwnerDashboard = () => {
                   </>
                 )}
                 
-                {/* 모바일 "해야 할 일" 요약 카드 */}
+                {/* 모바일 홈 화면 재구성 (P1) */}
                 {isMobile && (
                   <div style={{ marginBottom: '20px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '16px', color: '#111827' }}>
-                      📋 오늘 해야 할 일
-                    </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {(() => {
-                        const today = new Date().toISOString().split('T')[0];
-                        const todayAttendance = attendance.filter(a => a.date === today);
-                        const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
-                        const notCheckedOut = todayAttendance.filter(a => a.check_in_time && !a.check_out_time).length;
-                        const checkedInToday = todayAttendance.filter(a => a.check_in_time).length;
-                        const notCheckedIn = activeEmployees.length - checkedInToday;
-                        
-                        return (
-                          <>
-                            {notCheckedOut > 0 && (
-                              <MobileActionCard
-                                icon="⚠️"
-                                title="미퇴근"
-                                count={`${notCheckedOut}명`}
-                                color="#ef4444"
-                                urgent={true}
-                                onClick={() => setActiveTab('attendance')}
-                              />
-                            )}
-                            {notCheckedIn > 0 && (
-                              <MobileActionCard
-                                icon="❌"
-                                title="미출근"
-                                count={`${notCheckedIn}명`}
-                                color="#f59e0b"
-                                urgent={false}
-                                onClick={() => setActiveTab('attendance')}
-                              />
-                            )}
-                            <MobileActionCard
-                              icon="✓"
-                              title="출근 완료"
-                              count={`${checkedInToday}명`}
-                              color="#10b981"
-                              urgent={false}
-                              onClick={() => setActiveTab('attendance')}
-                            />
-                            {employeeSlips.filter(s => !s.published).length > 0 && (
-                              <MobileActionCard
-                                icon="💸"
-                                title="급여 미발송"
-                                count={`${employeeSlips.filter(s => !s.published).length}명`}
-                                color="#667eea"
-                                urgent={true}
-                                onClick={() => setActiveTab('salary')}
-                              />
-                            )}
-                          </>
-                        );
-                      })()}
+                    {/* 미처리 알림 요약 카드 */}
+                    {(() => {
+                      const today = new Date().toISOString().split('T')[0];
+                      const todayAttendance = attendance.filter(a => a.date === today);
+                      const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
+                      const notCheckedOut = todayAttendance.filter(a => a.check_in_time && !a.check_out_time).length;
+                      const checkedInToday = todayAttendance.filter(a => a.check_in_time).length;
+                      const notCheckedIn = activeEmployees.length - checkedInToday;
+                      const unpublishedSlips = employeeSlips.filter(s => !s.published).length;
+                      
+                      return (
+                        <>
+                          {notCheckedOut > 0 && (
+                            <div 
+                              className="alert-summary-card urgent"
+                              onClick={() => handleTabChange('attendance')}
+                            >
+                              <div className="alert-summary-card-title">
+                                ⚠️ 미퇴근 직원
+                              </div>
+                              <div className="alert-summary-card-content">
+                                {notCheckedOut}명이 아직 퇴근하지 않았습니다
+                              </div>
+                            </div>
+                          )}
+                          {notCheckedIn > 0 && (
+                            <div 
+                              className="alert-summary-card"
+                              onClick={() => handleTabChange('attendance')}
+                            >
+                              <div className="alert-summary-card-title">
+                                ❌ 미출근 직원
+                              </div>
+                              <div className="alert-summary-card-content">
+                                {notCheckedIn}명이 아직 출근하지 않았습니다
+                              </div>
+                            </div>
+                          )}
+                          {unpublishedSlips > 0 && (
+                            <div 
+                              className="alert-summary-card"
+                              onClick={() => handleTabChange('salary')}
+                            >
+                              <div className="alert-summary-card-title">
+                                💸 급여 미발송
+                              </div>
+                              <div className="alert-summary-card-content">
+                                {unpublishedSlips}명의 급여명세서가 미발송 상태입니다
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                    
+                    {/* 큰 액션 버튼 3개 */}
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr',
+                      gap: '16px',
+                      marginTop: '24px'
+                    }}>
+                      <button
+                        className="home-action-button primary"
+                        onClick={() => handleTabChange('attendance')}
+                      >
+                        <div className="home-action-button-icon">📊</div>
+                        <div className="home-action-button-label">오늘 출근</div>
+                        <div className="home-action-button-desc">실시간 출퇴근 확인</div>
+                      </button>
+                      
+                      <button
+                        className="home-action-button"
+                        onClick={() => handleTabChange('roster')}
+                      >
+                        <div className="home-action-button-icon">👥</div>
+                        <div className="home-action-button-label">직원 관리</div>
+                        <div className="home-action-button-desc">직원 정보 확인 및 수정</div>
+                      </button>
+                      
+                      <button
+                        className="home-action-button"
+                        onClick={() => handleTabChange('salary')}
+                      >
+                        <div className="home-action-button-icon">💰</div>
+                        <div className="home-action-button-label">급여</div>
+                        <div className="home-action-button-desc">이번 달 급여 관리</div>
+                      </button>
                     </div>
                   </div>
                 )}

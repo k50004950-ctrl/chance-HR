@@ -40,6 +40,48 @@ const parseNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+// 근로소득 간이세액표에서 소득세 조회
+const getTaxFromTable = async (monthlySalary, dependentsCount) => {
+  try {
+    const year = new Date().getFullYear();
+    const dependents = Math.min(Math.max(1, dependentsCount), 11); // 1~11 범위 제한
+    const columnName = `dependents_${dependents}`;
+    
+    const taxData = await get(`
+      SELECT ${columnName} as tax
+      FROM tax_table
+      WHERE year = ?
+        AND salary_min <= ?
+        AND salary_max > ?
+      LIMIT 1
+    `, [year, monthlySalary, monthlySalary]);
+    
+    if (taxData && taxData.tax) {
+      return parseInt(taxData.tax);
+    }
+    
+    // 세액표에 없으면 최고 구간 세액 반환 (간이세액표 범위 초과)
+    const maxTax = await get(`
+      SELECT ${columnName} as tax
+      FROM tax_table
+      WHERE year = ?
+      ORDER BY salary_max DESC
+      LIMIT 1
+    `, [year]);
+    
+    if (maxTax && maxTax.tax) {
+      // 초과분에 대해서는 간단한 추정 (실제로는 더 복잡한 계산 필요)
+      return parseInt(maxTax.tax);
+    }
+    
+    // 기본값 0 반환
+    return 0;
+  } catch (error) {
+    console.error('세액표 조회 오류:', error);
+    return 0;
+  }
+};
+
 const parsePayrollLedger = (rawText) => {
   const text = String(rawText || '').replace(/\r/g, '').replace(/\s+/g, ' ').trim();
   const monthMatch = text.match(/귀속[:\s]*([0-9]{4})년\s*([0-9]{1,2})월/);
@@ -733,6 +775,37 @@ router.get('/slips/employee/:userId', authenticate, async (req, res) => {
   } catch (error) {
     console.error('급여명세서 조회 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 세액 자동 계산 (간이세액표 기반)
+router.post('/calculate-tax', authenticate, async (req, res) => {
+  try {
+    const { basePay, dependentsCount } = req.body;
+    
+    if (!basePay || basePay < 0) {
+      return res.status(400).json({ message: '과세대상 급여액을 입력해주세요.' });
+    }
+    
+    // 부양가족 수 (기본값 1)
+    const dependents = parseInt(dependentsCount) || 1;
+    
+    // 간이세액표에서 소득세 조회
+    const incomeTax = await getTaxFromTable(basePay, dependents);
+    
+    // 지방소득세 (소득세의 10%)
+    const localIncomeTax = Math.floor(incomeTax * 0.1);
+    
+    res.json({
+      basePay,
+      dependentsCount: dependents,
+      incomeTax,
+      localIncomeTax,
+      totalTax: incomeTax + localIncomeTax
+    });
+  } catch (error) {
+    console.error('세액 계산 오류:', error);
+    res.status(500).json({ message: '세액 계산 중 오류가 발생했습니다.' });
   }
 });
 

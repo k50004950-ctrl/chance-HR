@@ -673,6 +673,29 @@ export const initDatabase = async () => {
         console.log('✅ 2026년 기본 보험 요율이 등록되었습니다.');
       }
 
+      // Tax_table 테이블 (근로소득 간이세액표)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS tax_table (
+          id SERIAL PRIMARY KEY,
+          year INTEGER NOT NULL,
+          salary_min INTEGER NOT NULL,
+          salary_max INTEGER NOT NULL,
+          dependents_1 INTEGER DEFAULT 0,
+          dependents_2 INTEGER DEFAULT 0,
+          dependents_3 INTEGER DEFAULT 0,
+          dependents_4 INTEGER DEFAULT 0,
+          dependents_5 INTEGER DEFAULT 0,
+          dependents_6 INTEGER DEFAULT 0,
+          dependents_7 INTEGER DEFAULT 0,
+          dependents_8 INTEGER DEFAULT 0,
+          dependents_9 INTEGER DEFAULT 0,
+          dependents_10 INTEGER DEFAULT 0,
+          dependents_11 INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(year, salary_min, salary_max)
+        )
+      `);
+
       console.log('PostgreSQL 데이터베이스 초기화 완료');
     } else {
       // SQLite 초기화 (기존 코드)
@@ -1139,6 +1162,29 @@ export const initDatabase = async () => {
         ]);
         console.log('✅ 2026년 기본 보험 요율이 등록되었습니다.');
       }
+
+      // Tax_table 테이블 (근로소득 간이세액표)
+      await run(`
+        CREATE TABLE IF NOT EXISTS tax_table (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          year INTEGER NOT NULL,
+          salary_min INTEGER NOT NULL,
+          salary_max INTEGER NOT NULL,
+          dependents_1 INTEGER DEFAULT 0,
+          dependents_2 INTEGER DEFAULT 0,
+          dependents_3 INTEGER DEFAULT 0,
+          dependents_4 INTEGER DEFAULT 0,
+          dependents_5 INTEGER DEFAULT 0,
+          dependents_6 INTEGER DEFAULT 0,
+          dependents_7 INTEGER DEFAULT 0,
+          dependents_8 INTEGER DEFAULT 0,
+          dependents_9 INTEGER DEFAULT 0,
+          dependents_10 INTEGER DEFAULT 0,
+          dependents_11 INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(year, salary_min, salary_max)
+        )
+      `);
 
       // 기본 관리자 계정 생성
       const adminExists = await get('SELECT * FROM users WHERE username = ?', ['admin']);

@@ -20,8 +20,10 @@ const OwnerDashboard = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [tabLoading, setTabLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [formErrors, setFormErrors] = useState({});
+  const [highlightedRecordId, setHighlightedRecordId] = useState(null);
   const [salaryFlowStep, setSalaryFlowStep] = useState(1); // 급여 계산 단계: 1=근무내역, 2=미리보기, 3=확정, 4=발송
   const [editedSalaries, setEditedSalaries] = useState({}); // 수정된 급여: { employeeId: amount }
   const [salaryConfirmed, setSalaryConfirmed] = useState(false); // 급여 확정 여부
@@ -1714,12 +1716,21 @@ const OwnerDashboard = () => {
         check_out_time: formData.check_out_time || null,
         leave_type: formData.leave_type || null
       });
-      setMessage({ type: 'success', text: '근무시간이 수정되었습니다.' });
+      
+      // 성공 피드백
+      setToast({ message: '근무시간이 수정되었습니다.', type: 'success' });
+      
+      // 모달 닫고 데이터 갱신
       closeModal();
-      loadAttendance();
+      await loadAttendance();
+      
+      // 저장된 카드 Highlight (1.5초 후 제거)
+      setHighlightedRecordId(formData.id);
+      setTimeout(() => setHighlightedRecordId(null), 1500);
+      
     } catch (error) {
       console.error('근무시간 수정 오류:', error);
-      setMessage({ type: 'error', text: error.response?.data?.message || '오류가 발생했습니다.' });
+      setToast({ message: error.response?.data?.message || '저장에 실패했습니다.', type: 'error' });
     }
 
     setLoading(false);
@@ -1748,6 +1759,23 @@ const OwnerDashboard = () => {
       case 'monthly': return '월급';
       case 'annual': return '연봉';
       default: return type;
+    }
+  };
+
+  // 탭 전환 핸들러 (즉각 피드백 + 로딩 처리)
+  const handleTabChange = async (newTab) => {
+    // 1. 즉시 active 상태 변경
+    setActiveTab(newTab);
+    
+    // 2. 데이터 로딩이 필요한 탭인 경우 로딩 표시
+    const needsLoading = ['attendance', 'salary'].includes(newTab);
+    if (needsLoading) {
+      setTabLoading(true);
+      
+      // 최소 300ms 로딩 표시 (체감 피드백)
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      setTabLoading(false);
     }
   };
 
@@ -3320,7 +3348,7 @@ const OwnerDashboard = () => {
                           return (
                             <div
                               key={record.id}
-                              className="attendance-card"
+                              className={`attendance-card ${highlightedRecordId === record.id ? 'card-highlight' : ''}`}
                             >
                               {/* 상단: 직원명 + 상태배지 */}
                               <div style={{ 
@@ -7139,7 +7167,7 @@ const OwnerDashboard = () => {
         <nav className="mobile-bottom-nav">
           <button
             className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => handleTabChange('dashboard')}
           >
             <div className="mobile-nav-icon">🏠</div>
             <div className="mobile-nav-label">Home</div>
@@ -7147,7 +7175,7 @@ const OwnerDashboard = () => {
 
           <button
             className={`mobile-nav-item ${activeTab === 'attendance' ? 'active' : ''}`}
-            onClick={() => setActiveTab('attendance')}
+            onClick={() => handleTabChange('attendance')}
           >
             <div className="mobile-nav-icon">📊</div>
             <div className="mobile-nav-label">출근</div>
@@ -7155,7 +7183,7 @@ const OwnerDashboard = () => {
 
           <button
             className={`mobile-nav-item ${activeTab === 'salary' ? 'active' : ''}`}
-            onClick={() => setActiveTab('salary')}
+            onClick={() => handleTabChange('salary')}
           >
             <div className="mobile-nav-icon">💸</div>
             <div className="mobile-nav-label">급여</div>
@@ -7163,7 +7191,7 @@ const OwnerDashboard = () => {
 
           <button
             className={`mobile-nav-item ${activeTab === 'roster' ? 'active' : ''}`}
-            onClick={() => setActiveTab('roster')}
+            onClick={() => handleTabChange('roster')}
           >
             <div className="mobile-nav-icon">👥</div>
             <div className="mobile-nav-label">직원</div>
@@ -7171,7 +7199,7 @@ const OwnerDashboard = () => {
 
           <button
             className={`mobile-nav-item ${activeTab === 'more' ? 'active' : ''}`}
-            onClick={() => setActiveTab('more')}
+            onClick={() => handleTabChange('more')}
           >
             <div className="mobile-nav-icon">⋯</div>
             <div className="mobile-nav-label">더보기</div>

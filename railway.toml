@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm run build && cd backend && npm install"
+buildCommand = "cd frontend && npm install && npm run build && cd ../backend && npm install"
 
 [deploy]
 startCommand = "cd backend && npm start"

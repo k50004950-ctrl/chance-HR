@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "install-all": "cd backend && npm install && cd ../frontend && npm install",
-    "build": "cd frontend && npm install && npm run build",
-    "postinstall": "npm run build"
+    "build:frontend": "cd frontend && npm install && npm run build"
   },
   "dependencies": {
     "xlsx": "^0.18.5"

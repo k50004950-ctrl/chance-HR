@@ -1319,6 +1319,28 @@ const OwnerDashboard = () => {
     }
   };
 
+  // 퇴사 취소 처리
+  const handleCancelResignation = async (employeeId, employeeName) => {
+    if (!confirm(`${employeeName} 직원의 퇴사를 취소하시겠습니까?\n재직 상태로 복구됩니다.`)) {
+      return;
+    }
+
+    try {
+      const payload = {
+        employment_status: 'active',
+        resignation_date: null,
+        separation_type: null,
+        separation_reason: null
+      };
+      await employeeAPI.update(employeeId, payload);
+      setMessage({ type: 'success', text: '퇴사가 취소되고 재직 상태로 복구되었습니다.' });
+      loadEmployees();
+    } catch (error) {
+      console.error('퇴사 취소 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '퇴사 취소에 실패했습니다.' });
+    }
+  };
+
   // 직원 계정 삭제 기능 제거 - 퇴사한 직원도 과거 기록을 볼 수 있도록 유지
   // 퇴사 처리만 사용하여 직원을 비활성화합니다.
 
@@ -1921,6 +1943,13 @@ const OwnerDashboard = () => {
                                 {emp.separation_reason || '-'}
                               </td>
                               <td>
+                                <button
+                                  className="btn"
+                                  style={{ marginRight: '6px', padding: '6px 12px', fontSize: '12px', background: '#10b981', color: 'white' }}
+                                  onClick={() => handleCancelResignation(emp.id, emp.name)}
+                                >
+                                  퇴사 취소
+                                </button>
                                 <button
                                   className="btn btn-secondary"
                                   style={{ padding: '6px 12px', fontSize: '12px' }}

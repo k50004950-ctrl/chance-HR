@@ -615,25 +615,54 @@ const EmployeeDashboard = () => {
         <div className="card" style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
             <h3 style={{ margin: 0, color: '#374151' }}>📍 오늘의 출퇴근</h3>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button
-                className="btn btn-secondary"
-                onClick={checkCurrentLocation}
-                disabled={locationLoading}
-                style={{ padding: '8px 16px', fontSize: '14px' }}
-              >
-                {locationLoading ? '확인 중...' : '📍 위치 확인'}
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={() => setQrScannerOpen(true)}
-                disabled={qrProcessing || loading}
-                style={{ padding: '8px 16px', fontSize: '14px' }}
-              >
-                📷 QR 스캔
-              </button>
-            </div>
+            {employeeProfile?.employment_status !== 'resigned' && (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={checkCurrentLocation}
+                  disabled={locationLoading}
+                  style={{ padding: '8px 16px', fontSize: '14px' }}
+                >
+                  {locationLoading ? '확인 중...' : '📍 위치 확인'}
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setQrScannerOpen(true)}
+                  disabled={qrProcessing || loading}
+                  style={{ padding: '8px 16px', fontSize: '14px' }}
+                >
+                  📷 QR 스캔
+                </button>
+              </div>
+            )}
           </div>
+
+          {/* 퇴사한 직원 안내 */}
+          {employeeProfile?.employment_status === 'resigned' && (
+            <div style={{
+              padding: '20px',
+              background: '#fee2e2',
+              borderRadius: '8px',
+              border: '2px solid #fca5a5',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>👋</div>
+              <div style={{ fontSize: '18px', fontWeight: '600', color: '#991b1b', marginBottom: '8px' }}>
+                퇴사 처리된 계정입니다
+              </div>
+              <div style={{ fontSize: '14px', color: '#7f1d1d' }}>
+                출퇴근 체크가 불가능합니다.
+              </div>
+              {employeeProfile?.resignation_date && (
+                <div style={{ fontSize: '13px', color: '#991b1b', marginTop: '12px' }}>
+                  퇴사일: {formatDate(employeeProfile.resignation_date)}
+                </div>
+              )}
+            </div>
+          )}
+
+          {employeeProfile?.employment_status !== 'resigned' && (
+            <>
 
           {/* 현재 위치 정보 */}
           {currentLocation && (
@@ -763,6 +792,8 @@ const EmployeeDashboard = () => {
                 {(Number(todayStatus.record.work_hours) || 0).toFixed(1)}시간
               </div>
             </div>
+          )}
+          </>
           )}
         </div>
 

@@ -240,6 +240,27 @@ const OwnerDashboard = () => {
     }
   }, [showModal, modalType, formData.id]);
 
+  // 급여명세서 탭 전환 시 당월 급여대장 자동 로드
+  useEffect(() => {
+    const loadCurrentMonthLedger = async () => {
+      if (activeTab === 'salary-slips' && selectedWorkplace && !payrollLedgerData) {
+        try {
+          setLoading(true);
+          const response = await salaryAPI.getPayrollLedger(selectedWorkplace, payrollLedgerMonth);
+          setPayrollLedgerData(response.data);
+          setQrCollapsed(false); // 기본으로 펼쳐진 상태
+        } catch (error) {
+          console.error('당월 급여대장 자동 로드 오류:', error);
+          setPayrollLedgerData({ slips: [] }); // 빈 데이터로 초기화
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadCurrentMonthLedger();
+  }, [activeTab, selectedWorkplace]);
+
   const loadWorkplaces = async () => {
     try {
       const response = await workplaceAPI.getMy();
@@ -2356,83 +2377,209 @@ const OwnerDashboard = () => {
 
             {/* 급여명세서 */}
             {activeTab === 'salary-slips' && (
-              <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-                  <h3 style={{ color: '#374151', margin: 0 }}>📝 급여명세서 관리</h3>
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <>
+                {/* 당월 급여대장 */}
+                <div className="card" style={{ marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h3 style={{ color: '#374151', margin: 0 }}>📊 당월 급여대장</h3>
                     <button
-                      className="btn btn-success"
-                      onClick={async () => {
-                        const payrollMonth = prompt('급여명세서를 생성할 귀속월을 입력하세요 (예: 2026-01)');
-                        if (!payrollMonth) return;
-
-                        const payDate = prompt('지급일을 입력하세요 (예: 2026-02-05, 선택사항)');
-
-                        if (window.confirm(`${payrollMonth} 월 급여명세서를 자동 생성하시겠습니까?\n\n- 모든 직원의 출근 기록 기반으로 세전 급여 자동 계산\n- 공제 항목은 0원으로 생성되므로 나중에 수정 필요\n- 이미 생성된 직원은 건너뜁니다`)) {
-                          try {
-                            const response = await salaryAPI.generateMonthlySlips(selectedWorkplace, {
-                              payrollMonth,
-                              payDate: payDate || null
-                            });
-                            setMessage({ 
-                              type: 'success', 
-                              text: `${response.data.created}개 생성, ${response.data.skipped}개 건너뜀. 직원을 선택하여 공제 항목을 수정한 후 배포하세요.` 
-                            });
-                            // 선택된 직원 새로고침
-                            if (selectedSlipEmployee) {
-                              const slipsResponse = await salaryAPI.getEmployeeSlips(selectedSlipEmployee);
-                              setEmployeeSlips(slipsResponse.data || []);
-                            }
-                          } catch (error) {
-                            console.error('자동 생성 오류:', error);
-                            setMessage({ type: 'error', text: error.response?.data?.message || '자동 생성에 실패했습니다.' });
-                          }
-                        }
-                      }}
-                    >
-                      📅 월별 자동 생성
-                    </button>
-                    <button
-                      className="btn"
-                      style={{ background: '#10b981', color: 'white' }}
+                      className="btn btn-secondary"
+                      style={{ fontSize: '14px', padding: '6px 16px' }}
                       onClick={() => {
-                        setShowPayrollLedger(true);
+                        const newCollapsed = !qrCollapsed;
+                        setQrCollapsed(newCollapsed);
+                        // qrCollapsed를 ledger collapsed 상태로 사용
                       }}
                     >
-                      📊 월별 급여대장 보기
-                    </button>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => {
-                        setEditingSlipId(null);
-                        setSlipFormData({
-                          userId: '',
-                          payrollMonth: (() => {
-                            const now = new Date();
-                            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-                          })(),
-                          payDate: '',
-                          taxType: '4대보험',
-                          basePay: '',
-                          nationalPension: '',
-                          healthInsurance: '',
-                          employmentInsurance: '',
-                          longTermCare: '',
-                          incomeTax: '',
-                          localIncomeTax: ''
-                        });
-                        setShowSlipModal(true);
-                      }}
-                    >
-                      + 급여명세서 작성
+                      {qrCollapsed ? '▼ 펼치기' : '▲ 접기'}
                     </button>
                   </div>
+
+                  {!qrCollapsed && (
+                    <>
+                      <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <input
+                          type="month"
+                          className="form-input"
+                          value={payrollLedgerMonth}
+                          onChange={(e) => setPayrollLedgerMonth(e.target.value)}
+                          style={{ flex: 1, maxWidth: '300px' }}
+                        />
+                        <button
+                          className="btn btn-primary"
+                          onClick={async () => {
+                            try {
+                              setLoading(true);
+                              const response = await salaryAPI.getPayrollLedger(selectedWorkplace, payrollLedgerMonth);
+                              setPayrollLedgerData(response.data);
+                              setMessage({ type: 'success', text: `${payrollLedgerMonth} 급여대장을 조회했습니다.` });
+                            } catch (error) {
+                              console.error('급여대장 조회 오류:', error);
+                              setMessage({ type: 'error', text: error.response?.data?.message || '조회에 실패했습니다.' });
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                        >
+                          조회
+                        </button>
+                      </div>
+
+                      {payrollLedgerData && payrollLedgerData.slips && payrollLedgerData.slips.length > 0 ? (
+                        <div style={{ overflowX: 'auto' }}>
+                          <table className="data-table" style={{ fontSize: '12px' }}>
+                            <thead>
+                              <tr>
+                                <th rowSpan="2">직원명</th>
+                                <th rowSpan="2">인건비구분</th>
+                                <th rowSpan="2">기본급</th>
+                                <th colSpan="4">근로자 부담금</th>
+                                <th colSpan="2">세금</th>
+                                <th rowSpan="2">공제합계</th>
+                                <th rowSpan="2">실수령액</th>
+                                <th colSpan="4">사업주 부담금</th>
+                                <th rowSpan="2">사업주 부담금 합계</th>
+                                <th rowSpan="2">지급일</th>
+                              </tr>
+                              <tr>
+                                <th>국민연금</th>
+                                <th>건강보험</th>
+                                <th>고용보험</th>
+                                <th>장기요양</th>
+                                <th>소득세</th>
+                                <th>지방세</th>
+                                <th>국민연금</th>
+                                <th>건강보험</th>
+                                <th>고용보험</th>
+                                <th>장기요양</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {payrollLedgerData.slips.map((slip) => (
+                                <tr key={slip.id}>
+                                  <td>{slip.employee_name}</td>
+                                  <td>{slip.tax_type}</td>
+                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.base_pay).toLocaleString()}원</td>
+                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.national_pension || 0).toLocaleString()}원</td>
+                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.health_insurance || 0).toLocaleString()}원</td>
+                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.employment_insurance || 0).toLocaleString()}원</td>
+                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.long_term_care || 0).toLocaleString()}원</td>
+                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.income_tax || 0).toLocaleString()}원</td>
+                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.local_income_tax || 0).toLocaleString()}원</td>
+                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.total_deductions || 0).toLocaleString()}원</td>
+                                  <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{parseInt(slip.net_pay || 0).toLocaleString()}원</td>
+                                  <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(slip.employer_national_pension || 0).toLocaleString()}원</td>
+                                  <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(slip.employer_health_insurance || 0).toLocaleString()}원</td>
+                                  <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(slip.employer_employment_insurance || 0).toLocaleString()}원</td>
+                                  <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(slip.employer_long_term_care || 0).toLocaleString()}원</td>
+                                  <td style={{ textAlign: 'right', background: '#fef3c7', fontWeight: 'bold' }}>{parseInt(slip.total_employer_burden || 0).toLocaleString()}원</td>
+                                  <td>{slip.pay_date ? new Date(slip.pay_date).toLocaleDateString('ko-KR') : '-'}</td>
+                                </tr>
+                              ))}
+                              <tr style={{ background: '#f3f4f6', fontWeight: 'bold' }}>
+                                <td colSpan="2">합계</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_base_pay).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_national_pension).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_health_insurance).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_employment_insurance).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_long_term_care).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_income_tax).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_local_income_tax).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_deductions).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_net_pay).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(payrollLedgerData.totals.total_employer_national_pension).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(payrollLedgerData.totals.total_employer_health_insurance).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(payrollLedgerData.totals.total_employer_employment_insurance).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(payrollLedgerData.totals.total_employer_long_term_care).toLocaleString()}원</td>
+                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(payrollLedgerData.totals.total_employer_burden).toLocaleString()}원</td>
+                                <td>-</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
+                          {payrollLedgerData ? '해당 월에 배포된 급여명세서가 없습니다.' : '월을 선택하고 조회 버튼을 클릭하세요.'}
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
 
-                <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>
-                  💡 <strong>월별 자동 생성</strong>: 모든 직원의 출근 기록 기반으로 세전 급여가 자동 계산됩니다 (공제 항목 0원). 수정 후 배포하세요.<br/>
-                  📝 프리랜서(3.3%)는 원천징수가 자동 계산되며, 4대보험은 공제 항목을 직접 입력하세요.
-                </p>
+                {/* 급여명세서 관리 */}
+                <div className="card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                    <h3 style={{ color: '#374151', margin: 0 }}>📝 급여명세서 관리</h3>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                      <button
+                        className="btn btn-success"
+                        onClick={async () => {
+                          const payrollMonth = prompt('급여명세서를 생성할 귀속월을 입력하세요 (예: 2026-01)');
+                          if (!payrollMonth) return;
+
+                          const payDate = prompt('지급일을 입력하세요 (예: 2026-02-05, 선택사항)');
+
+                          if (window.confirm(`${payrollMonth} 월 급여명세서를 자동 생성하시겠습니까?\n\n- 모든 직원의 출근 기록 기반으로 세전 급여 자동 계산\n- 공제 항목은 0원으로 생성되므로 나중에 수정 필요\n- 이미 생성된 직원은 건너뜁니다`)) {
+                            try {
+                              const response = await salaryAPI.generateMonthlySlips(selectedWorkplace, {
+                                payrollMonth,
+                                payDate: payDate || null
+                              });
+                              setMessage({ 
+                                type: 'success', 
+                                text: `${response.data.created}개 생성, ${response.data.skipped}개 건너뜀. 직원을 선택하여 공제 항목을 수정한 후 배포하세요.` 
+                              });
+                              // 선택된 직원 새로고침
+                              if (selectedSlipEmployee) {
+                                const slipsResponse = await salaryAPI.getEmployeeSlips(selectedSlipEmployee);
+                                setEmployeeSlips(slipsResponse.data || []);
+                              }
+                              // 당월 급여대장 자동 갱신
+                              if (payrollMonth === payrollLedgerMonth) {
+                                const ledgerResponse = await salaryAPI.getPayrollLedger(selectedWorkplace, payrollLedgerMonth);
+                                setPayrollLedgerData(ledgerResponse.data);
+                              }
+                            } catch (error) {
+                              console.error('자동 생성 오류:', error);
+                              setMessage({ type: 'error', text: error.response?.data?.message || '자동 생성에 실패했습니다.' });
+                            }
+                          }
+                        }}
+                      >
+                        📅 월별 자동 생성
+                      </button>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => {
+                          setEditingSlipId(null);
+                          setSlipFormData({
+                            userId: '',
+                            payrollMonth: (() => {
+                              const now = new Date();
+                              return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                            })(),
+                            payDate: '',
+                            taxType: '4대보험',
+                            basePay: '',
+                            nationalPension: '',
+                            healthInsurance: '',
+                            employmentInsurance: '',
+                            longTermCare: '',
+                            incomeTax: '',
+                            localIncomeTax: ''
+                          });
+                          setShowSlipModal(true);
+                        }}
+                      >
+                        + 급여명세서 작성
+                      </button>
+                    </div>
+                  </div>
+
+                  <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>
+                    💡 <strong>월별 자동 생성</strong>: 모든 직원의 출근 기록 기반으로 세전 급여가 자동 계산됩니다 (공제 항목 0원). 수정 후 배포하세요.<br/>
+                    📝 프리랜서(3.3%)는 원천징수가 자동 계산되며, 4대보험은 공제 항목을 직접 입력하세요.
+                  </p>
 
                 {/* 직원 선택 */}
                 <div style={{ marginBottom: '20px' }}>
@@ -2616,7 +2763,8 @@ const OwnerDashboard = () => {
                     )}
                   </div>
                 )}
-              </div>
+                </div>
+              </>
             )}
 
             {/* 퇴직금 계산 */}
@@ -4815,6 +4963,16 @@ const OwnerDashboard = () => {
                     if (selectedSlipEmployee) {
                       const response = await salaryAPI.getEmployeeSlips(selectedSlipEmployee);
                       setEmployeeSlips(response.data || []);
+                    }
+
+                    // 월별 급여대장 자동 갱신 (귀속월이 payrollLedgerMonth와 일치하면)
+                    if (slipFormData.payrollMonth === payrollLedgerMonth) {
+                      try {
+                        const ledgerResponse = await salaryAPI.getPayrollLedger(selectedWorkplace, payrollLedgerMonth);
+                        setPayrollLedgerData(ledgerResponse.data);
+                      } catch (error) {
+                        console.error('급여대장 자동 갱신 오류:', error);
+                      }
                     }
                   } catch (error) {
                     console.error('급여명세서 저장 오류:', error);

@@ -854,7 +854,9 @@ h4 {
 
   /* 급여 계산 테이블 - 퇴직금 컬럼 추가로 인한 최적화 */
   .table {
+    display: table !important; /* 모바일에서도 테이블 표시 */
     font-size: 11px !important;
+    overflow-x: auto;
   }
 
   .table th,

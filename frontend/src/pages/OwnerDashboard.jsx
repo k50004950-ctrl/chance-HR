@@ -11,9 +11,13 @@ import DashboardSummaryCards from '../components/DashboardSummaryCards';
 import MainActionButtons from '../components/MainActionButtons';
 import Toast from '../components/Toast';
 import NotificationCenter from '../components/NotificationCenter';
+import MobileLayout from '../components/MobileLayout';
+import MobileDashboard from '../components/MobileDashboard';
+import useIsMobile from '../hooks/useIsMobile';
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [toast, setToast] = useState(null);
   const [formErrors, setFormErrors] = useState({});
@@ -1816,14 +1820,71 @@ const OwnerDashboard = () => {
   return (
     <div>
       <Header />
-      <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 style={{ margin: 0, color: '#374151' }}>사업주 대시보드</h2>
-          <NotificationCenter 
-            notifications={notifications}
-            onActionClick={handleNotificationAction}
-          />
-        </div>
+      <div className="container" style={{
+        ...(isMobile && {
+          padding: '0',
+          maxWidth: '100%',
+          paddingBottom: '80px' // 하단 네비게이션 공간
+        })
+      }}>
+        {/* 모바일 헤더 */}
+        {isMobile ? (
+          <div style={{
+            position: 'sticky',
+            top: 0,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            padding: '16px 16px 20px',
+            zIndex: 100,
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>
+                {activeTab === 'dashboard' ? '홈' : 
+                 activeTab === 'attendance' ? '출근 현황' :
+                 activeTab === 'salary' ? '급여 관리' :
+                 activeTab === 'roster' ? '직원 관리' : '더보기'}
+              </h2>
+              <NotificationCenter 
+                notifications={notifications}
+                onActionClick={handleNotificationAction}
+              />
+            </div>
+            
+            {/* 사업장 선택 (모바일) */}
+            {workplaces.length > 0 && (
+              <select
+                value={selectedWorkplace || ''}
+                onChange={(e) => setSelectedWorkplace(parseInt(e.target.value))}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  background: 'rgba(255,255,255,0.95)',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}
+              >
+                {workplaces.map((wp) => (
+                  <option key={wp.id} value={wp.id}>
+                    {wp.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h2 style={{ margin: 0, color: '#374151' }}>사업주 대시보드</h2>
+            <NotificationCenter 
+              notifications={notifications}
+              onActionClick={handleNotificationAction}
+            />
+          </div>
+        )}
 
         {message.text && (
           <div className={`alert alert-${message.type}`} style={{ marginBottom: '20px' }}>
@@ -1831,8 +1892,8 @@ const OwnerDashboard = () => {
           </div>
         )}
 
-        {/* 사업장 선택 */}
-        {workplaces.length > 0 && (
+        {/* 사업장 선택 (PC만) */}
+        {!isMobile && workplaces.length > 0 && (
           <div className="card" style={{ marginBottom: '20px' }}>
             <label className="form-label">사업장 선택</label>
             <select
@@ -1887,8 +1948,8 @@ const OwnerDashboard = () => {
               </div>
             )}
 
-            {/* 탭 메뉴 - 단순화 */}
-            <div className="nav-tabs">
+            {/* 탭 메뉴 - 단순화 (PC만) */}
+            {!isMobile && <div className="nav-tabs">
               <button
                 className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
                 onClick={() => setActiveTab('dashboard')}
@@ -2129,7 +2190,7 @@ const OwnerDashboard = () => {
                   </>
                 )}
               </div>
-            </div>
+            </div>}
 
             {activeTab === 'calendar' && (
               <div className="card">
@@ -2515,13 +2576,79 @@ const OwnerDashboard = () => {
 
             {/* 메인 대시보드 */}
             {activeTab === 'dashboard' && (
-              <div>
-                <h2 style={{ marginBottom: '8px', color: '#111827', fontSize: '28px', fontWeight: '700' }}>
-                  안녕하세요, {user?.name || '사장님'}! 👋
-                </h2>
-                <p style={{ marginBottom: '32px', color: '#6b7280', fontSize: '16px' }}>
-                  오늘도 수고하셨습니다. 확인이 필요한 사항을 정리했습니다.
-                </p>
+              <div style={{ ...(isMobile && { padding: '16px' }) }}>
+                {!isMobile && (
+                  <>
+                    <h2 style={{ marginBottom: '8px', color: '#111827', fontSize: '28px', fontWeight: '700' }}>
+                      안녕하세요, {user?.name || '사장님'}! 👋
+                    </h2>
+                    <p style={{ marginBottom: '32px', color: '#6b7280', fontSize: '16px' }}>
+                      오늘도 수고하셨습니다. 확인이 필요한 사항을 정리했습니다.
+                    </p>
+                  </>
+                )}
+                
+                {/* 모바일 "해야 할 일" 카드 */}
+                {isMobile && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '16px', color: '#111827' }}>
+                      📋 오늘 해야 할 일
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {(() => {
+                        const today = new Date().toISOString().split('T')[0];
+                        const todayAttendance = attendance.filter(a => a.date === today);
+                        const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
+                        const notCheckedOut = todayAttendance.filter(a => a.check_in_time && !a.check_out_time).length;
+                        const checkedInToday = todayAttendance.filter(a => a.check_in_time).length;
+                        const notCheckedIn = activeEmployees.length - checkedInToday;
+                        
+                        return (
+                          <>
+                            {notCheckedOut > 0 && (
+                              <MobileActionCard
+                                icon="⚠️"
+                                title="미퇴근 직원"
+                                count={`${notCheckedOut}명`}
+                                color="#ef4444"
+                                urgent={true}
+                                onClick={() => setActiveTab('attendance')}
+                              />
+                            )}
+                            {notCheckedIn > 0 && (
+                              <MobileActionCard
+                                icon="❌"
+                                title="미출근 직원"
+                                count={`${notCheckedIn}명`}
+                                color="#f59e0b"
+                                urgent={false}
+                                onClick={() => setActiveTab('attendance')}
+                              />
+                            )}
+                            <MobileActionCard
+                              icon="✓"
+                              title="출근 완료"
+                              count={`${checkedInToday}명`}
+                              color="#10b981"
+                              urgent={false}
+                              onClick={() => setActiveTab('attendance')}
+                            />
+                            {employeeSlips.length > 0 && (
+                              <MobileActionCard
+                                icon="💸"
+                                title="급여명세서 발송 대기"
+                                count={`${employeeSlips.filter(s => !s.published).length}명`}
+                                color="#667eea"
+                                urgent={employeeSlips.filter(s => !s.published).length > 0}
+                                onClick={() => setActiveTab('salary')}
+                              />
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
 
                 {/* 오늘 해야 할 일 */}
                 {notifications.filter(n => n.urgent).length > 0 && (
@@ -6696,6 +6823,14 @@ const OwnerDashboard = () => {
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
+        />
+      )}
+      
+      {/* 모바일 하단 네비게이션 */}
+      {isMobile && (
+        <MobileBottomNav 
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
         />
       )}
     </div>

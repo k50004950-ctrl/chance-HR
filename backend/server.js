@@ -65,6 +65,13 @@ if (!existsSync(uploadsDir)) {
 // 정적 파일 제공 (업로드된 파일)
 app.use('/uploads', express.static(uploadsDir));
 
+// 프론트엔드 정적 파일 제공 (프로덕션 환경)
+const frontendDistPath = join(__dirname, '..', 'frontend', 'dist');
+if (existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+  console.log('✅ 프론트엔드 정적 파일 서빙:', frontendDistPath);
+}
+
 // API 라우트
 app.use('/api/auth', authRoutes);
 app.use('/api/workplaces', workplaceRoutes);
@@ -95,9 +102,19 @@ app.get('/', (req, res) => {
   });
 });
 
-// 404 핸들러
-app.use((req, res) => {
-  res.status(404).json({ message: '요청한 리소스를 찾을 수 없습니다.' });
+// SPA를 위한 라우팅 (모든 비-API 요청을 index.html로)
+app.get('*', (req, res) => {
+  // API 요청이 아닌 경우에만 index.html 반환
+  if (!req.path.startsWith('/api')) {
+    const indexPath = join(frontendDistPath, 'index.html');
+    if (existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).json({ message: '요청한 리소스를 찾을 수 없습니다.' });
+    }
+  } else {
+    res.status(404).json({ message: '요청한 리소스를 찾을 수 없습니다.' });
+  }
 });
 
 // 에러 핸들러

@@ -321,7 +321,7 @@ const AdminDashboard = () => {
               <input
                 type="text"
                 className="form-input"
-                placeholder="이름/상호/사용자명/전화/이메일/영업사원 검색"
+                placeholder="이름/상호/사용자명/전화/이메일/추천인 검색"
                 value={ownerSearch}
                 onChange={(e) => setOwnerSearch(e.target.value)}
                 style={{ maxWidth: '320px' }}
@@ -374,7 +374,7 @@ const AdminDashboard = () => {
                       <th>사용자명</th>
                       <th>전화번호</th>
                       <th>이메일</th>
-                      <th>담당 영업사원</th>
+                      <th>추천인</th>
                       <th>세무사 상호</th>
                       <th>서비스 동의</th>
                       <th>관리 사업장</th>
@@ -660,7 +660,7 @@ const AdminDashboard = () => {
               <div>{selectedOwner.business_number || '-'}</div>
             </div>
             <div className="form-group">
-              <label className="form-label">담당 영업사원</label>
+              <label className="form-label">추천인</label>
               <div>{selectedOwner.sales_rep || '-'}</div>
             </div>
             <div className="form-group">

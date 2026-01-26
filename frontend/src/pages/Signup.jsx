@@ -336,14 +336,14 @@ const Signup = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">담당 영업사원</label>
+            <label className="form-label">추천인</label>
             <input
               type="text"
               name="sales_rep"
               className="form-input"
               value={formData.sales_rep}
               onChange={handleChange}
-              placeholder="담당 영업사원 이름"
+              placeholder="추천인 이름"
             />
           </div>
 
@@ -357,6 +357,9 @@ const Signup = () => {
               onChange={handleChange}
               placeholder="세무사 사무소 이름"
             />
+            <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+              추후 세무사사무실과 연계업데이트 작업을 할수있습니다
+            </p>
           </div>
 
           <div className="form-group">

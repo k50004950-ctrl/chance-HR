@@ -705,6 +705,33 @@ export const initDatabase = async () => {
         console.log('✅ 2026년 기본 보험 요율이 등록되었습니다.');
       }
 
+      // 2025년 기본 요율 데이터 삽입
+      const existing2025Rates = await pool.query(
+        "SELECT * FROM insurance_rates WHERE year = $1",
+        [2025]
+      );
+      if (existing2025Rates.rows.length === 0) {
+        await pool.query(`
+          INSERT INTO insurance_rates 
+          (year, national_pension_rate, national_pension_min, national_pension_max, 
+           health_insurance_rate, health_insurance_min, health_insurance_max,
+           long_term_care_rate, employment_insurance_rate, 
+           effective_from, effective_to, notes)
+          VALUES 
+          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        `, [
+          2025, 
+          0.045, 370000, 5900000,      // 국민연금 4.5%
+          0.03545, 280000, 100000000,  // 건강보험 3.545%
+          0.1281,                      // 장기요양보험 12.81%
+          0.009,                       // 고용보험 0.9%
+          '2025-01-01',
+          '2025-12-31',
+          '2025년 4대보험 요율'
+        ]);
+        console.log('✅ 2025년 기본 보험 요율이 등록되었습니다.');
+      }
+
       // Tax_table 테이블 (근로소득 간이세액표)
       await pool.query(`
         CREATE TABLE IF NOT EXISTS tax_table (
@@ -1220,6 +1247,29 @@ export const initDatabase = async () => {
           '2026년 4대보험 요율 (기본값)'
         ]);
         console.log('✅ 2026년 기본 보험 요율이 등록되었습니다.');
+      }
+
+      // 2025년 기본 요율 데이터 삽입
+      const existing2025Rates = await get('SELECT * FROM insurance_rates WHERE year = ?', [2025]);
+      if (!existing2025Rates) {
+        await run(`
+          INSERT INTO insurance_rates 
+          (year, national_pension_rate, national_pension_min, national_pension_max, 
+           health_insurance_rate, health_insurance_min, health_insurance_max,
+           long_term_care_rate, employment_insurance_rate, 
+           effective_from, effective_to, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          2025, 
+          0.045, 370000, 5900000,      // 국민연금 4.5%
+          0.03545, 280000, 100000000,  // 건강보험 3.545%
+          0.1281,                      // 장기요양보험 12.81%
+          0.009,                       // 고용보험 0.9%
+          '2025-01-01',
+          '2025-12-31',
+          '2025년 4대보험 요율'
+        ]);
+        console.log('✅ 2025년 기본 보험 요율이 등록되었습니다.');
       }
 
       // Tax_table 테이블 (근로소득 간이세액표)

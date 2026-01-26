@@ -6132,11 +6132,16 @@ const OwnerDashboard = () => {
               )}
 
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>
+                <button type="button" className="btn btn-secondary" onClick={closeModal} disabled={loading}>
                   취소
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? '처리 중...' : '저장'}
+                <button 
+                  type="submit" 
+                  className={`btn btn-primary ${loading ? 'btn-loading' : ''}`}
+                  disabled={loading}
+                  style={{ position: 'relative' }}
+                >
+                  <span style={{ visibility: loading ? 'hidden' : 'visible' }}>저장</span>
                 </button>
               </div>
             </form>
@@ -6392,11 +6397,16 @@ const OwnerDashboard = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>
+                <button type="button" className="btn btn-secondary" onClick={closeModal} disabled={loading}>
                   취소
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? '수정 중...' : '저장'}
+                <button 
+                  type="submit" 
+                  className={`btn btn-primary ${loading ? 'btn-loading' : ''}`}
+                  disabled={loading}
+                  style={{ position: 'relative' }}
+                >
+                  <span style={{ visibility: loading ? 'hidden' : 'visible' }}>저장</span>
                 </button>
               </div>
             </form>

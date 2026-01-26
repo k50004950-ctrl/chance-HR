@@ -1,6 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const Toast = ({ message, type = 'success', onClose, duration = 3000 }) => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
@@ -17,15 +25,25 @@ const Toast = ({ message, type = 'success', onClose, duration = 3000 }) => {
 
   const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
 
+  // 모바일: 하단 중앙, 데스크톱: 우상단
+  const positionStyle = isMobile ? {
+    bottom: 'calc(80px + env(safe-area-inset-bottom))', // 하단 네비(65px) + 여유(15px) + safe-area
+    left: '50%',
+    transform: 'translateX(-50%)',
+    animation: 'slideInUp 0.3s ease-out'
+  } : {
+    top: '24px',
+    right: '24px',
+    animation: 'slideInRight 0.3s ease-out'
+  };
+
   return (
     <div
       style={{
         position: 'fixed',
-        top: '24px',
-        right: '24px',
         zIndex: 10000,
-        minWidth: '300px',
-        maxWidth: '500px',
+        minWidth: isMobile ? 'calc(100% - 32px)' : '300px',
+        maxWidth: isMobile ? 'calc(100% - 32px)' : '500px',
         background: bgColor,
         color: 'white',
         padding: '16px 20px',
@@ -34,7 +52,7 @@ const Toast = ({ message, type = 'success', onClose, duration = 3000 }) => {
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        animation: 'slideInRight 0.3s ease-out'
+        ...positionStyle
       }}
     >
       <div style={{
@@ -46,11 +64,19 @@ const Toast = ({ message, type = 'success', onClose, duration = 3000 }) => {
         background: 'rgba(255, 255, 255, 0.2)',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        flexShrink: 0
       }}>
         {icon}
       </div>
-      <div style={{ flex: 1, fontSize: '15px', fontWeight: '600' }}>
+      <div style={{ 
+        flex: 1, 
+        fontSize: '15px', 
+        fontWeight: '600',
+        minWidth: 0,
+        wordBreak: 'keep-all',
+        overflowWrap: 'break-word'
+      }}>
         {message}
       </div>
       <button
@@ -62,12 +88,13 @@ const Toast = ({ message, type = 'success', onClose, duration = 3000 }) => {
           fontSize: '20px',
           cursor: 'pointer',
           padding: '0',
-          width: '24px',
-          height: '24px',
+          minWidth: '24px',
+          minHeight: '24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          opacity: '0.8'
+          opacity: '0.8',
+          flexShrink: 0
         }}
         onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
         onMouseLeave={(e) => e.currentTarget.style.opacity = '0.8'}

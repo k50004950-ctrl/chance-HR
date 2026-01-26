@@ -949,6 +949,46 @@ h4 {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ========================================
+   출근 기록 카드형 리스트 (모바일)
+   ======================================== */
+
+/* 데스크톱: 테이블만 표시 */
+.attendance-table-view {
+  display: block;
+}
+
+.attendance-card-view {
+  display: none;
+}
+
+/* 모바일: 카드만 표시 */
+@media (max-width: 768px) {
+  .attendance-table-view {
+    display: none !important;
+  }
+  
+  .attendance-card-view {
+    display: block !important;
+  }
+  
+  .attendance-card {
+    padding: 16px;
+    margin-bottom: 12px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    borderRadius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  
+  .attendance-card:active {
+    transform: scale(0.98);
+  }
+}
+
 /* 하단 네비게이션 바 */
 .mobile-bottom-nav {
   position: fixed;

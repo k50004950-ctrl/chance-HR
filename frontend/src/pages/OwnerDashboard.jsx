@@ -3314,77 +3314,93 @@ const OwnerDashboard = () => {
                       </div>
 
                       {/* 모바일 카드 뷰 */}
-                      <div className="attendance-card-view" style={{ display: 'none' }}>
+                      <div className="attendance-card-view">
                         {attendance.map((record) => {
                           const status = getAttendanceStatus(record);
                           return (
                             <div
                               key={record.id}
                               className="attendance-card"
-                              style={{
-                                padding: '16px',
-                                marginBottom: '12px',
-                                background: 'white',
-                                border: '1px solid #e5e7eb',
-                                borderRadius: '12px',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                                transition: 'all 0.2s'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                                e.currentTarget.style.transform = 'translateY(-2px)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
-                                e.currentTarget.style.transform = 'translateY(0)';
-                              }}
                             >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                <div style={{ fontSize: '16px', fontWeight: '700', color: '#111827' }}>
+                              {/* 상단: 직원명 + 상태배지 */}
+                              <div style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center', 
+                                marginBottom: '16px',
+                                minHeight: '32px'
+                              }}>
+                                <div style={{ 
+                                  fontSize: '17px', 
+                                  fontWeight: '700', 
+                                  color: '#111827',
+                                  flex: 1,
+                                  minWidth: 0,
+                                  paddingRight: '12px'
+                                }}>
                                   {record.employee_name}
                                 </div>
                                 <span style={{
                                   padding: '6px 12px',
-                                  borderRadius: '6px',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
+                                  borderRadius: '8px',
+                                  fontSize: '13px',
+                                  fontWeight: '700',
                                   background: status.bgColor || '#f3f4f6',
-                                  color: status.color
+                                  color: status.color,
+                                  whiteSpace: 'nowrap'
                                 }}>
                                   {status.label}
                                 </span>
                               </div>
                               
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                              {/* 본문: 2열 그리드 */}
+                              <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: '1fr 1fr', 
+                                gap: '16px 12px', 
+                                marginBottom: '16px',
+                                padding: '12px',
+                                background: '#f9fafb',
+                                borderRadius: '8px'
+                              }}>
                                 <div>
-                                  <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>날짜</div>
-                                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>{formatDate(record.date)}</div>
+                                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px', fontWeight: '600' }}>📅 날짜</div>
+                                  <div style={{ fontSize: '15px', fontWeight: '700', color: '#374151' }}>{formatDate(record.date)}</div>
                                 </div>
                                 <div>
-                                  <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>근무시간</div>
-                                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px', fontWeight: '600' }}>⏱️ 근무시간</div>
+                                  <div style={{ fontSize: '15px', fontWeight: '700', color: '#374151' }}>
                                     {record.work_hours ? `${Number(record.work_hours).toFixed(1)}h` : '-'}
                                   </div>
                                 </div>
-                              </div>
-
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                                 <div>
-                                  <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>출근</div>
-                                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#059669' }}>{formatTime(record.check_in_time)}</div>
+                                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px', fontWeight: '600' }}>🟢 출근</div>
+                                  <div style={{ fontSize: '15px', fontWeight: '700', color: '#059669' }}>{formatTime(record.check_in_time)}</div>
                                 </div>
                                 <div>
-                                  <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>퇴근</div>
-                                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#dc2626' }}>{formatTime(record.check_out_time)}</div>
+                                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px', fontWeight: '600' }}>🔴 퇴근</div>
+                                  <div style={{ fontSize: '15px', fontWeight: '700', color: '#dc2626' }}>{formatTime(record.check_out_time)}</div>
                                 </div>
                               </div>
 
+                              {/* 하단: 수정 버튼 full-width */}
                               <button
                                 className="btn btn-secondary"
-                                style={{ width: '100%', fontSize: '13px', padding: '8px' }}
+                                style={{ 
+                                  width: '100%', 
+                                  fontSize: '14px', 
+                                  fontWeight: '600',
+                                  padding: '14px 16px',
+                                  minHeight: '48px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '8px'
+                                }}
                                 onClick={() => openModal('editAttendance', record)}
                               >
-                                ✏️ 수정
+                                <span style={{ fontSize: '16px' }}>✏️</span>
+                                <span>수정</span>
                               </button>
                             </div>
                           );

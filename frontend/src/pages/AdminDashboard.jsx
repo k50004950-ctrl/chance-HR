@@ -177,7 +177,6 @@ const AdminDashboard = () => {
   };
 
 
-  const ownerCollator = new Intl.Collator('ko-KR', { sensitivity: 'base' });
   const normalizedSearch = ownerSearch.trim().toLowerCase();
   const filteredOwners = owners
     .filter((owner) => {
@@ -195,9 +194,8 @@ const AdminDashboard = () => {
       );
     })
     .sort((a, b) => {
-      const nameCompare = ownerCollator.compare(a.name || '', b.name || '');
-      if (nameCompare !== 0) return nameCompare;
-      return ownerCollator.compare(a.business_name || '', b.business_name || '');
+      // 등록일 기준 최신순 (내림차순)
+      return new Date(b.created_at) - new Date(a.created_at);
     });
 
   return (

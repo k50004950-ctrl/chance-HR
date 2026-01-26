@@ -1994,18 +1994,18 @@ const OwnerDashboard = () => {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        zIndex: 99
+                        zIndex: 999
                       }}
                     />
                     <div style={{
                       position: 'absolute',
                       top: '100%',
-                      left: 0,
+                      right: 0,
                       marginTop: '8px',
                       background: 'white',
                       borderRadius: '12px',
                       boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-                      zIndex: 100,
+                      zIndex: 1000,
                       minWidth: '220px',
                       border: '1px solid #e5e7eb',
                       overflow: 'hidden'

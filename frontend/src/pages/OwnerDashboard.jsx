@@ -23,6 +23,7 @@ const OwnerDashboard = () => {
   const [toast, setToast] = useState(null);
   const [formErrors, setFormErrors] = useState({});
   const [salaryFlowStep, setSalaryFlowStep] = useState(1); // 급여 계산 단계: 1=근무내역, 2=미리보기, 3=확정, 4=발송
+  const [editedSalaries, setEditedSalaries] = useState({}); // 수정된 급여: { employeeId: amount }
   const [salaryConfirmed, setSalaryConfirmed] = useState(false); // 급여 확정 여부
   const [showConfirmWarning, setShowConfirmWarning] = useState(false); // 확정 경고 모달
   const [notifications, setNotifications] = useState([]); // 알림 목록
@@ -462,25 +463,23 @@ const OwnerDashboard = () => {
   // 급여명세서 탭 전환 시 당월 급여대장 자동 로드 및 펼치기
   useEffect(() => {
     const loadCurrentMonthLedger = async () => {
-      if (activeTab === 'salary-slips' && selectedWorkplace) {
+      if (activeTab === 'salary-slips' && selectedWorkplace && payrollLedgerMonth) {
         setQrCollapsed(false); // 탭 진입 시 항상 펼치기
-        if (!payrollLedgerData) {
-          try {
-            setLoading(true);
-            const response = await salaryAPI.getPayrollLedger(selectedWorkplace, payrollLedgerMonth);
-            setPayrollLedgerData(response.data);
-          } catch (error) {
-            console.error('당월 급여대장 자동 로드 오류:', error);
-            setPayrollLedgerData({ slips: [] }); // 빈 데이터로 초기화
-          } finally {
-            setLoading(false);
-          }
+        try {
+          setLoading(true);
+          const response = await salaryAPI.getPayrollLedger(selectedWorkplace, payrollLedgerMonth);
+          setPayrollLedgerData(response.data);
+        } catch (error) {
+          console.error('당월 급여대장 자동 로드 오류:', error);
+          setPayrollLedgerData({ slips: [] }); // 빈 데이터로 초기화
+        } finally {
+          setLoading(false);
         }
       }
     };
 
     loadCurrentMonthLedger();
-  }, [activeTab, selectedWorkplace]);
+  }, [activeTab, selectedWorkplace, payrollLedgerMonth]);
 
   const loadWorkplaces = async () => {
     try {
@@ -2002,7 +2001,7 @@ const OwnerDashboard = () => {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        zIndex: 999
+                        zIndex: 9999
                       }}
                     />
                     <div style={{
@@ -2013,7 +2012,7 @@ const OwnerDashboard = () => {
                       background: 'white',
                       borderRadius: '12px',
                       boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-                      zIndex: 1000,
+                      zIndex: 10000,
                       minWidth: '220px',
                       border: '1px solid #e5e7eb',
                       overflow: 'hidden'
@@ -3541,6 +3540,19 @@ const OwnerDashboard = () => {
                       </p>
                     ) : (
                       <>
+                        {salaryFlowStep === 2 && (
+                          <div style={{
+                            padding: '16px',
+                            background: '#f0fdf4',
+                            border: '1px solid #86efac',
+                            borderRadius: '8px',
+                            marginBottom: '20px',
+                            fontSize: '14px',
+                            color: '#166534'
+                          }}>
+                            💡 <strong>급여 수정:</strong> 총 지급액을 수정할 수 있습니다. 수정 후 다음 단계로 진행하세요.
+                          </div>
+                        )}
                         <div style={{ overflowX: 'auto' }}>
                           <table className="table">
                             <thead>
@@ -3559,7 +3571,7 @@ const OwnerDashboard = () => {
                             </thead>
                             <tbody>
                               {salaryData.employees.map((emp) => {
-                                const totalPay = emp.totalPay ?? emp.calculatedSalary;
+                                const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
                                 // 급여일 계산
                                 const getPayDayText = () => {
                                   if (emp.payScheduleType === 'monthly') {
@@ -3584,7 +3596,31 @@ const OwnerDashboard = () => {
                                   {emp.weeklyHolidayPayAmount > 0 ? `+${Number(emp.weeklyHolidayPayAmount).toLocaleString()}원` : '-'}
                                 </td>
                                     <td style={{ fontWeight: '700', color: '#667eea' }}>
-                                  {formatCurrency(totalPay)}
+                                      {salaryFlowStep === 2 ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                          <input
+                                            type="number"
+                                            className="form-input"
+                                            value={editedSalaries[emp.employeeId] ?? totalPay}
+                                            onChange={(e) => {
+                                              const value = parseInt(e.target.value) || 0;
+                                              setEditedSalaries(prev => ({
+                                                ...prev,
+                                                [emp.employeeId]: value
+                                              }));
+                                            }}
+                                            style={{ 
+                                              width: '140px', 
+                                              padding: '6px 8px', 
+                                              fontSize: '14px',
+                                              fontWeight: '700'
+                                            }}
+                                          />
+                                          <span style={{ fontSize: '14px' }}>원</span>
+                                        </div>
+                                      ) : (
+                                        formatCurrency(totalPay)
+                                      )}
                                     </td>
                                   </tr>
                                 );

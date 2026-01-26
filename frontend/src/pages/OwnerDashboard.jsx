@@ -4618,7 +4618,11 @@ const OwnerDashboard = () => {
                         }
                         try {
                           setMessage({ type: 'info', text: '4대보험료 자동 계산 중...' });
-                          const response = await salaryAPI.calculateInsurance(parseFloat(slipFormData.basePay));
+                          // 귀속월 기준으로 4대보험료 계산
+                          const response = await salaryAPI.calculateInsurance(
+                            parseFloat(slipFormData.basePay),
+                            slipFormData.payrollMonth
+                          );
                           const insurance = response.data.insurance;
                           
                           setSlipFormData({
@@ -4628,7 +4632,7 @@ const OwnerDashboard = () => {
                             longTermCare: insurance.longTermCare,
                             employmentInsurance: insurance.employmentInsurance
                           });
-                          setMessage({ type: 'success', text: '4대보험료가 자동 계산되었습니다!' });
+                          setMessage({ type: 'success', text: `4대보험료가 자동 계산되었습니다! (${slipFormData.payrollMonth || '현재'} 기준 요율 적용)` });
                         } catch (error) {
                           console.error('4대보험료 자동 계산 오류:', error);
                           setMessage({ type: 'error', text: error.response?.data?.message || '4대보험료 계산에 실패했습니다.' });

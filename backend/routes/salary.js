@@ -812,31 +812,35 @@ router.post('/calculate-tax', authenticate, async (req, res) => {
 // 4대보험료 자동 계산
 router.post('/calculate-insurance', authenticate, async (req, res) => {
   try {
-    const { basePay } = req.body;
+    const { basePay, payrollMonth } = req.body;
     
     if (!basePay || basePay < 0) {
       return res.status(400).json({ message: '과세대상 급여액을 입력해주세요.' });
     }
     
-    // 현재 적용되는 보험 요율 조회
-    const currentDate = new Date().toISOString().split('T')[0];
+    // 귀속월 기준 연도 추출 (예: "2025-12" -> 2025)
+    let targetYear = new Date().getFullYear();
+    if (payrollMonth) {
+      targetYear = parseInt(payrollMonth.split('-')[0]);
+    }
+    
+    console.log(`📅 귀속월 기준 연도: ${targetYear}`);
+    
+    // 해당 연도의 보험 요율 조회
     let rates = await get(`
       SELECT * FROM insurance_rates 
-      WHERE effective_from <= ? 
-        AND (effective_to IS NULL OR effective_to >= ?)
+      WHERE year = ?
       ORDER BY effective_from DESC
       LIMIT 1
-    `, [currentDate, currentDate]);
+    `, [targetYear]);
     
     if (!rates) {
-      // 현재 연도 기본 요율 조회
-      const currentYear = new Date().getFullYear();
+      // 해당 연도 요율이 없으면 가장 최근 요율 사용
       rates = await get(`
         SELECT * FROM insurance_rates 
-        WHERE year = ?
-        ORDER BY effective_from DESC
+        ORDER BY year DESC, effective_from DESC
         LIMIT 1
-      `, [currentYear]);
+      `);
     }
     
     if (!rates) {

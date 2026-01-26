@@ -56,24 +56,18 @@ const MobileActionCard = ({ icon, title, count, color = '#667eea', urgent = fals
           {count}
         </div>
       </div>
-      {urgent && (
-        <div style={{
-          background: '#dc2626',
-          color: 'white',
-          padding: '4px 12px',
-          borderRadius: '12px',
-          fontSize: '11px',
-          fontWeight: '700',
-          whiteSpace: 'nowrap'
-        }}>
-          긴급
-        </div>
-      )}
       <div style={{
-        fontSize: '20px',
-        color: '#9ca3af'
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        color: '#9ca3af',
+        fontSize: '13px',
+        fontWeight: '600',
+        whiteSpace: 'nowrap',
+        flexShrink: 0
       }}>
-        ›
+        자세히
+        <span style={{ fontSize: '18px' }}>›</span>
       </div>
     </div>
   );

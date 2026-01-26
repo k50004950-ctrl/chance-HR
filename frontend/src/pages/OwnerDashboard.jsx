@@ -2585,7 +2585,7 @@ const OwnerDashboard = () => {
                   </>
                 )}
                 
-                {/* 모바일 "해야 할 일" 카드 */}
+                {/* 모바일 "해야 할 일" 요약 카드 */}
                 {isMobile && (
                   <div style={{ marginBottom: '20px' }}>
                     <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '16px', color: '#111827' }}>
@@ -2605,7 +2605,7 @@ const OwnerDashboard = () => {
                             {notCheckedOut > 0 && (
                               <MobileActionCard
                                 icon="⚠️"
-                                title="미퇴근 직원"
+                                title="미퇴근"
                                 count={`${notCheckedOut}명`}
                                 color="#ef4444"
                                 urgent={true}
@@ -2615,7 +2615,7 @@ const OwnerDashboard = () => {
                             {notCheckedIn > 0 && (
                               <MobileActionCard
                                 icon="❌"
-                                title="미출근 직원"
+                                title="미출근"
                                 count={`${notCheckedIn}명`}
                                 color="#f59e0b"
                                 urgent={false}
@@ -2630,13 +2630,13 @@ const OwnerDashboard = () => {
                               urgent={false}
                               onClick={() => setActiveTab('attendance')}
                             />
-                            {employeeSlips.length > 0 && (
+                            {employeeSlips.filter(s => !s.published).length > 0 && (
                               <MobileActionCard
                                 icon="💸"
-                                title="급여명세서 발송 대기"
+                                title="급여 미발송"
                                 count={`${employeeSlips.filter(s => !s.published).length}명`}
                                 color="#667eea"
-                                urgent={employeeSlips.filter(s => !s.published).length > 0}
+                                urgent={true}
                                 onClick={() => setActiveTab('salary')}
                               />
                             )}
@@ -2758,7 +2758,7 @@ const OwnerDashboard = () => {
                   onCreatePayroll={() => setActiveTab('salary-slips')}
                 />
 
-                {/* 일반 알림 */}
+                {/* 일반 알림 - 요약 카드 */}
                 {notifications.filter(n => !n.urgent).length > 0 && (
                   <div className="card" style={{ marginTop: '32px' }}>
                     <h3 style={{ marginBottom: '16px', color: '#374151' }}>📌 확인해주세요</h3>
@@ -2772,7 +2772,10 @@ const OwnerDashboard = () => {
                             borderRadius: '12px',
                             cursor: 'pointer',
                             transition: 'all 0.2s',
-                            border: '1px solid #e5e7eb'
+                            border: '1px solid #e5e7eb',
+                            wordBreak: 'keep-all',
+                            overflowWrap: 'break-word',
+                            whiteSpace: 'normal'
                           }}
                           onClick={() => handleNotificationAction(notif.action)}
                           onMouseEnter={(e) => {
@@ -2784,21 +2787,46 @@ const OwnerDashboard = () => {
                             e.currentTarget.style.boxShadow = 'none';
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{ fontSize: '28px' }}>{notif.icon}</div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
-                                {notif.title}
-                              </div>
-                              <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                                {notif.message}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+                            {/* 요약 정보 */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '28px', flexShrink: 0 }}>{notif.icon}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <span style={{ 
+                                  fontWeight: '700', 
+                                  color: '#374151', 
+                                  fontSize: '16px',
+                                  wordBreak: 'keep-all',
+                                  overflowWrap: 'break-word'
+                                }}>
+                                  {notif.title}
+                                </span>
+                                <span style={{ 
+                                  fontWeight: '700', 
+                                  color: '#667eea', 
+                                  fontSize: '20px',
+                                  marginLeft: '8px',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  {notif.message}
+                                </span>
                               </div>
                             </div>
+                            {/* 자세히 보기 버튼 */}
                             <button
                               className="btn btn-secondary"
-                              style={{ fontSize: '13px', padding: '6px 16px', whiteSpace: 'nowrap' }}
+                              style={{ 
+                                fontSize: '13px', 
+                                padding: '8px 16px', 
+                                whiteSpace: 'nowrap',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                flexShrink: 0
+                              }}
                             >
-                              {notif.actionLabel}
+                              자세히 보기
+                              <span style={{ fontSize: '16px' }}>›</span>
                             </button>
                           </div>
                         </div>

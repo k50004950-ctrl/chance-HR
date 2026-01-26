@@ -2644,103 +2644,110 @@ const OwnerDashboard = () => {
                   </>
                 )}
                 
-                {/* 모바일 홈 화면 재구성 (P1) */}
+                {/* 모바일 홈 화면 "정보 우선순위" 재배치 */}
                 {isMobile && (
-                  <div style={{ marginBottom: '20px' }}>
-                    {/* 미처리 알림 요약 카드 */}
+                  <div>
                     {(() => {
                       const today = new Date().toISOString().split('T')[0];
                       const todayAttendance = attendance.filter(a => a.date === today);
                       const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
                       const notCheckedOut = todayAttendance.filter(a => a.check_in_time && !a.check_out_time).length;
                       const checkedInToday = todayAttendance.filter(a => a.check_in_time).length;
+                      const lateToday = todayAttendance.filter(a => {
+                        if (!a.check_in_time || !a.employee_work_start_time) return false;
+                        const checkIn = new Date(a.check_in_time);
+                        const [hours, minutes] = a.employee_work_start_time.split(':');
+                        const workStart = new Date(checkIn);
+                        workStart.setHours(parseInt(hours), parseInt(minutes), 0);
+                        return checkIn > workStart;
+                      }).length;
                       const notCheckedIn = activeEmployees.length - checkedInToday;
                       const unpublishedSlips = employeeSlips.filter(s => !s.published).length;
                       
                       return (
                         <>
-                          {notCheckedOut > 0 && (
-                            <div 
-                              className="alert-summary-card urgent"
-                              onClick={() => handleTabChange('attendance')}
-                            >
-                              <div className="alert-summary-card-title">
-                                ⚠️ 미퇴근 직원
+                          {/* 1. 오늘 할 일 요약 */}
+                          {(notCheckedIn > 0 || unpublishedSlips > 0) && (
+                            <div className="mobile-home-summary">
+                              <div className="mobile-home-summary-title">
+                                📋 오늘 할 일
                               </div>
-                              <div className="alert-summary-card-content">
-                                {notCheckedOut}명이 아직 퇴근하지 않았습니다
-                              </div>
+                              {notCheckedIn > 0 && (
+                                <div className="mobile-summary-row" onClick={() => handleTabChange('attendance')}>
+                                  <div className="mobile-summary-label">미출근</div>
+                                  <div className="mobile-summary-value urgent">{notCheckedIn}명</div>
+                                </div>
+                              )}
+                              {unpublishedSlips > 0 && (
+                                <div className="mobile-summary-row" onClick={() => handleTabChange('salary')}>
+                                  <div className="mobile-summary-label">급여 미발송</div>
+                                  <div className="mobile-summary-value urgent">{unpublishedSlips}명</div>
+                                </div>
+                              )}
                             </div>
                           )}
-                          {notCheckedIn > 0 && (
-                            <div 
-                              className="alert-summary-card"
+                          
+                          {/* 2. 오늘 출근 요약 */}
+                          <div className="mobile-home-summary">
+                            <div className="mobile-home-summary-title">
+                              📊 오늘 출근 요약
+                            </div>
+                            <div className="mobile-summary-row">
+                              <div className="mobile-summary-label">출근</div>
+                              <div className="mobile-summary-value success">{checkedInToday}명</div>
+                            </div>
+                            <div className="mobile-summary-row">
+                              <div className="mobile-summary-label">지각</div>
+                              <div className="mobile-summary-value">{lateToday}명</div>
+                            </div>
+                            <div className="mobile-summary-row">
+                              <div className="mobile-summary-label">미퇴근</div>
+                              <div className="mobile-summary-value urgent">{notCheckedOut}명</div>
+                            </div>
+                          </div>
+                          
+                          {/* 3. 큰 버튼 3개 */}
+                          <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '1fr',
+                            gap: '12px',
+                            marginTop: '16px'
+                          }}>
+                            <button
+                              className="home-action-button primary"
                               onClick={() => handleTabChange('attendance')}
                             >
-                              <div className="alert-summary-card-title">
-                                ❌ 미출근 직원
-                              </div>
-                              <div className="alert-summary-card-content">
-                                {notCheckedIn}명이 아직 출근하지 않았습니다
-                              </div>
-                            </div>
-                          )}
-                          {unpublishedSlips > 0 && (
-                            <div 
-                              className="alert-summary-card"
+                              <div className="home-action-button-icon">📊</div>
+                              <div className="home-action-button-label">출근</div>
+                              <div className="home-action-button-desc">출퇴근 현황</div>
+                            </button>
+                            
+                            <button
+                              className="home-action-button"
+                              onClick={() => handleTabChange('roster')}
+                            >
+                              <div className="home-action-button-icon">👥</div>
+                              <div className="home-action-button-label">직원</div>
+                              <div className="home-action-button-desc">직원 관리</div>
+                            </button>
+                            
+                            <button
+                              className="home-action-button"
                               onClick={() => handleTabChange('salary')}
                             >
-                              <div className="alert-summary-card-title">
-                                💸 급여 미발송
-                              </div>
-                              <div className="alert-summary-card-content">
-                                {unpublishedSlips}명의 급여명세서가 미발송 상태입니다
-                              </div>
-                            </div>
-                          )}
+                              <div className="home-action-button-icon">💰</div>
+                              <div className="home-action-button-label">급여</div>
+                              <div className="home-action-button-desc">급여 관리</div>
+                            </button>
+                          </div>
                         </>
                       );
                     })()}
-                    
-                    {/* 큰 액션 버튼 3개 */}
-                    <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: '1fr',
-                      gap: '16px',
-                      marginTop: '24px'
-                    }}>
-                      <button
-                        className="home-action-button primary"
-                        onClick={() => handleTabChange('attendance')}
-                      >
-                        <div className="home-action-button-icon">📊</div>
-                        <div className="home-action-button-label">오늘 출근</div>
-                        <div className="home-action-button-desc">실시간 출퇴근 확인</div>
-                      </button>
-                      
-                      <button
-                        className="home-action-button"
-                        onClick={() => handleTabChange('roster')}
-                      >
-                        <div className="home-action-button-icon">👥</div>
-                        <div className="home-action-button-label">직원 관리</div>
-                        <div className="home-action-button-desc">직원 정보 확인 및 수정</div>
-                      </button>
-                      
-                      <button
-                        className="home-action-button"
-                        onClick={() => handleTabChange('salary')}
-                      >
-                        <div className="home-action-button-icon">💰</div>
-                        <div className="home-action-button-label">급여</div>
-                        <div className="home-action-button-desc">이번 달 급여 관리</div>
-                      </button>
-                    </div>
                   </div>
                 )}
 
-                {/* 오늘 해야 할 일 */}
-                {notifications.filter(n => n.urgent).length > 0 && (
+                {/* 오늘 해야 할 일 (데스크톱 전용) */}
+                {!isMobile && notifications.filter(n => n.urgent).length > 0 && (
                   <div className="card" style={{
                     marginBottom: '24px',
                     background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
@@ -2794,11 +2801,11 @@ const OwnerDashboard = () => {
                   </div>
                 )}
                 
-                {/* 요약 카드 */}
-                <DashboardSummaryCards {...getDashboardStats()} />
+                {/* 요약 카드 (데스크톱 전용) */}
+                {!isMobile && <DashboardSummaryCards {...getDashboardStats()} />}
                 
-                {/* 주요 액션 버튼 */}
-                <MainActionButtons
+                {/* 주요 액션 버튼 (데스크톱 전용) */}
+                {!isMobile && <MainActionButtons
                   onAddEmployee={() => {
                     setModalType('employee');
                     setFormData({
@@ -2848,10 +2855,10 @@ const OwnerDashboard = () => {
                   }}
                   onViewAttendance={() => setActiveTab('attendance')}
                   onCreatePayroll={() => setActiveTab('salary-slips')}
-                />
+                />}
 
-                {/* 일반 알림 - 요약 카드 */}
-                {notifications.filter(n => !n.urgent).length > 0 && (
+                {/* 일반 알림 - 요약 카드 (데스크톱 전용) */}
+                {!isMobile && notifications.filter(n => !n.urgent).length > 0 && (
                   <div className="card" style={{ marginTop: '32px' }}>
                     <h3 style={{ marginBottom: '16px', color: '#374151' }}>📌 확인해주세요</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

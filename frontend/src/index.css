@@ -941,6 +941,85 @@ button:active {
   margin-top: 8px;
 }
 
+/* ========================================
+   모바일 홈 화면 "정보 우선순위" 재배치
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* 오늘 할 일 요약 카드 */
+  .mobile-home-summary {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .mobile-home-summary-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .mobile-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  
+  .mobile-summary-row:last-child {
+    border-bottom: none;
+  }
+  
+  .mobile-summary-label {
+    font-size: 14px;
+    color: #6b7280;
+  }
+  
+  .mobile-summary-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+  }
+  
+  .mobile-summary-value.urgent {
+    color: #ef4444;
+  }
+  
+  .mobile-summary-value.success {
+    color: #10b981;
+  }
+  
+  /* 홈 액션 버튼 간격 줄이기 */
+  .home-action-button {
+    min-height: 100px;
+    padding: 16px;
+  }
+  
+  .home-action-button-icon {
+    font-size: 36px;
+  }
+  
+  .home-action-button-label {
+    font-size: 16px;
+  }
+  
+  .home-action-button-desc {
+    font-size: 12px;
+  }
+  
+  /* 모바일 헤더 높이 줄이기 */
+  .mobile-content {
+    padding-top: 0;
+  }
+}
+
 /* 그리드 */
 .grid {
   display: grid;

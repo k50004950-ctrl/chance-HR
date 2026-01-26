@@ -809,6 +809,78 @@ router.post('/calculate-tax', authenticate, async (req, res) => {
   }
 });
 
+// 4대보험료 자동 계산
+router.post('/calculate-insurance', authenticate, async (req, res) => {
+  try {
+    const { basePay } = req.body;
+    
+    if (!basePay || basePay < 0) {
+      return res.status(400).json({ message: '과세대상 급여액을 입력해주세요.' });
+    }
+    
+    // 현재 적용되는 보험 요율 조회
+    const currentDate = new Date().toISOString().split('T')[0];
+    let rates = await get(`
+      SELECT * FROM insurance_rates 
+      WHERE effective_from <= ? 
+        AND (effective_to IS NULL OR effective_to >= ?)
+      ORDER BY effective_from DESC
+      LIMIT 1
+    `, [currentDate, currentDate]);
+    
+    if (!rates) {
+      // 현재 연도 기본 요율 조회
+      const currentYear = new Date().getFullYear();
+      rates = await get(`
+        SELECT * FROM insurance_rates 
+        WHERE year = ?
+        ORDER BY effective_from DESC
+        LIMIT 1
+      `, [currentYear]);
+    }
+    
+    if (!rates) {
+      return res.status(404).json({ message: '적용 가능한 보험 요율을 찾을 수 없습니다.' });
+    }
+    
+    // 기준소득월액 (상한/하한 적용)
+    const pensionBase = Math.min(Math.max(basePay, rates.national_pension_min || 0), rates.national_pension_max || basePay);
+    const healthBase = Math.min(Math.max(basePay, rates.health_insurance_min || 0), rates.health_insurance_max || basePay);
+    
+    // 4대보험료 계산 (근로자 부담분)
+    const nationalPension = Math.floor(pensionBase * rates.national_pension_rate);
+    const healthInsurance = Math.floor(healthBase * rates.health_insurance_rate);
+    const longTermCare = Math.floor(healthInsurance * rates.long_term_care_rate);
+    const employmentInsurance = Math.floor(basePay * rates.employment_insurance_rate);
+    
+    const totalInsurance = nationalPension + healthInsurance + longTermCare + employmentInsurance;
+    
+    res.json({
+      basePay,
+      rates: {
+        nationalPension: rates.national_pension_rate,
+        healthInsurance: rates.health_insurance_rate,
+        longTermCare: rates.long_term_care_rate,
+        employmentInsurance: rates.employment_insurance_rate
+      },
+      baseAmounts: {
+        pension: pensionBase,
+        health: healthBase
+      },
+      insurance: {
+        nationalPension,
+        healthInsurance,
+        longTermCare,
+        employmentInsurance,
+        total: totalInsurance
+      }
+    });
+  } catch (error) {
+    console.error('4대보험료 계산 오류:', error);
+    res.status(500).json({ message: '4대보험료 계산 중 오류가 발생했습니다.' });
+  }
+});
+
 // 사업주: 급여명세서 작성
 router.post('/slips', authenticate, async (req, res) => {
   try {

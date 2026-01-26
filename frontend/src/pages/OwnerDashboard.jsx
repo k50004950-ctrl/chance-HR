@@ -98,6 +98,8 @@ const OwnerDashboard = () => {
     separation_type: '',
     separation_reason: ''
   });
+  const [showPublishWarning, setShowPublishWarning] = useState(false);
+  const [slipToPublish, setSlipToPublish] = useState(null);
   const uploadBaseUrl =
     import.meta.env.VITE_API_URL?.replace('/api', '') ||
     (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
@@ -2585,18 +2587,9 @@ const OwnerDashboard = () => {
                                     <button
                                       className="btn btn-success"
                                       style={{ fontSize: '12px', padding: '4px 12px' }}
-                                      onClick={async () => {
-                                        if (window.confirm('급여명세서를 배포하시겠습니까? 배포 후 근로자가 확인할 수 있습니다.')) {
-                                          try {
-                                            await salaryAPI.publishSlip(slip.id);
-                                            setMessage({ type: 'success', text: '급여명세서가 배포되었습니다.' });
-                                            const response = await salaryAPI.getEmployeeSlips(selectedSlipEmployee);
-                                            setEmployeeSlips(response.data || []);
-                                          } catch (error) {
-                                            console.error('배포 오류:', error);
-                                            setMessage({ type: 'error', text: '배포에 실패했습니다.' });
-                                          }
-                                        }
+                                      onClick={() => {
+                                        setSlipToPublish(slip);
+                                        setShowPublishWarning(true);
                                       }}
                                     >
                                       배포
@@ -4611,8 +4604,40 @@ const OwnerDashboard = () => {
                 </div>
               ) : (
                 <>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
-                    공제 항목 (4대보험)
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                      공제 항목 (4대보험)
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={async () => {
+                        if (!slipFormData.basePay || parseFloat(slipFormData.basePay) <= 0) {
+                          setMessage({ type: 'error', text: '기본급(세전)을 먼저 입력해주세요.' });
+                          return;
+                        }
+                        try {
+                          setMessage({ type: 'info', text: '4대보험료 자동 계산 중...' });
+                          const response = await salaryAPI.calculateInsurance(parseFloat(slipFormData.basePay));
+                          const insurance = response.data.insurance;
+                          
+                          setSlipFormData({
+                            ...slipFormData,
+                            nationalPension: insurance.nationalPension,
+                            healthInsurance: insurance.healthInsurance,
+                            longTermCare: insurance.longTermCare,
+                            employmentInsurance: insurance.employmentInsurance
+                          });
+                          setMessage({ type: 'success', text: '4대보험료가 자동 계산되었습니다!' });
+                        } catch (error) {
+                          console.error('4대보험료 자동 계산 오류:', error);
+                          setMessage({ type: 'error', text: error.response?.data?.message || '4대보험료 계산에 실패했습니다.' });
+                        }
+                      }}
+                      style={{ fontSize: '12px', padding: '6px 12px', whiteSpace: 'nowrap' }}
+                    >
+                      🔄 자동 계산
+                    </button>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -4782,6 +4807,98 @@ const OwnerDashboard = () => {
           announcement={currentAnnouncement}
           onClose={handleCloseAnnouncement}
         />
+      )}
+
+      {/* 급여명세서 배포 경고 모달 */}
+      {showPublishWarning && slipToPublish && (
+        <div className="modal-overlay" onClick={() => setShowPublishWarning(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content" style={{ maxWidth: '500px' }}>
+              <div className="modal-header">
+                <h3 style={{ color: '#ef4444' }}>⚠️ 급여명세서 배포 전 확인사항</h3>
+                <button
+                  className="modal-close"
+                  onClick={() => setShowPublishWarning(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <div style={{
+                  padding: '20px',
+                  backgroundColor: '#fef2f2',
+                  border: '2px solid #ef4444',
+                  borderRadius: '8px',
+                  marginBottom: '20px'
+                }}>
+                  <div style={{ marginBottom: '16px' }}>
+                    <p style={{ fontSize: '15px', fontWeight: '600', color: '#991b1b', marginBottom: '12px' }}>
+                      🔍 <strong>세무대리인 한번더 검토 必 요청</strong>
+                    </p>
+                    <p style={{ fontSize: '14px', color: '#7f1d1d', lineHeight: '1.6' }}>
+                      급여명세서의 공제 항목(4대보험료, 소득세 등)이 정확한지 세무대리인에게 확인 후 배포해주세요.
+                    </p>
+                  </div>
+                  <div style={{
+                    paddingTop: '16px',
+                    borderTop: '1px solid #fca5a5'
+                  }}>
+                    <p style={{ fontSize: '15px', fontWeight: '600', color: '#991b1b', marginBottom: '12px' }}>
+                      📋 <strong>이 기능은 홈택스 신고 기능이 포함되어있지 않습니다</strong>
+                    </p>
+                    <p style={{ fontSize: '14px', color: '#7f1d1d', lineHeight: '1.6' }}>
+                      4대보험 신고는 별도로 하셔야합니다. 이 프로그램은 급여명세서 작성 및 배포만 지원합니다.
+                    </p>
+                  </div>
+                </div>
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #86efac',
+                  borderRadius: '8px'
+                }}>
+                  <p style={{ fontSize: '14px', color: '#166534', marginBottom: '8px' }}>
+                    <strong>귀속월:</strong> {slipToPublish.payroll_month}
+                  </p>
+                  <p style={{ fontSize: '14px', color: '#166534', marginBottom: '8px' }}>
+                    <strong>기본급:</strong> {formatCurrency(slipToPublish.base_pay)}원
+                  </p>
+                  <p style={{ fontSize: '14px', color: '#166534' }}>
+                    <strong>실수령액:</strong> {formatCurrency(slipToPublish.net_pay)}원
+                  </p>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowPublishWarning(false)}
+                  style={{ flex: 1 }}
+                >
+                  취소
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    try {
+                      await salaryAPI.publishSlip(slipToPublish.id);
+                      setMessage({ type: 'success', text: '급여명세서가 배포되었습니다.' });
+                      const response = await salaryAPI.getEmployeeSlips(selectedSlipEmployee);
+                      setEmployeeSlips(response.data || []);
+                      setShowPublishWarning(false);
+                      setSlipToPublish(null);
+                    } catch (error) {
+                      console.error('배포 오류:', error);
+                      setMessage({ type: 'error', text: '배포에 실패했습니다.' });
+                    }
+                  }}
+                  style={{ flex: 1, backgroundColor: '#10b981' }}
+                >
+                  확인 후 배포
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

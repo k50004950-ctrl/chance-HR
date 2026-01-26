@@ -180,4 +180,14 @@ export const announcementsAPI = {
   delete: (id) => api.delete(`/announcements/${id}`)
 };
 
+// 보험 요율 API
+export const insuranceAPI = {
+  getCurrent: () => api.get('/insurance/rates/current'),
+  getByYear: (year) => api.get(`/insurance/rates/year/${year}`),
+  getAll: () => api.get('/insurance/rates/all'),
+  create: (data) => api.post('/insurance/rates', data),
+  update: (id, data) => api.put(`/insurance/rates/${id}`, data),
+  delete: (id) => api.delete(`/insurance/rates/${id}`)
+};
+
 export default api;

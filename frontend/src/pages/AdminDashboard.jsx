@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { workplaceAPI, authAPI, announcementsAPI } from '../services/api';
+import { workplaceAPI, authAPI, announcementsAPI, insuranceAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const AdminDashboard = () => {
@@ -20,11 +20,29 @@ const AdminDashboard = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
   const [announcementLoading, setAnnouncementLoading] = useState(false);
+  const [insuranceRates, setInsuranceRates] = useState([]);
+  const [rateForm, setRateForm] = useState({
+    year: new Date().getFullYear(),
+    national_pension_rate: 0.0475,
+    national_pension_min: 400000,
+    national_pension_max: 6370000,
+    health_insurance_rate: 0.03595,
+    health_insurance_min: 279266,
+    health_insurance_max: 127056982,
+    long_term_care_rate: 0.1295,
+    employment_insurance_rate: 0.009,
+    effective_from: '',
+    effective_to: '',
+    notes: ''
+  });
+  const [editingRate, setEditingRate] = useState(null);
+  const [rateLoading, setRateLoading] = useState(false);
 
   useEffect(() => {
     loadWorkplaces();
     loadOwners();
     loadAnnouncements();
+    loadInsuranceRates();
   }, []);
 
   const handleToggleOwnerStatus = async (ownerId, ownerName) => {
@@ -85,6 +103,113 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('공지사항 조회 오류:', error);
     }
+  };
+
+  const loadInsuranceRates = async () => {
+    try {
+      const response = await insuranceAPI.getAll();
+      setInsuranceRates(response.data);
+    } catch (error) {
+      console.error('보험 요율 조회 오류:', error);
+    }
+  };
+
+  const handleCreateRate = async (e) => {
+    e.preventDefault();
+    if (!rateForm.effective_from) {
+      setMessage({ type: 'error', text: '적용 시작일을 입력해주세요.' });
+      return;
+    }
+
+    try {
+      setRateLoading(true);
+      await insuranceAPI.create(rateForm);
+      setMessage({ type: 'success', text: '보험 요율이 등록되었습니다.' });
+      loadInsuranceRates();
+      setRateForm({
+        year: new Date().getFullYear(),
+        national_pension_rate: 0.0475,
+        national_pension_min: 400000,
+        national_pension_max: 6370000,
+        health_insurance_rate: 0.03595,
+        health_insurance_min: 279266,
+        health_insurance_max: 127056982,
+        long_term_care_rate: 0.1295,
+        employment_insurance_rate: 0.009,
+        effective_from: '',
+        effective_to: '',
+        notes: ''
+      });
+    } catch (error) {
+      console.error('보험 요율 생성 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '보험 요율 등록 중 오류가 발생했습니다.' });
+    } finally {
+      setRateLoading(false);
+    }
+  };
+
+  const handleUpdateRate = async (e) => {
+    e.preventDefault();
+    if (!editingRate) return;
+
+    try {
+      setRateLoading(true);
+      await insuranceAPI.update(editingRate.id, rateForm);
+      setMessage({ type: 'success', text: '보험 요율이 수정되었습니다.' });
+      loadInsuranceRates();
+      setEditingRate(null);
+      setRateForm({
+        year: new Date().getFullYear(),
+        national_pension_rate: 0.0475,
+        national_pension_min: 400000,
+        national_pension_max: 6370000,
+        health_insurance_rate: 0.03595,
+        health_insurance_min: 279266,
+        health_insurance_max: 127056982,
+        long_term_care_rate: 0.1295,
+        employment_insurance_rate: 0.009,
+        effective_from: '',
+        effective_to: '',
+        notes: ''
+      });
+    } catch (error) {
+      console.error('보험 요율 수정 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '보험 요율 수정 중 오류가 발생했습니다.' });
+    } finally {
+      setRateLoading(false);
+    }
+  };
+
+  const handleDeleteRate = async (id) => {
+    if (!window.confirm('이 보험 요율을 삭제하시겠습니까?')) return;
+
+    try {
+      await insuranceAPI.delete(id);
+      setMessage({ type: 'success', text: '보험 요율이 삭제되었습니다.' });
+      loadInsuranceRates();
+    } catch (error) {
+      console.error('보험 요율 삭제 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '보험 요율 삭제 중 오류가 발생했습니다.' });
+    }
+  };
+
+  const handleEditRate = (rate) => {
+    setEditingRate(rate);
+    setRateForm({
+      year: rate.year,
+      national_pension_rate: rate.national_pension_rate,
+      national_pension_min: rate.national_pension_min,
+      national_pension_max: rate.national_pension_max,
+      health_insurance_rate: rate.health_insurance_rate,
+      health_insurance_min: rate.health_insurance_min,
+      health_insurance_max: rate.health_insurance_max,
+      long_term_care_rate: rate.long_term_care_rate,
+      employment_insurance_rate: rate.employment_insurance_rate,
+      effective_from: rate.effective_from,
+      effective_to: rate.effective_to || '',
+      notes: rate.notes || ''
+    });
+    setActiveTab('insurance');
   };
 
   const handleCreateAnnouncement = async (e) => {
@@ -230,12 +355,20 @@ const AdminDashboard = () => {
             사업장 목록
           </button>
           {isSuperAdmin && (
-            <button
-              className={`nav-tab ${activeTab === 'announcements' ? 'active' : ''}`}
-              onClick={() => setActiveTab('announcements')}
-            >
-              📢 공지사항
-            </button>
+            <>
+              <button
+                className={`nav-tab ${activeTab === 'insurance' ? 'active' : ''}`}
+                onClick={() => setActiveTab('insurance')}
+              >
+                💼 4대보험 요율
+              </button>
+              <button
+                className={`nav-tab ${activeTab === 'announcements' ? 'active' : ''}`}
+                onClick={() => setActiveTab('announcements')}
+              >
+                📢 공지사항
+              </button>
+            </>
           )}
         </div>
 
@@ -513,6 +646,264 @@ const AdminDashboard = () => {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* 4대보험 요율 관리 */}
+        {activeTab === 'insurance' && isSuperAdmin && (
+          <div>
+            {/* 보험 요율 등록/수정 폼 */}
+            <div className="card" style={{ marginBottom: '24px' }}>
+              <h3 style={{ color: '#374151', marginBottom: '16px' }}>
+                💼 {editingRate ? '보험 요율 수정' : '보험 요율 등록'}
+              </h3>
+              <form onSubmit={editingRate ? handleUpdateRate : handleCreateRate}>
+                <div className="grid grid-2" style={{ gap: '16px' }}>
+                  <div className="form-group">
+                    <label className="form-label">적용 연도 *</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={rateForm.year}
+                      onChange={(e) => setRateForm({ ...rateForm, year: parseInt(e.target.value) })}
+                      required
+                      min="2020"
+                      max="2099"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">적용 시작일 *</label>
+                    <input
+                      type="date"
+                      className="form-input"
+                      value={rateForm.effective_from}
+                      onChange={(e) => setRateForm({ ...rateForm, effective_from: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <h4 style={{ marginTop: '24px', marginBottom: '12px', color: '#374151', fontSize: '16px' }}>
+                  🏥 국민연금
+                </h4>
+                <div className="grid grid-3" style={{ gap: '16px' }}>
+                  <div className="form-group">
+                    <label className="form-label">요율 (%) *</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={rateForm.national_pension_rate * 100}
+                      onChange={(e) => setRateForm({ ...rateForm, national_pension_rate: parseFloat(e.target.value) / 100 })}
+                      step="0.01"
+                      required
+                      placeholder="4.75"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">하한액 (원)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={rateForm.national_pension_min}
+                      onChange={(e) => setRateForm({ ...rateForm, national_pension_min: parseInt(e.target.value) })}
+                      placeholder="400000"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">상한액 (원)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={rateForm.national_pension_max}
+                      onChange={(e) => setRateForm({ ...rateForm, national_pension_max: parseInt(e.target.value) })}
+                      placeholder="6370000"
+                    />
+                  </div>
+                </div>
+
+                <h4 style={{ marginTop: '24px', marginBottom: '12px', color: '#374151', fontSize: '16px' }}>
+                  🏥 건강보험
+                </h4>
+                <div className="grid grid-3" style={{ gap: '16px' }}>
+                  <div className="form-group">
+                    <label className="form-label">요율 (%) *</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={rateForm.health_insurance_rate * 100}
+                      onChange={(e) => setRateForm({ ...rateForm, health_insurance_rate: parseFloat(e.target.value) / 100 })}
+                      step="0.001"
+                      required
+                      placeholder="3.595"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">하한액 (원)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={rateForm.health_insurance_min}
+                      onChange={(e) => setRateForm({ ...rateForm, health_insurance_min: parseInt(e.target.value) })}
+                      placeholder="279266"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">상한액 (원)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={rateForm.health_insurance_max}
+                      onChange={(e) => setRateForm({ ...rateForm, health_insurance_max: parseInt(e.target.value) })}
+                      placeholder="127056982"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-2" style={{ gap: '16px', marginTop: '16px' }}>
+                  <div className="form-group">
+                    <label className="form-label">장기요양보험 요율 (%) *</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={rateForm.long_term_care_rate * 100}
+                      onChange={(e) => setRateForm({ ...rateForm, long_term_care_rate: parseFloat(e.target.value) / 100 })}
+                      step="0.01"
+                      required
+                      placeholder="12.95"
+                    />
+                    <small style={{ color: '#6b7280', fontSize: '12px' }}>건강보험료의 비율</small>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">고용보험 요율 (%) *</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={rateForm.employment_insurance_rate * 100}
+                      onChange={(e) => setRateForm({ ...rateForm, employment_insurance_rate: parseFloat(e.target.value) / 100 })}
+                      step="0.01"
+                      required
+                      placeholder="0.9"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginTop: '16px' }}>
+                  <label className="form-label">적용 종료일</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={rateForm.effective_to}
+                    onChange={(e) => setRateForm({ ...rateForm, effective_to: e.target.value })}
+                  />
+                  <small style={{ color: '#6b7280', fontSize: '12px' }}>비워두면 무기한 적용</small>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">비고</label>
+                  <textarea
+                    className="form-input"
+                    value={rateForm.notes}
+                    onChange={(e) => setRateForm({ ...rateForm, notes: e.target.value })}
+                    placeholder="요율 변경 사유 등 메모"
+                    rows="3"
+                    style={{ resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+                  {editingRate && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setEditingRate(null);
+                        setRateForm({
+                          year: new Date().getFullYear(),
+                          national_pension_rate: 0.0475,
+                          national_pension_min: 400000,
+                          national_pension_max: 6370000,
+                          health_insurance_rate: 0.03595,
+                          health_insurance_min: 279266,
+                          health_insurance_max: 127056982,
+                          long_term_care_rate: 0.1295,
+                          employment_insurance_rate: 0.009,
+                          effective_from: '',
+                          effective_to: '',
+                          notes: ''
+                        });
+                      }}
+                    >
+                      취소
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={rateLoading}
+                  >
+                    {rateLoading ? '처리 중...' : (editingRate ? '✅ 수정' : '✅ 등록')}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* 보험 요율 목록 */}
+            <div className="card">
+              <h3 style={{ color: '#374151', marginBottom: '16px' }}>보험 요율 이력</h3>
+              {insuranceRates.length === 0 ? (
+                <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
+                  등록된 보험 요율이 없습니다.
+                </p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>연도</th>
+                        <th>국민연금</th>
+                        <th>건강보험</th>
+                        <th>장기요양</th>
+                        <th>고용보험</th>
+                        <th>적용 시작일</th>
+                        <th>적용 종료일</th>
+                        <th>작업</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {insuranceRates.map((rate) => (
+                        <tr key={rate.id}>
+                          <td>{rate.year}년</td>
+                          <td>{(rate.national_pension_rate * 100).toFixed(2)}%</td>
+                          <td>{(rate.health_insurance_rate * 100).toFixed(3)}%</td>
+                          <td>{(rate.long_term_care_rate * 100).toFixed(2)}%</td>
+                          <td>{(rate.employment_insurance_rate * 100).toFixed(2)}%</td>
+                          <td>{rate.effective_from}</td>
+                          <td>{rate.effective_to || '무기한'}</td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                className="btn btn-secondary"
+                                onClick={() => handleEditRate(rate)}
+                                style={{ fontSize: '12px', padding: '6px 12px' }}
+                              >
+                                ✏️ 수정
+                              </button>
+                              <button
+                                className="btn btn-danger"
+                                onClick={() => handleDeleteRate(rate.id)}
+                                style={{ fontSize: '12px', padding: '6px 12px' }}
+                              >
+                                🗑️ 삭제
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

@@ -625,6 +625,54 @@ export const initDatabase = async () => {
         )
       `);
 
+      // Insurance_rates 테이블 (4대보험 요율 관리)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS insurance_rates (
+          id SERIAL PRIMARY KEY,
+          year INTEGER NOT NULL,
+          national_pension_rate DECIMAL(5, 4) NOT NULL,
+          national_pension_min DECIMAL(15, 2) DEFAULT 0,
+          national_pension_max DECIMAL(15, 2) DEFAULT 0,
+          health_insurance_rate DECIMAL(5, 4) NOT NULL,
+          health_insurance_min DECIMAL(15, 2) DEFAULT 0,
+          health_insurance_max DECIMAL(15, 2) DEFAULT 0,
+          long_term_care_rate DECIMAL(5, 4) NOT NULL,
+          employment_insurance_rate DECIMAL(5, 4) NOT NULL,
+          effective_from DATE NOT NULL,
+          effective_to DATE,
+          notes TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(year, effective_from)
+        )
+      `);
+
+      // 2026년 기본 요율 데이터 삽입
+      const existingRates = await pool.query(
+        "SELECT * FROM insurance_rates WHERE year = $1",
+        [2026]
+      );
+      if (existingRates.rows.length === 0) {
+        await pool.query(`
+          INSERT INTO insurance_rates 
+          (year, national_pension_rate, national_pension_min, national_pension_max, 
+           health_insurance_rate, health_insurance_min, health_insurance_max,
+           long_term_care_rate, employment_insurance_rate, 
+           effective_from, notes)
+          VALUES 
+          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `, [
+          2026, 
+          0.0475, 400000, 6370000,  // 국민연금 4.75%
+          0.03595, 279266, 127056982,  // 건강보험 3.595%
+          0.1295,  // 장기요양보험 12.95% (건강보험료의 비율)
+          0.009,   // 고용보험 0.9%
+          '2026-01-01',
+          '2026년 4대보험 요율 (기본값)'
+        ]);
+        console.log('✅ 2026년 기본 보험 요율이 등록되었습니다.');
+      }
+
       console.log('PostgreSQL 데이터베이스 초기화 완료');
     } else {
       // SQLite 초기화 (기존 코드)
@@ -1047,6 +1095,50 @@ export const initDatabase = async () => {
           UNIQUE(user_id, announcement_id)
         )
       `);
+
+      // Insurance_rates 테이블 (4대보험 요율 관리)
+      await run(`
+        CREATE TABLE IF NOT EXISTS insurance_rates (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          year INTEGER NOT NULL,
+          national_pension_rate REAL NOT NULL,
+          national_pension_min REAL DEFAULT 0,
+          national_pension_max REAL DEFAULT 0,
+          health_insurance_rate REAL NOT NULL,
+          health_insurance_min REAL DEFAULT 0,
+          health_insurance_max REAL DEFAULT 0,
+          long_term_care_rate REAL NOT NULL,
+          employment_insurance_rate REAL NOT NULL,
+          effective_from DATE NOT NULL,
+          effective_to DATE,
+          notes TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(year, effective_from)
+        )
+      `);
+
+      // 2026년 기본 요율 데이터 삽입
+      const existingRates = await get('SELECT * FROM insurance_rates WHERE year = ?', [2026]);
+      if (!existingRates) {
+        await run(`
+          INSERT INTO insurance_rates 
+          (year, national_pension_rate, national_pension_min, national_pension_max, 
+           health_insurance_rate, health_insurance_min, health_insurance_max,
+           long_term_care_rate, employment_insurance_rate, 
+           effective_from, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          2026, 
+          0.0475, 400000, 6370000,  // 국민연금 4.75%
+          0.03595, 279266, 127056982,  // 건강보험 3.595%
+          0.1295,  // 장기요양보험 12.95% (건강보험료의 비율)
+          0.009,   // 고용보험 0.9%
+          '2026-01-01',
+          '2026년 4대보험 요율 (기본값)'
+        ]);
+        console.log('✅ 2026년 기본 보험 요율이 등록되었습니다.');
+      }
 
       // 기본 관리자 계정 생성
       const adminExists = await get('SELECT * FROM users WHERE username = ?', ['admin']);

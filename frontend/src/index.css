@@ -627,6 +627,28 @@ h4 {
   100% { transform: rotate(360deg); }
 }
 
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 /* 그리드 */
 .grid {
   display: grid;
@@ -650,6 +672,21 @@ h4 {
   .grid-3,
   .grid-4 {
     grid-template-columns: 1fr;
+  }
+
+  /* 출퇴근 기록 모바일 반응형 */
+  .attendance-table-view {
+    display: none !important;
+  }
+
+  .attendance-card-view {
+    display: block !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .attendance-card-view {
+    display: none !important;
   }
 }
 

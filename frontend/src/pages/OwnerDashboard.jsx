@@ -7,10 +7,18 @@ import ConsentInfo from '../components/ConsentInfo';
 import QRCode from 'qrcode';
 import { searchAddress, getCoordinatesFromAddress } from '../utils/addressSearch';
 import AnnouncementModal from '../components/AnnouncementModal';
+import DashboardSummaryCards from '../components/DashboardSummaryCards';
+import MainActionButtons from '../components/MainActionButtons';
+import Toast from '../components/Toast';
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('attendance');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [toast, setToast] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
+  const [salaryFlowStep, setSalaryFlowStep] = useState(1); // 급여 계산 단계: 1=근무내역, 2=미리보기, 3=확정, 4=발송
+  const [salaryConfirmed, setSalaryConfirmed] = useState(false); // 급여 확정 여부
+  const [showConfirmWarning, setShowConfirmWarning] = useState(false); // 확정 경고 모달
   const [workplaces, setWorkplaces] = useState([]);
   const [selectedWorkplace, setSelectedWorkplace] = useState(null);
   const [employees, setEmployees] = useState([]);
@@ -133,8 +141,96 @@ const OwnerDashboard = () => {
   useEffect(() => {
     if (activeTab === 'community') {
       loadCommunityPosts();
+    } else if (activeTab === 'dashboard' && selectedWorkplace) {
+      loadDashboardData();
     }
-  }, [activeTab]);
+  }, [activeTab, selectedWorkplace]);
+
+  const loadDashboardData = async () => {
+    if (!selectedWorkplace) return;
+    
+    try {
+      // 오늘 날짜
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      
+      // 이번 달
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const currentMonth = `${year}-${month}`;
+      
+      // 병렬로 데이터 로드
+      await Promise.all([
+        loadEmployees(),
+        loadAttendance(todayStr),
+        loadSalarySlips(currentMonth)
+      ]);
+    } catch (error) {
+      console.error('대시보드 데이터 로드 오류:', error);
+    }
+  };
+
+  const getDashboardStats = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayAttendance = attendance.filter(a => a.date === today);
+    const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
+    
+    // 오늘 출근한 인원
+    const checkedInToday = todayAttendance.filter(a => a.check_in_time).length;
+    
+    // 미퇴근 인원 (출근했지만 퇴근 안 한 사람)
+    const notCheckedOut = todayAttendance.filter(a => a.check_in_time && !a.check_out_time).length;
+    
+    // 이번 달 급여명세서 상태
+    const totalSlips = salarySlips.length;
+    const publishedSlips = salarySlips.filter(s => s.published).length;
+    
+    return {
+      todayAttendance: checkedInToday,
+      totalEmployees: activeEmployees.length,
+      notCheckedOut,
+      monthlyPayrollStatus: {
+        total: activeEmployees.length,
+        published: publishedSlips
+      }
+    };
+  };
+
+  // 출퇴근 상태 판단 함수
+  const getAttendanceStatus = (record) => {
+    // 휴가인 경우
+    if (record.leave_type) {
+      return { type: 'leave', label: record.leave_type === 'annual' ? '연차' : record.leave_type === 'paid' ? '유급휴가' : '무급휴가', color: '#3b82f6' };
+    }
+
+    // 미퇴근
+    if (record.check_in_time && !record.check_out_time) {
+      return { type: 'not_checked_out', label: '⚠️ 미퇴근', color: '#dc2626', bgColor: '#fee2e2' };
+    }
+
+    // 미완료
+    if (!record.check_in_time || !record.check_out_time) {
+      return { type: 'incomplete', label: '⏱ 미완료', color: '#ef4444', bgColor: '#fee2e2' };
+    }
+
+    // 정상 출퇴근 (시간 체크)
+    const employee = employees.find(emp => emp.name === record.employee_name);
+    if (employee && employee.work_start_time && record.check_in_time) {
+      const checkInTime = new Date(record.check_in_time);
+      const [startHour, startMinute] = employee.work_start_time.split(':').map(Number);
+      const workStartTime = new Date(checkInTime);
+      workStartTime.setHours(startHour, startMinute, 0, 0);
+
+      // 10분 이상 늦었으면 지각
+      const lateMins = (checkInTime - workStartTime) / 1000 / 60;
+      if (lateMins > 10) {
+        return { type: 'late', label: '🕐 지각', color: '#f59e0b', bgColor: '#fef3c7' };
+      }
+    }
+
+    // 정상
+    return { type: 'completed', label: '✓ 정상', color: '#059669', bgColor: '#d1fae5' };
+  };
 
   const checkAnnouncements = async () => {
     try {
@@ -1171,19 +1267,77 @@ const OwnerDashboard = () => {
     });
   };
 
+  const validateEmployeeForm = (form, formDataToSend) => {
+    const errors = {};
+    
+    // 필수 항목 검증
+    const requiredFields = {
+      username: '아이디',
+      password: '비밀번호',
+      name: '이름',
+      phone: '휴대폰',
+      ssn: '주민등록번호',
+      address: '주소',
+      hire_date: '입사일',
+      salary_type: '급여 형태',
+      amount: '급여액',
+      tax_type: '급여 신고'
+    };
+
+    for (const [field, label] of Object.entries(requiredFields)) {
+      // 수정 모드일 때 password는 필수가 아님
+      if (field === 'password' && formData.id) continue;
+      
+      const element = form.querySelector(`[name="${field}"]`);
+      if (!element || !element.value || element.value.trim() === '') {
+        errors[field] = `${label}을(를) 입력해주세요.`;
+      }
+    }
+
+    // 주민등록번호 형식 검증
+    const ssnElement = form.querySelector('[name="ssn"]');
+    if (ssnElement && ssnElement.value) {
+      const ssnPattern = /^\d{6}-?\d{7}$/;
+      if (!ssnPattern.test(ssnElement.value)) {
+        errors.ssn = '주민등록번호 형식이 올바르지 않습니다. (예: 000000-0000000)';
+      }
+    }
+
+    // 휴대폰 형식 검증
+    const phoneElement = form.querySelector('[name="phone"]');
+    if (phoneElement && phoneElement.value) {
+      const phonePattern = /^01[0-9]-?\d{3,4}-?\d{4}$/;
+      if (!phonePattern.test(phoneElement.value)) {
+        errors.phone = '휴대폰 번호 형식이 올바르지 않습니다. (예: 010-0000-0000)';
+      }
+    }
+
+    return errors;
+  };
+
   const handleSubmitEmployee = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ type: '', text: '' }); // 이전 메시지 초기화
+    setFormErrors({}); // 이전 에러 초기화
 
     try {
       if (!formData.id && usernameCheckStatus !== 'available') {
-        setMessage({ type: 'error', text: '아이디 중복확인을 먼저 해주세요.' });
+        setToast({ message: '아이디 중복확인을 먼저 해주세요.', type: 'error' });
         setLoading(false);
         return;
       }
       const form = e.target;
       const formDataToSend = new FormData();
+      
+      // 폼 유효성 검증
+      const errors = validateEmployeeForm(form, formDataToSend);
+      if (Object.keys(errors).length > 0) {
+        setFormErrors(errors);
+        setLoading(false);
+        setToast({ message: '입력 항목을 확인해주세요.', type: 'error' });
+        return;
+      }
       
       // ID가 있으면 추가 (수정 모드)
       if (formData.id) {
@@ -1276,21 +1430,28 @@ const OwnerDashboard = () => {
       if (formData.id) {
         const response = await employeeAPI.update(formData.id, formDataToSend);
         console.log('수정 성공:', response);
-        setMessage({ type: 'success', text: '직원 정보가 수정되었습니다.' });
+        setToast({ message: '✓ 직원 정보가 수정되었습니다.', type: 'success' });
         closeModal();
         loadEmployees();
+        setFormErrors({});
       } else {
         const response = await employeeAPI.create(formDataToSend);
         console.log('등록 성공:', response);
-        setMessage({ type: 'success', text: '직원이 등록되었습니다.' });
+        setToast({ message: '✓ 직원이 등록되었습니다.', type: 'success' });
         closeModal();
         loadEmployees();
+        setFormErrors({});
       }
     } catch (error) {
       console.error('직원 등록/수정 오류:', error);
       console.error('에러 상세:', error.response?.data);
       const errorMessage = error.response?.data?.message || error.message || '오류가 발생했습니다.';
-      setMessage({ type: 'error', text: errorMessage });
+      setToast({ message: errorMessage, type: 'error' });
+      
+      // 서버에서 받은 필드별 에러 처리
+      if (error.response?.data?.errors) {
+        setFormErrors(error.response.data.errors);
+      }
     }
 
     setLoading(false);
@@ -1617,6 +1778,12 @@ const OwnerDashboard = () => {
 
             {/* 탭 메뉴 */}
             <div className="nav-tabs">
+              <button
+                className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
+                onClick={() => setActiveTab('dashboard')}
+              >
+                🏠 메인
+              </button>
               <button
                 className={`nav-tab ${activeTab === 'attendance' ? 'active' : ''}`}
                 onClick={() => setActiveTab('attendance')}
@@ -2061,6 +2228,110 @@ const OwnerDashboard = () => {
               </div>
             )}
 
+            {/* 메인 대시보드 */}
+            {activeTab === 'dashboard' && (
+              <div>
+                <h2 style={{ marginBottom: '24px', color: '#111827', fontSize: '28px', fontWeight: '700' }}>
+                  안녕하세요, {user?.name || '사장님'}! 👋
+                </h2>
+                
+                {/* 요약 카드 */}
+                <DashboardSummaryCards {...getDashboardStats()} />
+                
+                {/* 주요 액션 버튼 */}
+                <MainActionButtons
+                  onAddEmployee={() => {
+                    setModalType('employee');
+                    setFormData({
+                      id: null,
+                      username: '',
+                      password: '',
+                      name: '',
+                      phone: '',
+                      email: '',
+                      ssn: '',
+                      address: '',
+                      emergency_contact: '',
+                      emergency_phone: '',
+                      hire_date: '',
+                      gender: '',
+                      birth_date: '',
+                      career: '',
+                      job_type: '',
+                      employment_renewal_date: '',
+                      contract_start_date: '',
+                      contract_end_date: '',
+                      employment_notes: '',
+                      separation_type: '',
+                      separation_reason: '',
+                      position: '',
+                      department: '',
+                      notes: '',
+                      work_start_time: '09:00',
+                      work_end_time: '18:00',
+                      work_days: ['월', '화', '수', '목', '금'],
+                      pay_schedule_type: 'monthly_fixed',
+                      pay_day: 0,
+                      pay_after_days: 0,
+                      payroll_period_start_day: 1,
+                      payroll_period_end_day: 0,
+                      deduct_absence: false,
+                      salary_type: 'monthly',
+                      amount: '',
+                      weekly_holiday_pay: false,
+                      weekly_holiday_type: 'none',
+                      overtime_pay: false,
+                      tax_type: '4대보험',
+                      workplace_id: selectedWorkplace,
+                      resignation_date: ''
+                    });
+                    setShowModal(true);
+                  }}
+                  onViewAttendance={() => setActiveTab('attendance')}
+                  onCreatePayroll={() => setActiveTab('salary-slips')}
+                />
+
+                {/* 빠른 링크 */}
+                <div className="card" style={{ marginTop: '32px' }}>
+                  <h3 style={{ marginBottom: '20px', color: '#374151' }}>⚡ 빠른 메뉴</h3>
+                  <div className="grid grid-4" style={{ gap: '16px' }}>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setActiveTab('roster')}
+                      style={{ padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}
+                    >
+                      <span style={{ fontSize: '24px' }}>📋</span>
+                      <span>근로자 명부</span>
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setActiveTab('calendar')}
+                      style={{ padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}
+                    >
+                      <span style={{ fontSize: '24px' }}>📅</span>
+                      <span>캘린더</span>
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setActiveTab('salary')}
+                      style={{ padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}
+                    >
+                      <span style={{ fontSize: '24px' }}>💰</span>
+                      <span>급여 계산</span>
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setActiveTab('community')}
+                      style={{ padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}
+                    >
+                      <span style={{ fontSize: '24px' }}>💬</span>
+                      <span>커뮤니티</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 당월 출근현황 */}
             {activeTab === 'attendance' && (
               <div>
@@ -2263,6 +2534,53 @@ const OwnerDashboard = () => {
                   </div>
                 )}
 
+                {/* 미퇴근 직원 Alert */}
+                {(() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  const todayRecords = attendance.filter(a => a.date === today);
+                  const notCheckedOut = todayRecords.filter(a => a.check_in_time && !a.check_out_time);
+                  
+                  if (notCheckedOut.length > 0) {
+                    return (
+                      <div style={{
+                        padding: '16px 20px',
+                        background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                        border: '2px solid #f87171',
+                        borderRadius: '12px',
+                        marginBottom: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        boxShadow: '0 4px 6px rgba(248, 113, 113, 0.2)'
+                      }}>
+                        <div style={{ fontSize: '32px' }}>⚠️</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '16px', fontWeight: '700', color: '#991b1b', marginBottom: '4px' }}>
+                            오늘 미퇴근 직원이 {notCheckedOut.length}명 있습니다
+                          </div>
+                          <div style={{ fontSize: '13px', color: '#7f1d1d' }}>
+                            {notCheckedOut.map(r => r.employee_name).join(', ')}
+                          </div>
+                        </div>
+                        <button
+                          className="btn"
+                          onClick={() => setActiveTab('attendance')}
+                          style={{
+                            background: '#dc2626',
+                            color: 'white',
+                            padding: '8px 16px',
+                            fontSize: '13px',
+                            fontWeight: '600'
+                          }}
+                        >
+                          확인하기
+                        </button>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {/* 상세 출퇴근 기록 */}
                 <div className="card">
                   <h4 style={{ marginBottom: '16px', color: '#374151' }}>상세 출퇴근 기록</h4>
@@ -2278,76 +2596,155 @@ const OwnerDashboard = () => {
                       </p>
                     </div>
                   ) : (
-                    <div style={{ overflowX: 'auto' }}>
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>직원명</th>
-                            <th>날짜</th>
-                            <th>출근</th>
-                            <th>퇴근</th>
-                            <th>근무시간</th>
-                            <th>상태</th>
-                            <th>관리</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {attendance.map((record) => (
-                            <tr key={record.id}>
-                              <td style={{ fontWeight: '600' }}>{record.employee_name}</td>
-                              <td>{formatDate(record.date)}</td>
-                              <td>{formatTime(record.check_in_time)}</td>
-                              <td>{formatTime(record.check_out_time)}</td>
-                              <td style={{ fontWeight: '600' }}>{record.work_hours ? `${Number(record.work_hours).toFixed(1)}h` : '-'}</td>
-                              <td>
-                                {record.leave_type ? (
-                                  <span style={{
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '12px',
-                                    fontWeight: '600',
-                                    background: record.leave_type === 'annual'
-                                      ? '#dbeafe'
-                                      : record.leave_type === 'paid'
-                                        ? '#e0f2fe'
-                                        : '#ede9fe',
-                                    color: record.leave_type === 'annual'
-                                      ? '#1d4ed8'
-                                      : record.leave_type === 'paid'
-                                        ? '#0284c7'
-                                        : '#6d28d9'
-                                  }}>
-                                    {record.leave_type === 'annual' && '연차'}
-                                    {record.leave_type === 'paid' && '유급휴가'}
-                                    {record.leave_type === 'unpaid' && '무급휴가'}
-                                  </span>
-                                ) : (
-                                  <span style={{
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '12px',
-                                    fontWeight: '600',
-                                    background: record.status === 'completed' ? '#d1fae5' : '#fee2e2',
-                                    color: record.status === 'completed' ? '#065f46' : '#991b1b'
-                                  }}>
-                                    {record.status === 'completed' ? '✓ 완료' : '⏱ 미완료'}
-                                  </span>
-                                )}
-                              </td>
-                              <td>
-                                <button
-                                  className="btn btn-secondary"
-                                  style={{ fontSize: '12px', padding: '6px 12px' }}
-                                  onClick={() => openModal('editAttendance', record)}
-                                >
-                                  ✏️ 수정
-                                </button>
-                              </td>
+                    <>
+                      {/* 데스크톱 테이블 뷰 */}
+                      <div className="attendance-table-view" style={{ overflowX: 'auto' }}>
+                        <table className="table">
+                          <thead>
+                            <tr>
+                              <th>직원명</th>
+                              <th>날짜</th>
+                              <th>출근</th>
+                              <th>퇴근</th>
+                              <th>근무시간</th>
+                              <th>상태</th>
+                              <th>관리</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {attendance.map((record) => {
+                              const status = getAttendanceStatus(record);
+                              return (
+                                <tr 
+                                  key={record.id}
+                                  className="attendance-row"
+                                  style={{
+                                    transition: 'all 0.2s',
+                                    cursor: 'pointer'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = '#f9fafb';
+                                    e.currentTarget.style.transform = 'scale(1.01)';
+                                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = '';
+                                    e.currentTarget.style.transform = 'scale(1)';
+                                    e.currentTarget.style.boxShadow = '';
+                                  }}
+                                >
+                                  <td style={{ fontWeight: '600' }}>{record.employee_name}</td>
+                                  <td>{formatDate(record.date)}</td>
+                                  <td>{formatTime(record.check_in_time)}</td>
+                                  <td>{formatTime(record.check_out_time)}</td>
+                                  <td style={{ fontWeight: '600' }}>{record.work_hours ? `${Number(record.work_hours).toFixed(1)}h` : '-'}</td>
+                                  <td>
+                                    <span style={{
+                                      padding: '6px 12px',
+                                      borderRadius: '6px',
+                                      fontSize: '12px',
+                                      fontWeight: '600',
+                                      background: status.bgColor || '#f3f4f6',
+                                      color: status.color,
+                                      display: 'inline-block'
+                                    }}>
+                                      {status.label}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <button
+                                      className="btn btn-secondary"
+                                      style={{ fontSize: '12px', padding: '6px 12px' }}
+                                      onClick={() => openModal('editAttendance', record)}
+                                    >
+                                      ✏️ 수정
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* 모바일 카드 뷰 */}
+                      <div className="attendance-card-view" style={{ display: 'none' }}>
+                        {attendance.map((record) => {
+                          const status = getAttendanceStatus(record);
+                          return (
+                            <div
+                              key={record.id}
+                              className="attendance-card"
+                              style={{
+                                padding: '16px',
+                                marginBottom: '12px',
+                                background: 'white',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '12px',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                <div style={{ fontSize: '16px', fontWeight: '700', color: '#111827' }}>
+                                  {record.employee_name}
+                                </div>
+                                <span style={{
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  background: status.bgColor || '#f3f4f6',
+                                  color: status.color
+                                }}>
+                                  {status.label}
+                                </span>
+                              </div>
+                              
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                                <div>
+                                  <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>날짜</div>
+                                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>{formatDate(record.date)}</div>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>근무시간</div>
+                                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                                    {record.work_hours ? `${Number(record.work_hours).toFixed(1)}h` : '-'}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                                <div>
+                                  <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>출근</div>
+                                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#059669' }}>{formatTime(record.check_in_time)}</div>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>퇴근</div>
+                                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#dc2626' }}>{formatTime(record.check_out_time)}</div>
+                                </div>
+                              </div>
+
+                              <button
+                                className="btn btn-secondary"
+                                style={{ width: '100%', fontSize: '13px', padding: '8px' }}
+                                onClick={() => openModal('editAttendance', record)}
+                              >
+                                ✏️ 수정
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -2356,8 +2753,85 @@ const OwnerDashboard = () => {
             {/* 급여 계산 */}
             {activeTab === 'salary' && (
               <div className="card">
+                {/* 확정 상태 배지 */}
+                {salaryConfirmed && (
+                  <div style={{
+                    padding: '16px',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    borderRadius: '12px',
+                    color: 'white',
+                    marginBottom: '24px',
+                    textAlign: 'center',
+                    fontSize: '16px',
+                    fontWeight: '700',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                  }}>
+                    ✓ 이번 달 급여가 확정되었습니다
+                  </div>
+                )}
+
+                {/* 단계 진행 표시 */}
+                <div style={{ marginBottom: '32px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
+                    {[
+                      { num: 1, label: '근무 내역 확인' },
+                      { num: 2, label: '급여 미리보기' },
+                      { num: 3, label: '급여 확정' },
+                      { num: 4, label: '급여명세서 발송' }
+                    ].map((step, idx) => (
+                      <div key={step.num} style={{ flex: 1, textAlign: 'center', position: 'relative', zIndex: 1 }}>
+                        <div style={{
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '50%',
+                          background: salaryFlowStep >= step.num 
+                            ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                            : '#e5e7eb',
+                          color: salaryFlowStep >= step.num ? 'white' : '#9ca3af',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '20px',
+                          fontWeight: '700',
+                          margin: '0 auto 12px',
+                          boxShadow: salaryFlowStep >= step.num ? '0 4px 12px rgba(102, 126, 234, 0.4)' : 'none',
+                          transition: 'all 0.3s'
+                        }}>
+                          {salaryFlowStep > step.num ? '✓' : step.num}
+                        </div>
+                        <div style={{
+                          fontSize: '14px',
+                          fontWeight: salaryFlowStep === step.num ? '700' : '500',
+                          color: salaryFlowStep >= step.num ? '#374151' : '#9ca3af'
+                        }}>
+                          {step.label}
+                        </div>
+                        {idx < 3 && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '24px',
+                            left: 'calc(50% + 24px)',
+                            right: 'calc(-50% + 24px)',
+                            height: '3px',
+                            background: salaryFlowStep > step.num 
+                              ? 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)' 
+                              : '#e5e7eb',
+                            zIndex: 0,
+                            transition: 'all 0.3s'
+                          }} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h3 style={{ color: '#374151' }}>급여 계산</h3>
+                  <h3 style={{ color: '#374151' }}>
+                    {salaryFlowStep === 1 && 'Step 1. 이번 달 근무 내역 확인'}
+                    {salaryFlowStep === 2 && 'Step 2. 급여 미리보기'}
+                    {salaryFlowStep === 3 && 'Step 3. 급여 확정'}
+                    {salaryFlowStep === 4 && 'Step 4. 급여명세서 발송'}
+                  </h3>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <button
@@ -2491,10 +2965,132 @@ const OwnerDashboard = () => {
                             </tbody>
                           </table>
                         </div>
+
+                        {/* 단계별 액션 버튼 */}
+                        <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'center', gap: '16px' }}>
+                          {salaryFlowStep === 1 && (
+                            <button
+                              className="btn btn-primary"
+                              style={{ fontSize: '16px', padding: '16px 48px', fontWeight: '700' }}
+                              onClick={() => setSalaryFlowStep(2)}
+                            >
+                              다음: 급여 미리보기 →
+                            </button>
+                          )}
+                          
+                          {salaryFlowStep === 2 && (
+                            <>
+                              <button
+                                className="btn btn-secondary"
+                                style={{ fontSize: '16px', padding: '16px 32px' }}
+                                onClick={() => setSalaryFlowStep(1)}
+                              >
+                                ← 이전
+                              </button>
+                              <button
+                                className="btn"
+                                style={{
+                                  fontSize: '16px',
+                                  padding: '16px 48px',
+                                  fontWeight: '700',
+                                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                  color: 'white',
+                                  border: 'none'
+                                }}
+                                onClick={() => setShowConfirmWarning(true)}
+                              >
+                                급여 확정하기
+                              </button>
+                            </>
+                          )}
+                          
+                          {salaryFlowStep === 3 && (
+                            <>
+                              <button
+                                className="btn btn-secondary"
+                                style={{ fontSize: '16px', padding: '16px 32px' }}
+                                onClick={() => {
+                                  setSalaryFlowStep(2);
+                                  setSalaryConfirmed(false);
+                                }}
+                              >
+                                ← 이전
+                              </button>
+                              <button
+                                className="btn btn-success"
+                                style={{ fontSize: '16px', padding: '16px 48px', fontWeight: '700' }}
+                                onClick={() => {
+                                  setSalaryFlowStep(4);
+                                  setActiveTab('salary-slips');
+                                }}
+                              >
+                                급여명세서 발송 →
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </>
                     )}
 
                   </>
+                )}
+
+                {/* 급여 확정 경고 모달 */}
+                {showConfirmWarning && (
+                  <div className="modal-overlay" onClick={() => setShowConfirmWarning(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                      <div className="modal-header" style={{ background: '#fef3c7', color: '#92400e' }}>
+                        ⚠️ 급여 확정 확인
+                      </div>
+                      <div style={{ padding: '24px', textAlign: 'center' }}>
+                        <div style={{
+                          fontSize: '48px',
+                          marginBottom: '16px'
+                        }}>
+                          ⚠️
+                        </div>
+                        <p style={{
+                          fontSize: '18px',
+                          fontWeight: '600',
+                          color: '#374151',
+                          marginBottom: '16px'
+                        }}>
+                          확정 후에는 수정이 어렵습니다.
+                        </p>
+                        <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>
+                          급여 내역을 최종 확인하셨습니까?<br />
+                          확정 후 수정이 필요한 경우, 개별적으로 급여명세서를 수정해야 합니다.
+                        </p>
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ flex: 1 }}
+                            onClick={() => setShowConfirmWarning(false)}
+                          >
+                            취소
+                          </button>
+                          <button
+                            className="btn"
+                            style={{
+                              flex: 1,
+                              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                              color: 'white',
+                              border: 'none',
+                              fontWeight: '700'
+                            }}
+                            onClick={() => {
+                              setSalaryConfirmed(true);
+                              setSalaryFlowStep(3);
+                              setShowConfirmWarning(false);
+                              setToast({ message: '✓ 급여가 확정되었습니다.', type: 'success' });
+                            }}
+                          >
+                            확정하기
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -3593,6 +4189,37 @@ const OwnerDashboard = () => {
               </div>
             )}
 
+            <div style={{ 
+              padding: '12px', 
+              background: '#fef3c7', 
+              border: '1px solid #fbbf24', 
+              borderRadius: '8px', 
+              marginBottom: '20px',
+              fontSize: '14px',
+              color: '#92400e'
+            }}>
+              <strong>*</strong> 표시는 필수 입력 항목입니다.
+            </div>
+
+            {Object.keys(formErrors).length > 0 && (
+              <div style={{ 
+                padding: '12px', 
+                background: '#fee2e2', 
+                border: '1px solid #ef4444', 
+                borderRadius: '8px', 
+                marginBottom: '20px',
+                fontSize: '14px',
+                color: '#991b1b'
+              }}>
+                <strong>입력 오류:</strong>
+                <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
+                  {Object.values(formErrors).map((error, idx) => (
+                    <li key={idx}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <form onSubmit={handleSubmitEmployee}>
               <h4 style={{ marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
                 기본 정보
@@ -3611,6 +4238,7 @@ const OwnerDashboard = () => {
                       required
                       disabled={formData.id}
                       placeholder="로그인할 때 사용할 아이디를 입력하세요"
+                      style={formErrors.username ? { borderColor: '#ef4444' } : {}}
                     />
                     {!formData.id && (
                       <button
@@ -3624,6 +4252,11 @@ const OwnerDashboard = () => {
                       </button>
                     )}
                   </div>
+                  {formErrors.username && (
+                    <small style={{ color: '#ef4444', fontSize: '12px', display: 'block', marginTop: '6px' }}>
+                      {formErrors.username}
+                    </small>
+                  )}
                   {!formData.id && usernameCheckStatus === 'available' && (
                     <small style={{ color: '#16a34a', fontSize: '12px', display: 'block', marginTop: '6px' }}>
                       사용 가능한 아이디입니다.
@@ -3646,7 +4279,13 @@ const OwnerDashboard = () => {
                       onChange={handleInputChange}
                       required
                       placeholder="초기 비밀번호를 입력하세요"
+                      style={formErrors.password ? { borderColor: '#ef4444' } : {}}
                     />
+                    {formErrors.password && (
+                      <small style={{ color: '#ef4444', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                        {formErrors.password}
+                      </small>
+                    )}
                   </div>
                 )}
                 <div className="form-group">
@@ -3659,40 +4298,67 @@ const OwnerDashboard = () => {
                     onChange={handleInputChange}
                     required
                     placeholder="직원의 실명을 입력하세요"
+                    style={formErrors.name ? { borderColor: '#ef4444' } : {}}
                   />
+                  {formErrors.name && (
+                    <small style={{ color: '#ef4444', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                      {formErrors.name}
+                    </small>
+                  )}
                 </div>
                 <div className="form-group">
-                  <label className="form-label">입사일</label>
+                  <label className="form-label">입사일 *</label>
                   <input
                     type="date"
                     name="hire_date"
                     className="form-input"
                     value={formData.hire_date || ''}
                     onChange={handleInputChange}
+                    required
                     placeholder="입사일을 선택하세요"
+                    style={formErrors.hire_date ? { borderColor: '#ef4444' } : {}}
                   />
+                  {formErrors.hire_date && (
+                    <small style={{ color: '#ef4444', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                      {formErrors.hire_date}
+                    </small>
+                  )}
                 </div>
                 <div className="form-group">
-                  <label className="form-label">주민등록번호</label>
+                  <label className="form-label">주민등록번호 *</label>
                   <input
                     type="text"
                     name="ssn"
                     className="form-input"
                     value={formData.ssn || ''}
                     onChange={handleInputChange}
+                    required
                     placeholder="주민등록번호를 입력하세요 (예: 901010-1234567)"
+                    style={formErrors.ssn ? { borderColor: '#ef4444' } : {}}
                   />
+                  {formErrors.ssn && (
+                    <small style={{ color: '#ef4444', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                      {formErrors.ssn}
+                    </small>
+                  )}
                 </div>
                 <div className="form-group">
-                  <label className="form-label">전화번호</label>
+                  <label className="form-label">휴대폰 *</label>
                   <input
                     type="tel"
                     name="phone"
                     className="form-input"
                     value={formData.phone || ''}
                     onChange={handleInputChange}
+                    required
                     placeholder="전화번호를 입력하세요 (예: 010-1234-5678)"
+                    style={formErrors.phone ? { borderColor: '#ef4444' } : {}}
                   />
+                  {formErrors.phone && (
+                    <small style={{ color: '#ef4444', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                      {formErrors.phone}
+                    </small>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label">이메일</label>
@@ -3708,15 +4374,22 @@ const OwnerDashboard = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">주소</label>
+                <label className="form-label">주소 *</label>
                 <input
                   type="text"
                   name="address"
                   className="form-input"
                   value={formData.address || ''}
                   onChange={handleInputChange}
+                  required
                   placeholder="전체 주소를 입력하세요 (예: 서울시 강남구 테헤란로 123)"
+                  style={formErrors.address ? { borderColor: '#ef4444' } : {}}
                 />
+                {formErrors.address && (
+                  <small style={{ color: '#ef4444', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                    {formErrors.address}
+                  </small>
+                )}
               </div>
 
               <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
@@ -4420,28 +5093,35 @@ const OwnerDashboard = () => {
                 </div>
               </div>
 
-              <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151' }}>급여 정보</h4>
+              <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>급여 정보</h4>
               
               <div className="grid grid-2">
                 <div className="form-group">
-                  <label className="form-label">급여 유형</label>
+                  <label className="form-label">급여 형태 *</label>
                   <select
                     name="salary_type"
                     className="form-select"
                     value={formData.salary_type || ''}
                     onChange={handleInputChange}
+                    required
+                    style={formErrors.salary_type ? { borderColor: '#ef4444' } : {}}
                   >
                     <option value="">선택하세요</option>
                     <option value="hourly">시급</option>
                     <option value="monthly">월급</option>
                     <option value="annual">연봉</option>
                   </select>
+                  {formErrors.salary_type && (
+                    <small style={{ color: '#ef4444', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                      {formErrors.salary_type}
+                    </small>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label">
                     {formData.salary_type === 'hourly' ? '시급' : 
                      formData.salary_type === 'monthly' ? '월급' : 
-                     formData.salary_type === 'annual' ? '연봉' : '기본급'}
+                     formData.salary_type === 'annual' ? '연봉' : '급여액'} *
                   </label>
                   <input
                     type="number"
@@ -4450,23 +5130,37 @@ const OwnerDashboard = () => {
                     value={formData.amount || ''}
                     onChange={handleInputChange}
                     placeholder="원"
+                    required
+                    style={formErrors.amount ? { borderColor: '#ef4444' } : {}}
                   />
+                  {formErrors.amount && (
+                    <small style={{ color: '#ef4444', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                      {formErrors.amount}
+                    </small>
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-2">
                 <div className="form-group">
-                  <label className="form-label">인건비 신고</label>
+                  <label className="form-label">급여 신고 *</label>
                   <select
                     name="tax_type"
                     className="form-select"
                     value={formData.tax_type || '4대보험'}
                     onChange={handleInputChange}
+                    required
+                    style={formErrors.tax_type ? { borderColor: '#ef4444' } : {}}
                   >
                     <option value="4대보험">4대보험</option>
                     <option value="3.3%">3.3% (프리랜서)</option>
                     <option value="일용직">일용직</option>
                   </select>
+                  {formErrors.tax_type && (
+                    <small style={{ color: '#ef4444', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                      {formErrors.tax_type}
+                    </small>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label">초과근무수당 (시급)</label>
@@ -5531,6 +6225,15 @@ const OwnerDashboard = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Toast 알림 */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );

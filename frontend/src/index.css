@@ -1020,6 +1020,10 @@ h4 {
   transition: all 0.2s;
   cursor: pointer;
   border: 2px solid transparent;
+  /* 텍스트 줄바꿈 최적화 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .mobile-action-card:active {
@@ -1065,6 +1069,10 @@ h4 {
   font-weight: 700;
   color: #111827;
   margin: 0 0 8px 0;
+  /* 텍스트 줄바꿈 최적화 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .mobile-card-desc {
@@ -1072,6 +1080,10 @@ h4 {
   color: #6b7280;
   margin: 0;
   line-height: 1.5;
+  /* 텍스트 줄바꿈 최적화 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 /* 모바일 통계 카드 그리드 */
@@ -1107,6 +1119,10 @@ h4 {
   font-size: 12px;
   color: #6b7280;
   margin: 0;
+  /* 텍스트 줄바꿈 최적화 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 /* 모바일 리스트 */
@@ -1136,6 +1152,10 @@ h4 {
 
 .mobile-list-item-content {
   flex: 1;
+  min-width: 0; /* Flex child 텍스트 오버플로우 방지 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .mobile-list-item-title {
@@ -1143,12 +1163,20 @@ h4 {
   font-weight: 600;
   color: #111827;
   margin: 0 0 4px 0;
+  /* 텍스트 줄바꿈 최적화 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .mobile-list-item-subtitle {
   font-size: 13px;
   color: #6b7280;
   margin: 0;
+  /* 텍스트 줄바꿈 최적화 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .mobile-list-item-icon {

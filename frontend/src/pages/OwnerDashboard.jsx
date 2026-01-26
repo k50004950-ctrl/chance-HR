@@ -220,14 +220,13 @@ const OwnerDashboard = () => {
     // 1. 미퇴근 직원 (긴급)
     const notCheckedOut = todayAttendance.filter(a => a.check_in_time && !a.check_out_time);
     if (notCheckedOut.length > 0) {
-      const names = notCheckedOut.map(a => a.employee_name).slice(0, 3).join(', ');
       newNotifications.push({
         icon: '⚠️',
-        title: '미퇴근 직원이 있습니다',
-        message: `${names}${notCheckedOut.length > 3 ? ` 외 ${notCheckedOut.length - 3}명` : ''} - 퇴근 확인이 필요합니다`,
+        title: '미퇴근',
+        message: `${notCheckedOut.length}명`,
         urgent: true,
         action: 'attendance',
-        actionLabel: '출근 현황 보기'
+        actionLabel: '확인'
       });
     }
     
@@ -243,11 +242,11 @@ const OwnerDashboard = () => {
       if (unpublishedCount > 0) {
         newNotifications.push({
           icon: '💸',
-          title: '급여일이 다가옵니다',
-          message: `${unpublishedCount}명의 급여명세서가 아직 발송되지 않았습니다 (D-${daysInMonth - currentDay})`,
+          title: '급여 미발송',
+          message: `${unpublishedCount}명`,
           urgent: daysInMonth - currentDay <= 1,
           action: 'salary-slips',
-          actionLabel: '급여명세서 보기'
+          actionLabel: '확인'
         });
       }
     }
@@ -262,14 +261,13 @@ const OwnerDashboard = () => {
     });
     
     if (expiringContracts.length > 0) {
-      const names = expiringContracts.map(e => e.name).slice(0, 2).join(', ');
       newNotifications.push({
         icon: '📋',
-        title: '계약 만료 예정 직원이 있습니다',
-        message: `${names}${expiringContracts.length > 2 ? ` 외 ${expiringContracts.length - 2}명` : ''} - 계약 갱신이 필요합니다`,
+        title: '계약 만료',
+        message: `${expiringContracts.length}명`,
         urgent: false,
         action: 'roster',
-        actionLabel: '직원 관리 보기'
+        actionLabel: '확인'
       });
     }
     
@@ -286,14 +284,13 @@ const OwnerDashboard = () => {
     });
     
     if (absentToday.length > 0) {
-      const names = absentToday.map(e => e.name).slice(0, 3).join(', ');
       newNotifications.push({
         icon: '❌',
-        title: '오늘 출근하지 않은 직원',
-        message: `${names}${absentToday.length > 3 ? ` 외 ${absentToday.length - 3}명` : ''} - 출근 기록이 없습니다`,
+        title: '미출근',
+        message: `${absentToday.length}명`,
         urgent: false,
         action: 'attendance',
-        actionLabel: '출근 현황 보기'
+        actionLabel: '확인'
       });
     }
     

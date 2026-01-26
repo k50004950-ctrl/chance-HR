@@ -40,7 +40,8 @@ const MobileActionCard = ({ icon, title, count, color = '#667eea', urgent = fals
           marginBottom: '4px',
           fontWeight: '500',
           wordBreak: 'keep-all',
-          overflowWrap: 'break-word'
+          overflowWrap: 'break-word',
+          whiteSpace: 'normal'
         }}>
           {title}
         </div>
@@ -48,7 +49,9 @@ const MobileActionCard = ({ icon, title, count, color = '#667eea', urgent = fals
           fontSize: '28px',
           fontWeight: '700',
           color: urgent ? '#dc2626' : color,
-          wordBreak: 'keep-all'
+          wordBreak: 'keep-all',
+          overflowWrap: 'break-word',
+          whiteSpace: 'normal'
         }}>
           {count}
         </div>

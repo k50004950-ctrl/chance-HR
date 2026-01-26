@@ -1297,46 +1297,8 @@ const OwnerDashboard = () => {
     }
   };
 
-  const handleDeleteEmployee = async (id) => {
-    const employee = employees.find(emp => emp.id === id);
-    const employeeName = employee?.name || '직원';
-    
-    // 1단계: 강력한 경고
-    const firstConfirm = window.confirm(
-      `⚠️ 경고: 직원 삭제 확인\n\n` +
-      `${employeeName}의 계정을 삭제하시겠습니까?\n\n` +
-      `삭제 시 다음 데이터가 모두 삭제되며 복구가 불가능합니다:\n` +
-      `• 직원 정보 (개인정보, 계약서 등)\n` +
-      `• 출퇴근 기록\n` +
-      `• 급여 정보 및 급여명세서\n` +
-      `• 급여 변경 이력\n` +
-      `• 과거 급여 기록\n\n` +
-      `계속하시겠습니까?`
-    );
-    
-    if (!firstConfirm) return;
-    
-    // 2단계: 최종 확인
-    const finalConfirm = window.confirm(
-      `🔴 최종 확인\n\n` +
-      `${employeeName}의 모든 데이터가 영구 삭제됩니다.\n` +
-      `이 작업은 되돌릴 수 없습니다.\n\n` +
-      `정말 삭제하시겠습니까?`
-    );
-    
-    if (!finalConfirm) return;
-
-    try {
-      setLoading(true);
-      await employeeAPI.delete(id);
-      setMessage({ type: 'success', text: `${employeeName}의 모든 데이터가 삭제되었습니다.` });
-      loadEmployees();
-    } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || '삭제 중 오류가 발생했습니다.' });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 직원 계정 삭제 기능 제거 - 퇴사한 직원도 과거 기록을 볼 수 있도록 유지
+  // 퇴사 처리만 사용하여 직원을 비활성화합니다.
 
   const handleSubmitAttendance = async (e) => {
     e.preventDefault();
@@ -1836,13 +1798,6 @@ const OwnerDashboard = () => {
                                   >
                                     이력
                                   </button>
-                                  <button
-                                    className="btn btn-danger"
-                                    style={{ padding: '6px 12px', fontSize: '12px' }}
-                                    onClick={() => handleDeleteEmployee(emp.id)}
-                                  >
-                                    삭제
-                                  </button>
                                 </td>
                               </tr>
                             ))}
@@ -1889,12 +1844,6 @@ const OwnerDashboard = () => {
                                 onClick={() => handleViewSalaryHistory(emp.id, emp.name)}
                               >
                                 이력
-                              </button>
-                              <button
-                                className="btn btn-danger"
-                                onClick={() => handleDeleteEmployee(emp.id)}
-                              >
-                                삭제
                               </button>
                             </div>
                           </div>

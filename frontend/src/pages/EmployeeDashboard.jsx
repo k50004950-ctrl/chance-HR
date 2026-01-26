@@ -4,6 +4,7 @@ import { attendanceAPI, salaryAPI, employeeAPI, announcementsAPI } from '../serv
 import { useAuth } from '../context/AuthContext';
 import AnnouncementModal from '../components/AnnouncementModal';
 import { Html5Qrcode } from 'html5-qrcode';
+import html2canvas from 'html2canvas';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
@@ -161,6 +162,34 @@ const EmployeeDashboard = () => {
       setSalarySlips([]);
     } finally {
       setSalarySlipsLoading(false);
+    }
+  };
+
+  // 급여명세서 다운로드 기능
+  const downloadPayslip = async (slipId, payrollMonth) => {
+    try {
+      setMessage({ type: 'info', text: '급여명세서를 생성하는 중...' });
+      
+      const element = document.getElementById(`payslip-${slipId}`);
+      if (!element) {
+        throw new Error('급여명세서를 찾을 수 없습니다.');
+      }
+
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false
+      });
+
+      const link = document.createElement('a');
+      link.download = `급여명세서_${user.name || user.username}_${payrollMonth}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      setMessage({ type: 'success', text: '급여명세서가 다운로드되었습니다.' });
+    } catch (error) {
+      console.error('다운로드 오류:', error);
+      setMessage({ type: 'error', text: '다운로드에 실패했습니다.' });
     }
   };
 
@@ -840,14 +869,15 @@ const EmployeeDashboard = () => {
           ) : (
             <>
               {salarySlips.map((slip) => (
-                <div key={slip.id} style={{
-                  padding: '16px',
-                  backgroundColor: '#f9fafb',
-                  borderRadius: '8px',
-                  marginBottom: '16px',
-                  border: '1px solid #e5e7eb'
-                }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <div key={slip.id}>
+                  <div id={`payslip-${slip.id}`} style={{
+                    padding: '16px',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '8px',
+                    marginBottom: '16px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                     <div>
                       <span style={{ fontSize: '12px', color: '#6b7280', display: 'block' }}>귀속월</span>
                       <span style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>{slip.payroll_month || '-'}</span>
@@ -935,6 +965,24 @@ const EmployeeDashboard = () => {
                     <span style={{ fontSize: '16px', fontWeight: '600', color: '#fff' }}>실수령액</span>
                     <span style={{ fontSize: '20px', fontWeight: '700', color: '#fff' }}>{formatCurrency(slip.net_pay)}</span>
                   </div>
+                  </div>
+                  <button
+                    className="btn"
+                    style={{ 
+                      width: '100%', 
+                      marginTop: '12px',
+                      background: '#10b981',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                    onClick={() => downloadPayslip(slip.id, slip.payroll_month)}
+                  >
+                    <span>💾</span>
+                    <span>급여명세서 다운로드</span>
+                  </button>
                 </div>
               ))}
             </>

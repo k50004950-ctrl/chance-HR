@@ -193,4 +193,13 @@ export const insuranceAPI = {
   delete: (id) => api.delete(`/insurance/rates/${id}`)
 };
 
+// 커뮤니티 API
+export const communityAPI = {
+  getPosts: (category) => api.get('/community/posts', { params: category ? { category } : {} }),
+  getPost: (id) => api.get(`/community/posts/${id}`),
+  createPost: (data) => api.post('/community/posts', data),
+  updatePost: (id, data) => api.put(`/community/posts/${id}`, data),
+  deletePost: (id) => api.delete(`/community/posts/${id}`)
+};
+
 export default api;

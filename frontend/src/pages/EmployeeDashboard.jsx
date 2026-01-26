@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
-import { attendanceAPI, salaryAPI, employeeAPI, announcementsAPI } from '../services/api';
+import { attendanceAPI, salaryAPI, employeeAPI, announcementsAPI, communityAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import AnnouncementModal from '../components/AnnouncementModal';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -35,6 +35,14 @@ const EmployeeDashboard = () => {
   const [employeeProfile, setEmployeeProfile] = useState(null);
   const [currentAnnouncement, setCurrentAnnouncement] = useState(null);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  
+  // 커뮤니티 관련 state
+  const [activeTab, setActiveTab] = useState('attendance'); // attendance, slips, community
+  const [communityPosts, setCommunityPosts] = useState([]);
+  const [communityLoading, setCommunityLoading] = useState(false);
+  const [showCommunityModal, setShowCommunityModal] = useState(false);
+  const [communityModalType, setCommunityModalType] = useState('create');
+  const [communityFormData, setCommunityFormData] = useState({ id: null, title: '', content: '' });
 
   useEffect(() => {
     checkConsent();
@@ -42,6 +50,12 @@ const EmployeeDashboard = () => {
     loadAttendanceRecords();
     checkAnnouncements();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'community') {
+      loadCommunityPosts();
+    }
+  }, [activeTab]);
 
   const checkAnnouncements = async () => {
     try {
@@ -498,6 +512,80 @@ const EmployeeDashboard = () => {
     }
   };
 
+  // 커뮤니티 관련 함수
+  const loadCommunityPosts = async () => {
+    try {
+      setCommunityLoading(true);
+      const response = await communityAPI.getPosts('employee');
+      setCommunityPosts(response.data);
+    } catch (error) {
+      console.error('커뮤니티 게시글 로드 오류:', error);
+      setMessage({ type: 'error', text: '게시글을 불러오는데 실패했습니다.' });
+    } finally {
+      setCommunityLoading(false);
+    }
+  };
+
+  const openCommunityModal = (type, post = null) => {
+    setCommunityModalType(type);
+    if (post) {
+      setCommunityFormData({ id: post.id, title: post.title, content: post.content });
+    } else {
+      setCommunityFormData({ id: null, title: '', content: '' });
+    }
+    setShowCommunityModal(true);
+  };
+
+  const handleSaveCommunityPost = async (e) => {
+    e.preventDefault();
+    if (!communityFormData.title || !communityFormData.content) {
+      setMessage({ type: 'error', text: '제목과 내용을 입력해주세요.' });
+      return;
+    }
+
+    try {
+      setCommunityLoading(true);
+      if (communityModalType === 'create') {
+        await communityAPI.createPost({
+          title: communityFormData.title,
+          content: communityFormData.content
+        });
+        setMessage({ type: 'success', text: '게시글이 작성되었습니다.' });
+      } else {
+        await communityAPI.updatePost(communityFormData.id, {
+          title: communityFormData.title,
+          content: communityFormData.content
+        });
+        setMessage({ type: 'success', text: '게시글이 수정되었습니다.' });
+      }
+      setShowCommunityModal(false);
+      loadCommunityPosts();
+    } catch (error) {
+      console.error('게시글 저장 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '게시글 저장에 실패했습니다.' });
+    } finally {
+      setCommunityLoading(false);
+    }
+  };
+
+  const handleDeleteCommunityPost = async (postId) => {
+    if (!confirm('이 게시글을 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      setCommunityLoading(true);
+      await communityAPI.deletePost(postId);
+      setMessage({ type: 'success', text: '게시글이 삭제되었습니다.' });
+      loadCommunityPosts();
+    } catch (error) {
+      console.error('게시글 삭제 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '게시글 삭제에 실패했습니다.' });
+    } finally {
+      setCommunityLoading(false);
+    }
+  };
+
   const fixedHolidayMap = {
     '01-01': '신정',
     '03-01': '삼일절',
@@ -611,6 +699,31 @@ const EmployeeDashboard = () => {
           </div>
         )}
 
+        {/* 탭 메뉴 */}
+        <div className="nav-tabs" style={{ marginBottom: '24px' }}>
+          <button
+            className={`nav-tab ${activeTab === 'attendance' ? 'active' : ''}`}
+            onClick={() => setActiveTab('attendance')}
+          >
+            📊 출퇴근
+          </button>
+          <button
+            className={`nav-tab ${activeTab === 'slips' ? 'active' : ''}`}
+            onClick={() => setActiveTab('slips')}
+          >
+            📝 급여명세서
+          </button>
+          <button
+            className={`nav-tab ${activeTab === 'community' ? 'active' : ''}`}
+            onClick={() => setActiveTab('community')}
+          >
+            💬 커뮤니티
+          </button>
+        </div>
+
+        {/* 출퇴근 탭 */}
+        {activeTab === 'attendance' && (
+          <>
         {/* 출퇴근 체크 카드 */}
         <div className="card" style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
@@ -1217,6 +1330,209 @@ const EmployeeDashboard = () => {
             </>
           )}
         </div>
+        </>
+        )}
+
+        {/* 급여명세서 탭 */}
+        {activeTab === 'slips' && (
+          <>
+            {/* 이번 달 급여 정보 */}
+            {salaryInfo && (
+              <div className="card" style={{ marginBottom: '24px' }}>
+                <h3 style={{ marginBottom: '20px', color: '#374151' }}>💰 이번 달 급여</h3>
+                <div className="grid grid-3">
+                  <div className="stat-card">
+                    <div className="stat-label">급여 유형</div>
+                    <div className="stat-value" style={{ fontSize: '20px' }}>
+                      {getSalaryTypeName(salaryInfo.salaryInfo.type)}
+                    </div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-label">근무일수</div>
+                    <div className="stat-value">{salaryInfo.workData.totalWorkDays}일</div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-label">총 근무시간</div>
+                    <div className="stat-value" style={{ fontSize: '20px' }}>
+                      {salaryInfo.workData.totalWorkHours}h
+                    </div>
+                  </div>
+                </div>
+                <div style={{
+                  marginTop: '20px',
+                  padding: '20px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '8px',
+                  color: 'white',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '14px', marginBottom: '8px', opacity: '0.9' }}>예상 급여 (세전)</div>
+                  <div style={{ fontSize: '32px', fontWeight: '700' }}>
+                    {salaryInfo.calculatedSalary.toLocaleString()}원
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* 커뮤니티 탭 */}
+        {activeTab === 'community' && (
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, color: '#374151' }}>💬 근로자 커뮤니티</h3>
+              <button
+                className="btn btn-primary"
+                onClick={() => openCommunityModal('create')}
+              >
+                ✏️ 글 작성
+              </button>
+            </div>
+
+            {communityLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#6b7280' }}>
+                로딩 중...
+              </div>
+            ) : communityPosts.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#6b7280' }}>
+                작성된 게시글이 없습니다.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {communityPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    style={{
+                      padding: '20px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      background: '#fff',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                    onClick={() => openCommunityModal('view', post)}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                      <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>
+                        {post.title}
+                      </h4>
+                      {post.user_id === user.id && (
+                        <div style={{ display: 'flex', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: '4px 12px', fontSize: '12px' }}
+                            onClick={() => openCommunityModal('edit', post)}
+                          >
+                            수정
+                          </button>
+                          <button
+                            className="btn"
+                            style={{ padding: '4px 12px', fontSize: '12px', background: '#ef4444', color: 'white' }}
+                            onClick={() => handleDeleteCommunityPost(post.id)}
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '12px', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
+                      {post.content.length > 200 ? `${post.content.substring(0, 200)}...` : post.content}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#9ca3af' }}>
+                      <span>작성자: {post.author_name}</span>
+                      <span>{new Date(post.created_at).toLocaleDateString('ko-KR')} {new Date(post.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 커뮤니티 모달 */}
+        {showCommunityModal && (
+          <div className="modal-overlay" onClick={() => setShowCommunityModal(false)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+              <div className="modal-header">
+                {communityModalType === 'create' ? '글 작성' : communityModalType === 'edit' ? '글 수정' : '게시글'}
+              </div>
+
+              {message.text && (
+                <div className={`alert alert-${message.type}`} style={{ marginBottom: '16px' }}>
+                  {message.text}
+                </div>
+              )}
+
+              {communityModalType === 'view' ? (
+                <div>
+                  <h3 style={{ marginBottom: '16px', color: '#111827' }}>{communityFormData.title}</h3>
+                  <div style={{ fontSize: '14px', color: '#374151', whiteSpace: 'pre-wrap', lineHeight: '1.6', marginBottom: '20px' }}>
+                    {communityFormData.content}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowCommunityModal(false)}
+                    >
+                      닫기
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleSaveCommunityPost}>
+                  <div className="form-group">
+                    <label className="form-label">제목 *</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={communityFormData.title}
+                      onChange={(e) => setCommunityFormData({ ...communityFormData, title: e.target.value })}
+                      placeholder="제목을 입력하세요"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">내용 *</label>
+                    <textarea
+                      className="form-input"
+                      value={communityFormData.content}
+                      onChange={(e) => setCommunityFormData({ ...communityFormData, content: e.target.value })}
+                      placeholder="내용을 입력하세요"
+                      rows={10}
+                      required
+                      style={{ resize: 'vertical' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowCommunityModal(false)}
+                      style={{ flex: 1 }}
+                    >
+                      취소
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={communityLoading}
+                      style={{ flex: 1 }}
+                    >
+                      {communityLoading ? '저장 중...' : '저장'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 재직증명서 모달 */}
         {showCertificateModal && certificateData && (

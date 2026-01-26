@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { workplaceAPI, authAPI, announcementsAPI, insuranceAPI } from '../services/api';
+import { workplaceAPI, authAPI, announcementsAPI, insuranceAPI, communityAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const AdminDashboard = () => {
@@ -37,6 +37,9 @@ const AdminDashboard = () => {
   });
   const [editingRate, setEditingRate] = useState(null);
   const [rateLoading, setRateLoading] = useState(false);
+  const [communityPosts, setCommunityPosts] = useState([]);
+  const [communityLoading, setCommunityLoading] = useState(false);
+  const [communityFilter, setCommunityFilter] = useState('all'); // all, owner, employee
 
   useEffect(() => {
     loadWorkplaces();
@@ -44,6 +47,12 @@ const AdminDashboard = () => {
     loadAnnouncements();
     loadInsuranceRates();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'community' && isSuperAdmin) {
+      loadCommunityPosts();
+    }
+  }, [activeTab, communityFilter]);
 
   const handleToggleOwnerStatus = async (ownerId, ownerName) => {
     const owner = owners.find((item) => item.id === ownerId);
@@ -212,6 +221,35 @@ const AdminDashboard = () => {
     setActiveTab('insurance');
   };
 
+  const loadCommunityPosts = async () => {
+    try {
+      setCommunityLoading(true);
+      const response = await communityAPI.getPosts(communityFilter === 'all' ? null : communityFilter);
+      setCommunityPosts(response.data);
+    } catch (error) {
+      console.error('커뮤니티 게시글 로드 오류:', error);
+      setMessage({ type: 'error', text: '게시글을 불러오는데 실패했습니다.' });
+    } finally {
+      setCommunityLoading(false);
+    }
+  };
+
+  const handleDeleteCommunityPost = async (postId) => {
+    if (!window.confirm('이 게시글을 삭제하시겠습니까?')) return;
+
+    try {
+      setCommunityLoading(true);
+      await communityAPI.deletePost(postId);
+      setMessage({ type: 'success', text: '게시글이 삭제되었습니다.' });
+      loadCommunityPosts();
+    } catch (error) {
+      console.error('게시글 삭제 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '게시글 삭제에 실패했습니다.' });
+    } finally {
+      setCommunityLoading(false);
+    }
+  };
+
   const handleCreateAnnouncement = async (e) => {
     e.preventDefault();
     if (!announcementForm.title || !announcementForm.content) {
@@ -367,6 +405,12 @@ const AdminDashboard = () => {
                 onClick={() => setActiveTab('announcements')}
               >
                 📢 공지사항
+              </button>
+              <button
+                className={`nav-tab ${activeTab === 'community' ? 'active' : ''}`}
+                onClick={() => setActiveTab('community')}
+              >
+                💬 커뮤니티
               </button>
             </>
           )}
@@ -1027,6 +1071,96 @@ const AdminDashboard = () => {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* 커뮤니티 관리 */}
+        {activeTab === 'community' && isSuperAdmin && (
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, color: '#374151' }}>💬 커뮤니티 관리</h3>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className={`btn ${communityFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setCommunityFilter('all')}
+                  style={{ padding: '8px 16px' }}
+                >
+                  전체
+                </button>
+                <button
+                  className={`btn ${communityFilter === 'owner' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setCommunityFilter('owner')}
+                  style={{ padding: '8px 16px' }}
+                >
+                  사업주
+                </button>
+                <button
+                  className={`btn ${communityFilter === 'employee' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setCommunityFilter('employee')}
+                  style={{ padding: '8px 16px' }}
+                >
+                  근로자
+                </button>
+              </div>
+            </div>
+
+            {communityLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#6b7280' }}>
+                로딩 중...
+              </div>
+            ) : communityPosts.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#6b7280' }}>
+                게시글이 없습니다.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {communityPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    style={{
+                      padding: '20px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      background: '#fff'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                          <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>
+                            {post.title}
+                          </h4>
+                          <span style={{
+                            padding: '2px 8px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            borderRadius: '4px',
+                            background: post.category === 'owner' ? '#dbeafe' : '#fef3c7',
+                            color: post.category === 'owner' ? '#1e40af' : '#92400e'
+                          }}>
+                            {post.category === 'owner' ? '사업주' : '근로자'}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        className="btn"
+                        style={{ padding: '4px 12px', fontSize: '12px', background: '#ef4444', color: 'white' }}
+                        onClick={() => handleDeleteCommunityPost(post.id)}
+                      >
+                        삭제
+                      </button>
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '12px', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
+                      {post.content}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#9ca3af' }}>
+                      <span>작성자: {post.author_name} ({post.author_role})</span>
+                      <span>{new Date(post.created_at).toLocaleDateString('ko-KR')} {new Date(post.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

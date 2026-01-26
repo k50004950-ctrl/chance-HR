@@ -762,6 +762,19 @@ export const initDatabase = async () => {
         )
       `);
 
+      // Community_posts 테이블 (커뮤니티 게시판)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS community_posts (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          category VARCHAR(50) NOT NULL CHECK (category IN ('owner', 'employee')),
+          title VARCHAR(200) NOT NULL,
+          content TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       console.log('PostgreSQL 데이터베이스 초기화 완료');
     } else {
       // SQLite 초기화 (기존 코드)
@@ -1305,6 +1318,20 @@ export const initDatabase = async () => {
           dependents_11 INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           UNIQUE(year, salary_min, salary_max)
+        )
+      `);
+
+      // Community_posts 테이블 (커뮤니티 게시판)
+      await run(`
+        CREATE TABLE IF NOT EXISTS community_posts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          category TEXT NOT NULL CHECK (category IN ('owner', 'employee')),
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
       `);
 

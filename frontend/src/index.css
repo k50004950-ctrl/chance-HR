@@ -1018,6 +1018,110 @@ button:active {
   .mobile-content {
     padding-top: 0;
   }
+  
+  /* ========================================
+     직원 관리 가로 탭 (모바일)
+     ======================================== */
+  
+  .mobile-employee-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+  
+  .mobile-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+  }
+  
+  .mobile-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .mobile-tab {
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .mobile-tab.active {
+    background: #667eea;
+    color: white;
+  }
+  
+  .mobile-add-btn {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #10b981;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  /* 직원 카드 */
+  .employee-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .employee-card-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 8px;
+  }
+  
+  .employee-card-info {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  
+  .employee-card-info-item {
+    font-size: 13px;
+    color: #6b7280;
+  }
+  
+  .employee-card-info-label {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 4px;
+  }
+  
+  .employee-card-actions {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .employee-card-actions .btn {
+    flex: 1;
+    font-size: 13px;
+    padding: 8px 12px;
+    min-height: 40px;
+  }
 }
 
 /* 그리드 */
@@ -1888,3 +1992,174 @@ button:active {
     padding-bottom: calc(80px + env(safe-area-inset-bottom));
   }
 }
+
+/* ========================================
+   [2] Mobile Employee Management Styles
+   ======================================== */
+
+/* Mobile Employee Header (Tabs + Add Button) */
+.mobile-employee-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* Mobile Tabs (Horizontal Scrollable) */
+.mobile-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  flex: 1;
+}
+
+.mobile-tabs::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+/* Individual Tab */
+.mobile-tab {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  min-height: 44px; /* Touch target */
+}
+
+.mobile-tab:active {
+  transform: scale(0.97);
+}
+
+.mobile-tab.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+/* Mobile Add Button (Small) */
+.mobile-add-btn {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #10b981;
+  color: white;
+  border: none;
+  font-size: 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.mobile-add-btn:active {
+  transform: scale(0.95);
+}
+
+/* Employee Card Grid */
+.employee-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 769px) {
+  .employee-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 16px;
+  }
+}
+
+/* Employee Card */
+.employee-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+
+.employee-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.employee-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.employee-status {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.employee-status.active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.employee-status.on_leave {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.employee-status.resigned {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Employee Card Meta (Grid) */
+.employee-card-meta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.employee-card-meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.employee-card-meta > div > span {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+/* Employee Card Actions */
+.employee-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.employee-card-actions .btn {
+  flex: 1;
+  min-height: 44px; /* Touch target */
+  font-size: 13px;
+  padding: 10px 14px;
+}
+
+/* End of Mobile Employee Management Styles */

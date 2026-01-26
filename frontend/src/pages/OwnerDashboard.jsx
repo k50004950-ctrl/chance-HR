@@ -2344,67 +2344,108 @@ const OwnerDashboard = () => {
             {/* 근로자 명부 (직원 관리 통합) */}
             {activeTab === 'roster' && (
               <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <div>
-                    <h3 style={{ color: '#374151', marginBottom: '12px' }}>📋 근로자 명부</h3>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {/* 모바일 전용 헤더 */}
+                {isMobile ? (
+                  <div className="mobile-employee-header">
+                    <div className="mobile-tabs">
                       <button
-                        className={`btn ${employmentStatusFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        className={`mobile-tab ${employmentStatusFilter === 'all' ? 'active' : ''}`}
                         onClick={() => setEmploymentStatusFilter('all')}
                       >
                         전체
                       </button>
                       <button
-                        className={`btn ${employmentStatusFilter === 'active' ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        className={`mobile-tab ${employmentStatusFilter === 'active' ? 'active' : ''}`}
                         onClick={() => setEmploymentStatusFilter('active')}
                       >
-                        재직중
+                        재직
                       </button>
                       <button
-                        className={`btn ${employmentStatusFilter === 'on_leave' ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        className={`mobile-tab ${employmentStatusFilter === 'on_leave' ? 'active' : ''}`}
                         onClick={() => setEmploymentStatusFilter('on_leave')}
                       >
                         휴직
                       </button>
                       <button
-                        className={`btn ${employmentStatusFilter === 'resigned' ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        className={`mobile-tab ${employmentStatusFilter === 'resigned' ? 'active' : ''}`}
                         onClick={() => setEmploymentStatusFilter('resigned')}
                       >
                         퇴사
                       </button>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      className="mobile-add-btn"
+                      onClick={() => openModal('employee')}
+                    >
+                      <span>+</span>
+                    </button>
+                  </div>
+                ) : (
+                  /* 데스크톱 헤더 */
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                      <div>
+                        <h3 style={{ color: '#374151', marginBottom: '12px' }}>📋 근로자 명부</h3>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <button
+                            className={`btn ${employmentStatusFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            onClick={() => setEmploymentStatusFilter('all')}
+                          >
+                            전체
+                          </button>
+                          <button
+                            className={`btn ${employmentStatusFilter === 'active' ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            onClick={() => setEmploymentStatusFilter('active')}
+                          >
+                            재직중
+                          </button>
+                          <button
+                            className={`btn ${employmentStatusFilter === 'on_leave' ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            onClick={() => setEmploymentStatusFilter('on_leave')}
+                          >
+                            휴직
+                          </button>
+                          <button
+                            className={`btn ${employmentStatusFilter === 'resigned' ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            onClick={() => setEmploymentStatusFilter('resigned')}
+                          >
+                            퇴사
+                          </button>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            className={`btn ${rosterViewMode === 'table' ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            onClick={() => setRosterViewMode('table')}
+                          >
+                            표 보기
+                          </button>
+                          <button
+                            className={`btn ${rosterViewMode === 'cards' ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            onClick={() => setRosterViewMode('cards')}
+                          >
+                            카드 보기
+                          </button>
+                        </div>
+                      </div>
                       <button
-                        className={`btn ${rosterViewMode === 'table' ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ padding: '6px 12px', fontSize: '12px' }}
-                        onClick={() => setRosterViewMode('table')}
+                        className="btn btn-primary"
+                        onClick={() => openModal('employee')}
                       >
-                        표 보기
-                      </button>
-                      <button
-                        className={`btn ${rosterViewMode === 'cards' ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ padding: '6px 12px', fontSize: '12px' }}
-                        onClick={() => setRosterViewMode('cards')}
-                      >
-                        카드 보기
+                        + 직원 등록
                       </button>
                     </div>
-                  </div>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => openModal('employee')}
-                  >
-                    + 직원 등록
-                  </button>
-                </div>
-                
-                <p style={{ color: '#6b7280', marginBottom: '20px', fontSize: '14px' }}>
-                  📌 등록된 모든 직원의 상세 정보를 한눈에 확인할 수 있습니다.
-                </p>
+                    
+                    <p style={{ color: '#6b7280', marginBottom: '20px', fontSize: '14px' }}>
+                      📌 등록된 모든 직원의 상세 정보를 한눈에 확인할 수 있습니다.
+                    </p>
+                  </>
+                )}
 
                 {employees.length === 0 ? (
                   <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
@@ -2412,7 +2453,7 @@ const OwnerDashboard = () => {
                   </p>
                 ) : (
                   <>
-                    {rosterViewMode === 'table' ? (
+                    {!isMobile && rosterViewMode === 'table' ? (
                       <div style={{ overflowX: 'auto' }}>
                         <table className="table table-mobile-cards">
                           <thead>

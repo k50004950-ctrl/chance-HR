@@ -1836,12 +1836,25 @@ const OwnerDashboard = () => {
             top: 0,
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             color: 'white',
-            padding: '16px 16px 20px',
+            padding: '12px 16px 16px',
             zIndex: 100,
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: '12px',
+              minHeight: '48px'
+            }}>
+              <h2 style={{ 
+                margin: 0, 
+                fontSize: '20px', 
+                fontWeight: '700',
+                flex: 1,
+                minWidth: 0,
+                paddingRight: '12px'
+              }}>
                 {activeTab === 'dashboard' ? '홈' : 
                  activeTab === 'attendance' ? '출근 현황' :
                  activeTab === 'salary' ? '급여 관리' :
@@ -1866,14 +1879,21 @@ const OwnerDashboard = () => {
                 onChange={(e) => setSelectedWorkplace(parseInt(e.target.value))}
                 style={{
                   width: '100%',
-                  padding: '12px 16px',
+                  padding: '14px 16px',
+                  minHeight: '48px',
                   border: 'none',
                   borderRadius: '12px',
                   fontSize: '15px',
                   fontWeight: '600',
                   background: 'rgba(255,255,255,0.95)',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'none',
+                  backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23667eea\' d=\'M6 9L1 4h10z\'/%3E%3C/svg%3E")',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 16px center'
                 }}
               >
                 {workplaces.map((wp) => (

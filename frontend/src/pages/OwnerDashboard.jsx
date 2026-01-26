@@ -459,20 +459,22 @@ const OwnerDashboard = () => {
     }
   }, [showModal, modalType, formData.id]);
 
-  // 급여명세서 탭 전환 시 당월 급여대장 자동 로드
+  // 급여명세서 탭 전환 시 당월 급여대장 자동 로드 및 펼치기
   useEffect(() => {
     const loadCurrentMonthLedger = async () => {
-      if (activeTab === 'salary-slips' && selectedWorkplace && !payrollLedgerData) {
-        try {
-          setLoading(true);
-          const response = await salaryAPI.getPayrollLedger(selectedWorkplace, payrollLedgerMonth);
-          setPayrollLedgerData(response.data);
-          setQrCollapsed(false); // 기본으로 펼쳐진 상태
-        } catch (error) {
-          console.error('당월 급여대장 자동 로드 오류:', error);
-          setPayrollLedgerData({ slips: [] }); // 빈 데이터로 초기화
-        } finally {
-          setLoading(false);
+      if (activeTab === 'salary-slips' && selectedWorkplace) {
+        setQrCollapsed(false); // 탭 진입 시 항상 펼치기
+        if (!payrollLedgerData) {
+          try {
+            setLoading(true);
+            const response = await salaryAPI.getPayrollLedger(selectedWorkplace, payrollLedgerMonth);
+            setPayrollLedgerData(response.data);
+          } catch (error) {
+            console.error('당월 급여대장 자동 로드 오류:', error);
+            setPayrollLedgerData({ slips: [] }); // 빈 데이터로 초기화
+          } finally {
+            setLoading(false);
+          }
         }
       }
     };
@@ -1844,7 +1846,13 @@ const OwnerDashboard = () => {
                 {activeTab === 'dashboard' ? '홈' : 
                  activeTab === 'attendance' ? '출근 현황' :
                  activeTab === 'salary' ? '급여 관리' :
-                 activeTab === 'roster' ? '직원 관리' : '더보기'}
+                 activeTab === 'roster' ? '직원 관리' :
+                 activeTab === 'salary-slips' ? '급여명세서' :
+                 activeTab === 'calendar' ? '출근 달력' :
+                 activeTab === 'severance' ? '퇴직금 계산' :
+                 activeTab === 'past-employees' ? '서류 보관함' :
+                 activeTab === 'community' ? '소통방' :
+                 activeTab === 'settings' ? '설정' : '더보기'}
               </h2>
               <NotificationCenter 
                 notifications={notifications}
@@ -4648,6 +4656,202 @@ const OwnerDashboard = () => {
               </div>
 
               </>
+            )}
+
+            {/* 더보기 메뉴 (모바일 전용) */}
+            {activeTab === 'more' && isMobile && (
+              <div style={{ padding: '16px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '20px', color: '#111827' }}>
+                  ⋯ 더보기 메뉴
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <button
+                    onClick={() => setActiveTab('calendar')}
+                    style={{
+                      width: '100%',
+                      padding: '20px',
+                      border: '1px solid #e5e7eb',
+                      background: 'white',
+                      borderRadius: '12px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#374151',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '16px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                  >
+                    <div style={{ fontSize: '28px' }}>📅</div>
+                    <div style={{ flex: 1 }}>
+                      <div>출근 달력</div>
+                      <div style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '400', marginTop: '4px' }}>
+                        월별 출근 현황 확인
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '18px', color: '#9ca3af' }}>›</div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('salary-slips')}
+                    style={{
+                      width: '100%',
+                      padding: '20px',
+                      border: '1px solid #e5e7eb',
+                      background: 'white',
+                      borderRadius: '12px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#374151',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '16px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                  >
+                    <div style={{ fontSize: '28px' }}>📝</div>
+                    <div style={{ flex: 1 }}>
+                      <div>급여명세서</div>
+                      <div style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '400', marginTop: '4px' }}>
+                        급여명세서 작성 및 배포
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '18px', color: '#9ca3af' }}>›</div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('severance')}
+                    style={{
+                      width: '100%',
+                      padding: '20px',
+                      border: '1px solid #e5e7eb',
+                      background: 'white',
+                      borderRadius: '12px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#374151',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '16px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                  >
+                    <div style={{ fontSize: '28px' }}>🧮</div>
+                    <div style={{ flex: 1 }}>
+                      <div>퇴직금 계산</div>
+                      <div style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '400', marginTop: '4px' }}>
+                        퇴직금 자동 계산
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '18px', color: '#9ca3af' }}>›</div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('past-employees')}
+                    style={{
+                      width: '100%',
+                      padding: '20px',
+                      border: '1px solid #e5e7eb',
+                      background: 'white',
+                      borderRadius: '12px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#374151',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '16px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                  >
+                    <div style={{ fontSize: '28px' }}>📁</div>
+                    <div style={{ flex: 1 }}>
+                      <div>서류 보관함</div>
+                      <div style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '400', marginTop: '4px' }}>
+                        과거 직원 및 급여 기록
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '18px', color: '#9ca3af' }}>›</div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('community')}
+                    style={{
+                      width: '100%',
+                      padding: '20px',
+                      border: '1px solid #e5e7eb',
+                      background: 'white',
+                      borderRadius: '12px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#374151',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '16px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                  >
+                    <div style={{ fontSize: '28px' }}>💬</div>
+                    <div style={{ flex: 1 }}>
+                      <div>소통방</div>
+                      <div style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '400', marginTop: '4px' }}>
+                        사업주 커뮤니티
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '18px', color: '#9ca3af' }}>›</div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('settings')}
+                    style={{
+                      width: '100%',
+                      padding: '20px',
+                      border: '1px solid #e5e7eb',
+                      background: 'white',
+                      borderRadius: '12px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#374151',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '16px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                  >
+                    <div style={{ fontSize: '28px' }}>⚙️</div>
+                    <div style={{ flex: 1 }}>
+                      <div>설정</div>
+                      <div style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '400', marginTop: '4px' }}>
+                        사업장 설정 및 알림
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '18px', color: '#9ca3af' }}>›</div>
+                  </button>
+                </div>
+              </div>
             )}
           </>
         )}

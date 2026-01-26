@@ -792,9 +792,10 @@ h4 {
 }
 
 /* ========================================
-   홈 화면 큰 액션 버튼 (P1)
+   홈 화면 큰 액션 버튼 (REMOVED - 하단 탭만 사용)
    ======================================== */
 
+/* 홈 화면에서 액션 버튼 제거됨 - 기능 이동은 하단 탭만 사용
 .home-action-button {
   padding: 20px;
   border-radius: 16px;
@@ -842,6 +843,7 @@ h4 {
 .home-action-button.primary .home-action-button-desc {
   color: white;
 }
+*/
 
 /* 미처리 알림 요약 카드 */
 .alert-summary-card {
@@ -996,8 +998,8 @@ button:active {
     color: #10b981;
   }
   
-  /* 홈 액션 버튼 간격 줄이기 */
-  .home-action-button {
+  /* 홈 액션 버튼 간격 줄이기 (REMOVED - 하단 탭만 사용) */
+  /* .home-action-button {
     min-height: 100px;
     padding: 16px;
   }
@@ -1012,7 +1014,7 @@ button:active {
   
   .home-action-button-desc {
     font-size: 12px;
-  }
+  } */
   
   /* 모바일 헤더 높이 줄이기 */
   .mobile-content {

@@ -2746,41 +2746,6 @@ const OwnerDashboard = () => {
                               <div className="mobile-summary-value urgent">{notCheckedOut}명</div>
                             </div>
                           </div>
-                          
-                          {/* 3. 큰 버튼 3개 */}
-                          <div style={{ 
-                            display: 'grid', 
-                            gridTemplateColumns: '1fr',
-                            gap: '12px',
-                            marginTop: '16px'
-                          }}>
-                            <button
-                              className="home-action-button primary"
-                              onClick={() => handleTabChange('attendance')}
-                            >
-                              <div className="home-action-button-icon">📊</div>
-                              <div className="home-action-button-label">출근</div>
-                              <div className="home-action-button-desc">출퇴근 현황</div>
-                            </button>
-                            
-                            <button
-                              className="home-action-button"
-                              onClick={() => handleTabChange('roster')}
-                            >
-                              <div className="home-action-button-icon">👥</div>
-                              <div className="home-action-button-label">직원</div>
-                              <div className="home-action-button-desc">직원 관리</div>
-                            </button>
-                            
-                            <button
-                              className="home-action-button"
-                              onClick={() => handleTabChange('salary')}
-                            >
-                              <div className="home-action-button-icon">💰</div>
-                              <div className="home-action-button-label">급여</div>
-                              <div className="home-action-button-desc">급여 관리</div>
-                            </button>
-                          </div>
                         </>
                       );
                     })()}

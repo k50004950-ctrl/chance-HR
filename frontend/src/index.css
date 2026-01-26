@@ -908,6 +908,39 @@ button:active {
   transition: transform 0.1s;
 }
 
+/* ========================================
+   Empty State (P2)
+   ======================================== */
+
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+  color: #9ca3af;
+}
+
+.empty-state-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.empty-state-desc {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-bottom: 24px;
+}
+
+.empty-state .btn {
+  margin-top: 8px;
+}
+
 /* 그리드 */
 .grid {
   display: grid;

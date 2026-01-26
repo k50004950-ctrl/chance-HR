@@ -3461,7 +3461,7 @@ const OwnerDashboard = () => {
                                 onClick={() => openModal('editAttendance', record)}
                               >
                                 <span style={{ fontSize: '16px' }}>✏️</span>
-                                <span>수정</span>
+                                <span>출근기록 수정</span>
                               </button>
                             </div>
                           );
@@ -6467,7 +6467,7 @@ const OwnerDashboard = () => {
                   disabled={loading}
                   style={{ position: 'relative' }}
                 >
-                  <span style={{ visibility: loading ? 'hidden' : 'visible' }}>저장</span>
+                  <span style={{ visibility: loading ? 'hidden' : 'visible' }}>저장하기</span>
                 </button>
               </div>
             </form>

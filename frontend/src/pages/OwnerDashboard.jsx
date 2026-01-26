@@ -273,7 +273,9 @@ const OwnerDashboard = () => {
     
     // 4. 오늘 결근한 직원 (출근일인데 출근 안 함)
     const absentToday = activeEmployees.filter(emp => {
-      const workDays = emp.work_days ? emp.work_days.split(',') : [];
+      const workDays = Array.isArray(emp.work_days) 
+        ? emp.work_days 
+        : (emp.work_days ? emp.work_days.split(',') : []);
       const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
       const todayKey = dayKeys[currentDate.getDay()];
       const isScheduled = workDays.length === 0 || workDays.includes(todayKey);
@@ -594,7 +596,9 @@ const OwnerDashboard = () => {
       const leaveNames = [];
 
       workingEmployees.forEach((emp) => {
-        const workDays = emp.work_days ? emp.work_days.split(',') : [];
+        const workDays = Array.isArray(emp.work_days) 
+          ? emp.work_days 
+          : (emp.work_days ? emp.work_days.split(',') : []);
         const isScheduled = workDays.length === 0 || workDays.includes(weekdayKey);
         if (!isScheduled) return;
 
@@ -5199,7 +5203,9 @@ const OwnerDashboard = () => {
                 }}>
                   {['월', '화', '수', '목', '금', '토', '일'].map((day, index) => {
                     const dayValue = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'][index];
-                    const workDays = formData.work_days ? formData.work_days.split(',') : [];
+                    const workDays = Array.isArray(formData.work_days) 
+                      ? formData.work_days 
+                      : (formData.work_days ? formData.work_days.split(',') : []);
                     const isChecked = workDays.includes(dayValue);
                     
                     return (

@@ -533,6 +533,13 @@ export const initDatabase = async () => {
         console.log('total_employer_burden 컬럼은 이미 존재합니다.');
       }
       
+      // salary_slips에 dependents_count 컬럼 추가 (기존 DB 대응)
+      try {
+        await pool.query(`ALTER TABLE salary_slips ADD COLUMN IF NOT EXISTS dependents_count INTEGER DEFAULT 1`);
+      } catch (e) {
+        console.log('dependents_count 컬럼은 이미 존재합니다.');
+      }
+      
       // salary_slips에 published 컬럼 추가 (기존 DB 대응)
       await pool.query(`
         ALTER TABLE salary_slips 
@@ -1175,6 +1182,12 @@ export const initDatabase = async () => {
       const hasTotalEmployerBurden = slipsColumns.some((col) => col.name === 'total_employer_burden');
       if (!hasTotalEmployerBurden) {
         await run(`ALTER TABLE salary_slips ADD COLUMN total_employer_burden REAL DEFAULT 0`);
+      }
+      
+      // salary_slips에 dependents_count 컬럼 추가 (기존 DB 대응)
+      const hasDependentsCount = slipsColumns.some((col) => col.name === 'dependents_count');
+      if (!hasDependentsCount) {
+        await run(`ALTER TABLE salary_slips ADD COLUMN dependents_count INTEGER DEFAULT 1`);
       }
 
       // Announcements 테이블 (공지사항)

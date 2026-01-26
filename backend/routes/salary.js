@@ -915,6 +915,7 @@ router.post('/slips', authenticate, async (req, res) => {
       payDate,
       taxType,
       basePay,
+      dependentsCount,
       nationalPension,
       healthInsurance,
       employmentInsurance,
@@ -970,14 +971,14 @@ router.post('/slips', authenticate, async (req, res) => {
     const result = await run(
       `INSERT INTO salary_slips (
         workplace_id, user_id, payroll_month, pay_date, tax_type,
-        base_pay, national_pension, health_insurance, employment_insurance,
+        base_pay, dependents_count, national_pension, health_insurance, employment_insurance,
         long_term_care, income_tax, local_income_tax, total_deductions, net_pay,
         employer_national_pension, employer_health_insurance, employer_employment_insurance,
         employer_long_term_care, total_employer_burden
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         workplaceId, userId, payrollMonth, payDate, taxType || '4대보험',
-        basePay, nationalPension || 0, healthInsurance || 0, employmentInsurance || 0,
+        basePay, dependentsCount || 1, nationalPension || 0, healthInsurance || 0, employmentInsurance || 0,
         longTermCare || 0, incomeTax || 0, localIncomeTax || 0, totalDeductions, netPay,
         employerNationalPension || 0, employerHealthInsurance || 0, employerEmploymentInsurance || 0,
         employerLongTermCare || 0, totalEmployerBurden
@@ -1007,6 +1008,7 @@ router.put('/slips/:id', authenticate, async (req, res) => {
       payDate,
       taxType,
       basePay,
+      dependentsCount,
       nationalPension,
       healthInsurance,
       employmentInsurance,
@@ -1062,7 +1064,7 @@ router.put('/slips/:id', authenticate, async (req, res) => {
     await run(
       `UPDATE salary_slips SET
         payroll_month = ?, pay_date = ?, tax_type = ?,
-        base_pay = ?, national_pension = ?, health_insurance = ?, employment_insurance = ?,
+        base_pay = ?, dependents_count = ?, national_pension = ?, health_insurance = ?, employment_insurance = ?,
         long_term_care = ?, income_tax = ?, local_income_tax = ?, 
         total_deductions = ?, net_pay = ?,
         employer_national_pension = ?, employer_health_insurance = ?, employer_employment_insurance = ?,
@@ -1070,7 +1072,7 @@ router.put('/slips/:id', authenticate, async (req, res) => {
       WHERE id = ?`,
       [
         payrollMonth, payDate, taxType || '4대보험',
-        basePay, nationalPension || 0, healthInsurance || 0, employmentInsurance || 0,
+        basePay, dependentsCount || 1, nationalPension || 0, healthInsurance || 0, employmentInsurance || 0,
         longTermCare || 0, incomeTax || 0, localIncomeTax || 0,
         totalDeductions, netPay,
         employerNationalPension || 0, employerHealthInsurance || 0, employerEmploymentInsurance || 0,

@@ -55,6 +55,7 @@ const OwnerDashboard = () => {
     payDate: '',
     taxType: '4대보험',
     basePay: '',
+    dependentsCount: 1,
     nationalPension: '',
     healthInsurance: '',
     employmentInsurance: '',
@@ -2561,6 +2562,7 @@ const OwnerDashboard = () => {
                             payDate: '',
                             taxType: '4대보험',
                             basePay: '',
+                            dependentsCount: 1,
                             nationalPension: '',
                             healthInsurance: '',
                             employmentInsurance: '',
@@ -2723,6 +2725,7 @@ const OwnerDashboard = () => {
                                         payDate: slip.pay_date,
                                         taxType: slip.tax_type || '4대보험',
                                         basePay: slip.base_pay,
+                                        dependentsCount: slip.dependents_count || 1,
                                         nationalPension: slip.national_pension,
                                         healthInsurance: slip.health_insurance,
                                         employmentInsurance: slip.employment_insurance,
@@ -4696,6 +4699,24 @@ const OwnerDashboard = () => {
                 />
               </div>
 
+              {slipFormData.taxType === '4대보험' && (
+                <div className="form-group">
+                  <label className="form-label">부양가족 수 (본인 포함)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={slipFormData.dependentsCount}
+                    onChange={(e) => setSlipFormData({ ...slipFormData, dependentsCount: Math.max(1, parseInt(e.target.value) || 1) })}
+                    placeholder="1"
+                    min="1"
+                    style={{ maxWidth: '200px' }}
+                  />
+                  <small style={{ color: '#6b7280', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                    💡 부양가족 수는 소득세 계산에 사용됩니다 (본인 포함)
+                  </small>
+                </div>
+              )}
+
               {slipFormData.taxType === '3.3%' ? (
                 <div style={{
                   padding: '16px',
@@ -4735,14 +4756,25 @@ const OwnerDashboard = () => {
                           return;
                         }
                         try {
-                          setMessage({ type: 'info', text: '4대보험료 자동 계산 중...' });
+                          setMessage({ type: 'info', text: '4대보험료 및 소득세 자동 계산 중...' });
+                          
                           // 귀속월 기준으로 4대보험료 계산
-                          const response = await salaryAPI.calculateInsurance(
+                          const insuranceResponse = await salaryAPI.calculateInsurance(
                             parseFloat(slipFormData.basePay),
                             slipFormData.payrollMonth
                           );
-                          const insurance = response.data.insurance;
-                          const employerBurden = response.data.employerBurden;
+                          const insurance = insuranceResponse.data.insurance;
+                          const employerBurden = insuranceResponse.data.employerBurden;
+                          
+                          // 소득세 계산 (4대보험 공제 후 금액 기준)
+                          const afterInsurance = parseFloat(slipFormData.basePay) - insurance.total;
+                          const taxResponse = await salaryAPI.calculateTax(
+                            afterInsurance,
+                            parseInt(slipFormData.dependentsCount) || 1
+                          );
+                          
+                          const incomeTax = taxResponse.data.incomeTax || 0;
+                          const localIncomeTax = Math.floor(incomeTax * 0.1); // 지방소득세는 소득세의 10%
                           
                           setSlipFormData({
                             ...slipFormData,
@@ -4750,15 +4782,17 @@ const OwnerDashboard = () => {
                             healthInsurance: insurance.healthInsurance,
                             longTermCare: insurance.longTermCare,
                             employmentInsurance: insurance.employmentInsurance,
+                            incomeTax: incomeTax,
+                            localIncomeTax: localIncomeTax,
                             employerNationalPension: employerBurden.nationalPension,
                             employerHealthInsurance: employerBurden.healthInsurance,
                             employerLongTermCare: employerBurden.longTermCare,
                             employerEmploymentInsurance: employerBurden.employmentInsurance
                           });
-                          setMessage({ type: 'success', text: `4대보험료가 자동 계산되었습니다! (${slipFormData.payrollMonth || '현재'} 기준 요율 적용)` });
+                          setMessage({ type: 'success', text: `4대보험료 및 소득세가 자동 계산되었습니다! (${slipFormData.payrollMonth || '현재'} 기준 요율 적용)` });
                         } catch (error) {
-                          console.error('4대보험료 자동 계산 오류:', error);
-                          setMessage({ type: 'error', text: error.response?.data?.message || '4대보험료 계산에 실패했습니다.' });
+                          console.error('자동 계산 오류:', error);
+                          setMessage({ type: 'error', text: error.response?.data?.message || '자동 계산에 실패했습니다.' });
                         }
                       }}
                       style={{ fontSize: '12px', padding: '6px 12px', whiteSpace: 'nowrap' }}

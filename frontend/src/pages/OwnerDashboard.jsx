@@ -13,6 +13,7 @@ import Toast from '../components/Toast';
 import NotificationCenter from '../components/NotificationCenter';
 import MobileLayout from '../components/MobileLayout';
 import MobileDashboard from '../components/MobileDashboard';
+import MobileActionCard from '../components/MobileActionCard';
 import useIsMobile from '../hooks/useIsMobile';
 
 const OwnerDashboard = () => {
@@ -176,8 +177,7 @@ const OwnerDashboard = () => {
       // 병렬로 데이터 로드
       await Promise.all([
         loadEmployees(),
-        loadAttendance(todayStr),
-        loadSalarySlips(currentMonth)
+        loadAttendance(todayStr)
       ]);
     } catch (error) {
       console.error('대시보드 데이터 로드 오류:', error);

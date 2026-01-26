@@ -33,19 +33,22 @@ const MobileActionCard = ({ icon, title, count, color = '#667eea', urgent = fals
       }}>
         {icon}
       </div>
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           fontSize: '14px',
           color: urgent ? '#991b1b' : '#6b7280',
           marginBottom: '4px',
-          fontWeight: '500'
+          fontWeight: '500',
+          wordBreak: 'keep-all',
+          overflowWrap: 'break-word'
         }}>
           {title}
         </div>
         <div style={{
           fontSize: '28px',
           fontWeight: '700',
-          color: urgent ? '#dc2626' : color
+          color: urgent ? '#dc2626' : color,
+          wordBreak: 'keep-all'
         }}>
           {count}
         </div>

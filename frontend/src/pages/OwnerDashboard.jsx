@@ -7088,6 +7088,51 @@ const OwnerDashboard = () => {
         </div>
       )}
 
+      {/* 모바일 하단 네비게이션 */}
+      {isMobile && (
+        <nav className="mobile-bottom-nav">
+          <button
+            className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            <div className="mobile-nav-icon">🏠</div>
+            <div className="mobile-nav-label">Home</div>
+          </button>
+
+          <button
+            className={`mobile-nav-item ${activeTab === 'attendance' ? 'active' : ''}`}
+            onClick={() => setActiveTab('attendance')}
+          >
+            <div className="mobile-nav-icon">📊</div>
+            <div className="mobile-nav-label">출근</div>
+          </button>
+
+          <button
+            className={`mobile-nav-item ${activeTab === 'salary' ? 'active' : ''}`}
+            onClick={() => setActiveTab('salary')}
+          >
+            <div className="mobile-nav-icon">💸</div>
+            <div className="mobile-nav-label">급여</div>
+          </button>
+
+          <button
+            className={`mobile-nav-item ${activeTab === 'roster' ? 'active' : ''}`}
+            onClick={() => setActiveTab('roster')}
+          >
+            <div className="mobile-nav-icon">👥</div>
+            <div className="mobile-nav-label">직원</div>
+          </button>
+
+          <button
+            className={`mobile-nav-item ${activeTab === 'more' ? 'active' : ''}`}
+            onClick={() => setActiveTab('more')}
+          >
+            <div className="mobile-nav-icon">⋯</div>
+            <div className="mobile-nav-label">더보기</div>
+          </button>
+        </nav>
+      )}
+
       {/* Toast 알림 */}
       {toast && (
         <Toast

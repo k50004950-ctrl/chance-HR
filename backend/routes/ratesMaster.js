@@ -1,5 +1,5 @@
 import express from 'express';
-import pool from '../config/database.js';
+import { pool } from '../config/database.js'; // ✅ Named import로 수정
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -26,12 +26,13 @@ router.get('/', authenticateToken, async (req, res) => {
     `;
     
     const result = await pool.query(query, [yyyymm]);
+    const rows = Array.isArray(result) ? result : (result?.rows ?? []);
     
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       return res.status(404).json({ message: 'No applicable rate found for the given period' });
     }
     
-    res.json(result.rows[0]);
+    res.json(rows[0]);
   } catch (error) {
     console.error('Error fetching rates:', error);
     res.status(500).json({ message: 'Failed to fetch rates', error: error.message });
@@ -57,11 +58,18 @@ router.get('/list', async (req, res) => {
     `;
     
     const result = await pool.query(query);
-    console.log(`✅ Fetched ${result.rows.length} rates from rates_master`);
-    res.json(result.rows);
+    
+    // ✅ 방어 코드: result가 배열이면 그대로, 객체면 rows 추출, 아니면 빈 배열
+    const rates = Array.isArray(result) ? result : (result?.rows ?? []);
+    
+    console.log(`✅ Fetched ${rates.length} rates from rates_master`);
+    return res.json(rates);
   } catch (error) {
     console.error('❌ Error fetching rates list:', error);
-    res.status(500).json({ message: 'Failed to fetch rates list', error: error.message });
+    return res.status(500).json({ 
+      message: 'Failed to fetch rates list', 
+      error: error?.message || String(error)
+    });
   }
 });
 
@@ -169,8 +177,11 @@ router.post('/', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res)
     console.log('💾 Executing query with values:', values);
     
     const result = await pool.query(query, values);
-    console.log('✅ Rate saved successfully:', result.rows[0]);
-    res.status(201).json(result.rows[0]);
+    const rows = Array.isArray(result) ? result : (result?.rows ?? []);
+    const savedRate = rows[0] || null;
+    
+    console.log('✅ Rate saved successfully:', savedRate);
+    res.status(201).json(savedRate);
   } catch (error) {
     console.error('❌ Error saving rates:', error);
     console.error('Error name:', error.name);
@@ -210,12 +221,13 @@ router.delete('/:effective_yyyymm', authenticateToken, requireRole('SUPER_ADMIN'
     
     const query = 'DELETE FROM rates_master WHERE effective_yyyymm = $1 RETURNING *';
     const result = await pool.query(query, [effective_yyyymm]);
+    const rows = Array.isArray(result) ? result : (result?.rows ?? []);
     
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       return res.status(404).json({ message: 'Rate not found' });
     }
     
-    res.json({ message: 'Rate deleted successfully', deleted: result.rows[0] });
+    res.json({ message: 'Rate deleted successfully', deleted: rows[0] });
   } catch (error) {
     console.error('Error deleting rate:', error);
     res.status(500).json({ message: 'Failed to delete rate', error: error.message });

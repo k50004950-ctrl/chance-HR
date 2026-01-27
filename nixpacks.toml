@@ -1,3 +1,6 @@
+[providers]
+node = {}
+
 [phases.setup]
 nixPkgs = ["nodejs-22_x"]
 
@@ -14,4 +17,4 @@ cmds = [
 ]
 
 [start]
-cmd = "npm start --prefix backend"
+cmd = "cd backend && node server.js"

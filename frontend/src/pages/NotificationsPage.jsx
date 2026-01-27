@@ -11,6 +11,11 @@ const NotificationsPage = () => {
   // Production: Empty state (API 연동 대기)
   const notifications = [];
 
+  // 탭 전환 핸들러
+  const handleTabChange = (tabId) => {
+    navigate('/', { state: { activeTab: tabId } }); // OwnerDashboard로 이동 및 탭 상태 전달
+  };
+
   return (
     <div style={{ 
       minHeight: '100vh',
@@ -127,7 +132,7 @@ const NotificationsPage = () => {
 
       {/* 하단 네비게이션 (모바일) */}
       {isMobile && (
-        <MobileBottomNav location={location} navigate={navigate} />
+        <MobileBottomNav activeTab="" onTabChange={handleTabChange} />
       )}
     </div>
   );

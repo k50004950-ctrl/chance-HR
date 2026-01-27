@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI, pushAPI, announcementsAPI, communityAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +20,7 @@ import useIsMobile from '../hooks/useIsMobile';
 const OwnerDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [tabLoading, setTabLoading] = useState(false);
@@ -147,6 +148,15 @@ const OwnerDashboard = () => {
   const uploadBaseUrl =
     import.meta.env.VITE_API_URL?.replace('/api', '') ||
     (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
+
+  // location state에서 activeTab 설정 (NotificationsPage에서 탭 전환 시)
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+      // state 소비 후 제거 (뒤로가기 시 중복 적용 방지)
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   useEffect(() => {
     loadWorkplaces();

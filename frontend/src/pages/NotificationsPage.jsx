@@ -1,21 +1,15 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import useIsMobile from '../hooks/useIsMobile';
+import MobileBottomNav from '../components/MobileBottomNav';
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
 
-  // 임시 알림 데이터 (향후 API에서 가져올 예정)
-  const mockNotifications = [
-    {
-      id: 1,
-      message: '근로계약서 미제출 직원이 4명 있습니다.',
-      urgent: true,
-      actionText: '확인하기',
-      action: 'roster'
-    }
-  ];
+  // Production: Empty state (API 연동 대기)
+  const notifications = [];
 
   return (
     <div style={{ 
@@ -59,7 +53,7 @@ const NotificationsPage = () => {
 
       {/* 알림 목록 */}
       <div style={{ padding: '16px' }}>
-        {mockNotifications.length === 0 ? (
+        {notifications.length === 0 ? (
           <div style={{
             textAlign: 'center',
             padding: '40px 20px',
@@ -74,7 +68,7 @@ const NotificationsPage = () => {
             </div>
           </div>
         ) : (
-          mockNotifications.map((notification) => (
+          notifications.map((notification) => (
             <div
               key={notification.id}
               style={{
@@ -107,7 +101,7 @@ const NotificationsPage = () => {
                     <button
                       onClick={() => {
                         if (notification.action) {
-                          navigate(`/#/${notification.action}`);
+                          navigate(`/owner`);
                         }
                       }}
                       style={{
@@ -130,6 +124,11 @@ const NotificationsPage = () => {
           ))
         )}
       </div>
+
+      {/* 하단 네비게이션 (모바일) */}
+      {isMobile && (
+        <MobileBottomNav location={location} navigate={navigate} />
+      )}
     </div>
   );
 };

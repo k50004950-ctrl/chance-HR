@@ -4733,69 +4733,71 @@ const OwnerDashboard = () => {
                           </table>
                         </div>
 
-                        {/* 단계별 액션 버튼 */}
-                        <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'center', gap: '16px' }}>
-                          {salaryFlowStep === 1 && (
-                            <button
-                              className="btn btn-primary"
-                              style={{ fontSize: '16px', padding: '16px 48px', fontWeight: '700' }}
-                              onClick={() => setSalaryFlowStep(2)}
-                            >
-                              다음: 급여 미리보기 →
-                            </button>
-                          )}
-                          
-                          {salaryFlowStep === 2 && (
-                            <>
+                        {/* 단계별 액션 버튼 (데스크톱 전용) */}
+                        {!isMobile && (
+                          <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'center', gap: '16px' }}>
+                            {salaryFlowStep === 1 && (
                               <button
-                                className="btn btn-secondary"
-                                style={{ fontSize: '16px', padding: '16px 32px' }}
-                                onClick={() => setSalaryFlowStep(1)}
-                              >
-                                ← 이전
-                              </button>
-                              <button
-                                className="btn"
-                                style={{
-                                  fontSize: '16px',
-                                  padding: '16px 48px',
-                                  fontWeight: '700',
-                                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                                  color: 'white',
-                                  border: 'none'
-                                }}
-                                onClick={() => setShowConfirmWarning(true)}
-                              >
-                                급여 확정하기
-                              </button>
-                            </>
-                          )}
-                          
-                          {salaryFlowStep === 3 && (
-                            <>
-                              <button
-                                className="btn btn-secondary"
-                                style={{ fontSize: '16px', padding: '16px 32px' }}
-                                onClick={() => {
-                                  setSalaryFlowStep(2);
-                                  setSalaryConfirmed(false);
-                                }}
-                              >
-                                ← 이전
-                              </button>
-                              <button
-                                className="btn btn-success"
+                                className="btn btn-primary"
                                 style={{ fontSize: '16px', padding: '16px 48px', fontWeight: '700' }}
-                                onClick={() => {
-                                  setSalaryFlowStep(4);
-                                  setActiveTab('salary-slips');
-                                }}
+                                onClick={() => setSalaryFlowStep(2)}
                               >
-                                급여명세서 발송 →
+                                다음: 급여 미리보기 →
                               </button>
-                            </>
-                          )}
-                        </div>
+                            )}
+                            
+                            {salaryFlowStep === 2 && (
+                              <>
+                                <button
+                                  className="btn btn-secondary"
+                                  style={{ fontSize: '16px', padding: '16px 32px' }}
+                                  onClick={() => setSalaryFlowStep(1)}
+                                >
+                                  ← 이전
+                                </button>
+                                <button
+                                  className="btn"
+                                  style={{
+                                    fontSize: '16px',
+                                    padding: '16px 48px',
+                                    fontWeight: '700',
+                                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                    color: 'white',
+                                    border: 'none'
+                                  }}
+                                  onClick={() => setShowConfirmWarning(true)}
+                                >
+                                  급여 확정하기
+                                </button>
+                              </>
+                            )}
+                            
+                            {salaryFlowStep === 3 && (
+                              <>
+                                <button
+                                  className="btn btn-secondary"
+                                  style={{ fontSize: '16px', padding: '16px 32px' }}
+                                  onClick={() => {
+                                    setSalaryFlowStep(2);
+                                    setSalaryConfirmed(false);
+                                  }}
+                                >
+                                  ← 이전
+                                </button>
+                                <button
+                                  className="btn btn-success"
+                                  style={{ fontSize: '16px', padding: '16px 48px', fontWeight: '700' }}
+                                  onClick={() => {
+                                    setSalaryFlowStep(4);
+                                    setActiveTab('salary-slips');
+                                  }}
+                                >
+                                  급여명세서 발송 →
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </>
                     )}
 

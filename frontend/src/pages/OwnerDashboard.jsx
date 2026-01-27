@@ -2230,6 +2230,137 @@ const OwnerDashboard = () => {
             {/* 근로자 명부 (직원 관리 통합) */}
             {activeTab === 'roster' && (
               <div className="card">
+                {/* 직원현황 요약 바 */}
+                {(() => {
+                  const totalEmployees = employees.length;
+                  const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
+                  const onLeaveEmployees = employees.filter(emp => emp.employment_status === 'on_leave');
+                  const resignedEmployees = employees.filter(emp => emp.employment_status === 'resigned');
+
+                  // 리스크 판단 로직
+                  const getEmployeeRisks = (emp) => {
+                    const risks = [];
+                    // 서류 필요
+                    if (!emp.contract_file_url) {
+                      risks.push({ type: 'contract', label: '서류 필요', color: '#f59e0b' });
+                    }
+                    // 급여 미설정
+                    if (!emp.base_pay || emp.base_pay === 0) {
+                      risks.push({ type: 'salary', label: '급여 미설정', color: '#ef4444' });
+                    }
+                    // 퇴사 처리 필요 (퇴사 상태인데 퇴사일 없음)
+                    if (emp.employment_status === 'resigned' && !emp.resignation_date) {
+                      risks.push({ type: 'resignation', label: '퇴사 처리 필요', color: '#ef4444' });
+                    }
+                    return risks;
+                  };
+
+                  const employeesWithRisks = employees.filter(emp => getEmployeeRisks(emp).length > 0);
+                  const riskCount = employeesWithRisks.length;
+
+                  return (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      borderRadius: '16px',
+                      padding: isMobile ? '20px 16px' : '24px 28px',
+                      marginBottom: '24px',
+                      boxShadow: '0 10px 20px rgba(102, 126, 234, 0.2)'
+                    }}>
+                      <div style={{
+                        color: 'white',
+                        fontSize: isMobile ? '18px' : '20px',
+                        fontWeight: '700',
+                        marginBottom: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span>👥</span>
+                        <span>직원현황</span>
+                      </div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
+                        gap: isMobile ? '12px' : '16px'
+                      }}>
+                        {/* 전체 */}
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '12px',
+                          padding: isMobile ? '16px' : '20px',
+                          textAlign: 'center',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                        }}>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>👤 전체</div>
+                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: '#667eea' }}>
+                            {totalEmployees}
+                          </div>
+                        </div>
+                        
+                        {/* 재직 */}
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '12px',
+                          padding: isMobile ? '16px' : '20px',
+                          textAlign: 'center',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                        }}>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>✓ 재직</div>
+                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: '#059669' }}>
+                            {activeEmployees.length}
+                          </div>
+                        </div>
+
+                        {/* 휴직 */}
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '12px',
+                          padding: isMobile ? '16px' : '20px',
+                          textAlign: 'center',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                        }}>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>🔵 휴직</div>
+                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: '#3b82f6' }}>
+                            {onLeaveEmployees.length}
+                          </div>
+                        </div>
+
+                        {/* 퇴사 */}
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '12px',
+                          padding: isMobile ? '16px' : '20px',
+                          textAlign: 'center',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                        }}>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>📦 퇴사</div>
+                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: '#6b7280' }}>
+                            {resignedEmployees.length}
+                          </div>
+                        </div>
+
+                        {/* 주의 필요 - 강조 */}
+                        <div style={{
+                          background: riskCount > 0 ? 'rgba(245, 158, 11, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '12px',
+                          padding: isMobile ? '16px' : '20px',
+                          textAlign: 'center',
+                          boxShadow: riskCount > 0 ? '0 4px 12px rgba(245, 158, 11, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                          border: riskCount > 0 ? '2px solid #d97706' : 'none',
+                          gridColumn: isMobile ? 'span 2' : 'span 1'
+                        }}>
+                          <div style={{ fontSize: '12px', color: riskCount > 0 ? '#fff' : '#6b7280', marginBottom: '8px', fontWeight: '600' }}>
+                            ⚠️ 주의 필요
+                          </div>
+                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: riskCount > 0 ? '#fff' : '#6b7280' }}>
+                            {riskCount}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* 모바일 전용 헤더 */}
                 {isMobile ? (
                   <div className="mobile-employee-header">
@@ -2377,7 +2508,38 @@ const OwnerDashboard = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {employees.filter(emp => employmentStatusFilter === 'all' || emp.employment_status === employmentStatusFilter).map((emp) => (
+                            {(() => {
+                              // 리스크 판단 로직
+                              const getEmployeeRisks = (emp) => {
+                                const risks = [];
+                                if (!emp.contract_file_url) {
+                                  risks.push({ type: 'contract', label: '서류 필요', color: '#f59e0b' });
+                                }
+                                if (!emp.base_pay || emp.base_pay === 0) {
+                                  risks.push({ type: 'salary', label: '급여 미설정', color: '#ef4444' });
+                                }
+                                if (emp.employment_status === 'resigned' && !emp.resignation_date) {
+                                  risks.push({ type: 'resignation', label: '퇴사 처리 필요', color: '#ef4444' });
+                                }
+                                return risks;
+                              };
+
+                              // 정렬: 리스크 있음 > 정상
+                              const sortedEmployees = [...employees]
+                                .filter(emp => employmentStatusFilter === 'all' || emp.employment_status === employmentStatusFilter)
+                                .sort((a, b) => {
+                                  const aRisks = getEmployeeRisks(a).length;
+                                  const bRisks = getEmployeeRisks(b).length;
+                                  
+                                  // 리스크가 있는 직원 우선
+                                  if (aRisks > 0 && bRisks === 0) return -1;
+                                  if (aRisks === 0 && bRisks > 0) return 1;
+                                  
+                                  // 같은 경우 이름순
+                                  return a.name.localeCompare(b.name);
+                                });
+
+                              return sortedEmployees.map((emp) => (
                               <tr key={emp.id}>
                                 <td data-label="이름" style={{ fontWeight: '600' }}>{emp.name}</td>
                                 <td data-label="상태">
@@ -2450,16 +2612,78 @@ const OwnerDashboard = () => {
                                   </button>
                                 </td>
                               </tr>
-                            ))}
+                            ));
+                            })()}
                           </tbody>
                         </table>
                       </div>
                     ) : (
                       <div className="employee-card-grid">
-                        {employees.filter(emp => employmentStatusFilter === 'all' || emp.employment_status === employmentStatusFilter).map((emp) => (
-                          <div key={emp.id} className="employee-card">
+                        {(() => {
+                          // 리스크 판단 로직
+                          const getEmployeeRisks = (emp) => {
+                            const risks = [];
+                            if (!emp.contract_file_url) {
+                              risks.push({ type: 'contract', label: '서류 필요', color: '#f59e0b' });
+                            }
+                            if (!emp.base_pay || emp.base_pay === 0) {
+                              risks.push({ type: 'salary', label: '급여 미설정', color: '#ef4444' });
+                            }
+                            if (emp.employment_status === 'resigned' && !emp.resignation_date) {
+                              risks.push({ type: 'resignation', label: '퇴사 처리 필요', color: '#ef4444' });
+                            }
+                            return risks;
+                          };
+
+                          // 정렬: 리스크 있음 > 정상
+                          const sortedEmployees = [...employees]
+                            .filter(emp => employmentStatusFilter === 'all' || emp.employment_status === employmentStatusFilter)
+                            .sort((a, b) => {
+                              const aRisks = getEmployeeRisks(a).length;
+                              const bRisks = getEmployeeRisks(b).length;
+                              
+                              // 리스크가 있는 직원 우선
+                              if (aRisks > 0 && bRisks === 0) return -1;
+                              if (aRisks === 0 && bRisks > 0) return 1;
+                              
+                              // 같은 경우 이름순
+                              return a.name.localeCompare(b.name);
+                            });
+
+                          return sortedEmployees.map((emp) => {
+                            const risks = getEmployeeRisks(emp);
+                            const hasRisk = risks.length > 0;
+                            
+                            return (
+                          <div key={emp.id} className="employee-card" style={{
+                            ...(hasRisk && {
+                              border: '2px solid #f59e0b',
+                              background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
+                            })
+                          }}>
                             <div className="employee-card-header">
-                              <div style={{ fontWeight: '700', fontSize: '16px' }}>{emp.name}</div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                                <div style={{ fontWeight: '700', fontSize: '16px' }}>{emp.name}</div>
+                                {/* 리스크 배지 */}
+                                {risks.length > 0 && (
+                                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                    {risks.map((risk, idx) => (
+                                      <span key={idx} style={{
+                                        padding: '4px 8px',
+                                        borderRadius: '6px',
+                                        fontSize: '11px',
+                                        fontWeight: '600',
+                                        background: risk.color === '#f59e0b' ? '#fef3c7' : '#fee2e2',
+                                        color: risk.color === '#f59e0b' ? '#92400e' : '#991b1b',
+                                        border: `1px solid ${risk.color}`
+                                      }}>
+                                        {risk.label}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                               <span className={`employee-status ${emp.employment_status}`}>
                                 {emp.employment_status === 'active' ? '재직중' : emp.employment_status === 'on_leave' ? '휴직' : '퇴사'}
                               </span>
@@ -2497,7 +2721,9 @@ const OwnerDashboard = () => {
                               </button>
                             </div>
                           </div>
-                        ))}
+                          );
+                        });
+                        })()}
                       </div>
                     )}
                   </>

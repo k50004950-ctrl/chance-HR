@@ -68,21 +68,7 @@ if (!existsSync(uploadsDir)) {
 // 정적 파일 제공 (업로드된 파일)
 app.use('/uploads', express.static(uploadsDir));
 
-// 프론트엔드 정적 파일 제공 (프로덕션 환경)
-// Railway 배포 시: backend/dist (nixpacks가 복사)
-// 로컬 개발 시: ../frontend/dist
-const frontendDistPath = existsSync(join(__dirname, 'dist')) 
-  ? join(__dirname, 'dist')
-  : join(__dirname, '..', 'frontend', 'dist');
-
-if (existsSync(frontendDistPath)) {
-  app.use(express.static(frontendDistPath));
-  console.log('✅ 프론트엔드 정적 파일 서빙:', frontendDistPath);
-} else {
-  console.warn('⚠️ 프론트엔드 dist 폴더를 찾을 수 없습니다:', frontendDistPath);
-}
-
-// API 라우트
+// API 라우트 (Static보다 먼저 등록!)
 app.use('/api/auth', authRoutes);
 app.use('/api/workplaces', workplaceRoutes);
 app.use('/api/employees', employeeRoutes);
@@ -99,35 +85,45 @@ app.use('/api/community', communityRoutes);
 app.use('/api/admin/dev', adminDevRoutes); // ⚠️ 임시 개발자용 API (TODO: 삭제 필요)
 app.use('/api/rates-master', ratesMasterRoutes);
 
-// 기본 라우트
-app.get('/', (req, res) => {
-  res.json({
-    message: '출퇴근 관리 시스템 API',
-    version: '1.0.0',
-    endpoints: {
-      auth: '/api/auth',
-      workplaces: '/api/workplaces',
-      employees: '/api/employees',
-      attendance: '/api/attendance',
-      salary: '/api/salary'
-    }
-  });
-});
+// 프론트엔드 정적 파일 제공 (API 라우트 다음에!)
+// Railway 배포 시: backend/dist (nixpacks가 복사)
+// 로컬 개발 시: ../frontend/dist
+const frontendDistPath = existsSync(join(__dirname, 'dist')) 
+  ? join(__dirname, 'dist')
+  : join(__dirname, '..', 'frontend', 'dist');
 
-// SPA를 위한 라우팅 (모든 비-API 요청을 index.html로)
-app.get('*', (req, res) => {
-  // API 요청이 아닌 경우에만 index.html 반환
-  if (!req.path.startsWith('/api')) {
+if (existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+  console.log('✅ 프론트엔드 정적 파일 서빙:', frontendDistPath);
+  
+  // SPA를 위한 catch-all 라우팅 (모든 비-API 요청을 index.html로)
+  app.get('*', (req, res) => {
     const indexPath = join(frontendDistPath, 'index.html');
     if (existsSync(indexPath)) {
       res.sendFile(indexPath);
     } else {
-      res.status(404).json({ message: '요청한 리소스를 찾을 수 없습니다.' });
+      res.status(404).send('Frontend not found');
     }
-  } else {
-    res.status(404).json({ message: '요청한 리소스를 찾을 수 없습니다.' });
-  }
-});
+  });
+} else {
+  console.warn('⚠️ 프론트엔드 dist 폴더를 찾을 수 없습니다:', frontendDistPath);
+  
+  // 프론트엔드 없이 API만 제공
+  app.get('/', (req, res) => {
+    res.json({
+      message: '출퇴근 관리 시스템 API',
+      version: '1.0.0',
+      endpoints: {
+        auth: '/api/auth',
+        workplaces: '/api/workplaces',
+        employees: '/api/employees',
+        attendance: '/api/attendance',
+        salary: '/api/salary',
+        ratesMaster: '/api/rates-master'
+      }
+    });
+  });
+}
 
 // 에러 핸들러
 app.use((err, req, res, next) => {

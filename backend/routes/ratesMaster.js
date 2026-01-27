@@ -51,24 +51,16 @@ router.get('/', authenticateToken, async (req, res) => {
 router.get('/list', async (req, res) => {
   console.log('📋 GET /api/rates-master/list - Public access (no auth required)');
   try {
-    const query = `
-      SELECT *
-      FROM rates_master
-      ORDER BY effective_yyyymm DESC
-    `;
-    
-    const result = await pool.query(query);
-    
-    // ✅ 방어 코드: result가 배열이면 그대로, 객체면 rows 추출, 아니면 빈 배열
-    const rates = Array.isArray(result) ? result : (result?.rows ?? []);
-    
-    console.log(`✅ Fetched ${rates.length} rates from rates_master`);
-    return res.json(rates);
-  } catch (error) {
-    console.error('❌ Error fetching rates list:', error);
-    return res.status(500).json({ 
-      message: 'Failed to fetch rates list', 
-      error: error?.message || String(error)
+    const { rows } = await pool.query(
+      'SELECT * FROM rates_master ORDER BY effective_yyyymm DESC'
+    );
+    console.log(`✅ Fetched ${rows.length} rates from rates_master`);
+    return res.json(rows);
+  } catch (err) {
+    console.error('❌ rates-master list error:', err);
+    return res.status(500).json({
+      message: 'Failed to fetch rates list',
+      error: err?.message || String(err),
     });
   }
 });

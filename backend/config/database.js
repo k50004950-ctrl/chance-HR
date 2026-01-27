@@ -21,7 +21,7 @@ console.log('Database Path:', dbPath);
 console.log('=================================');
 
 let db;
-let pool;
+export let pool; // ✅ export와 함께 선언 (PostgreSQL용)
 
 if (USE_POSTGRES) {
   // PostgreSQL 연결 (Railway 배포용)
@@ -38,6 +38,8 @@ if (USE_POSTGRES) {
   pool.on('error', (err) => {
     console.error('PostgreSQL 연결 오류:', err);
   });
+  
+  console.log('✅ PostgreSQL pool created and exported');
 } else {
   // SQLite 연결 (로컬 개발용)
   db = new sqlite3.Database(dbPath, (err) => {
@@ -47,6 +49,7 @@ if (USE_POSTGRES) {
       console.log('SQLite 데이터베이스에 연결되었습니다.');
     }
   });
+  console.log('⚠️ SQLite mode: pool is undefined (use query/run/get functions instead)');
 }
 
 // Promise 기반 쿼리 실행 함수
@@ -1549,7 +1552,6 @@ export const getConnection = async () => {
   }
 };
 
-// pool export 추가 (PostgreSQL용)
-export { pool };
+// pool은 이미 Line 24에서 export됨
 
 export default { query, run, get, initDatabase, pool, getConnection };

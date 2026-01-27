@@ -1,10 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV
-    ? 'http://localhost:5000/api'
-    : `${window.location.origin}/api`);
+// API는 항상 같은 도메인의 /api 경로로 호출
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Axios 인스턴스 생성
 const api = axios.create({

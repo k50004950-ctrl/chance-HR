@@ -65,10 +65,15 @@ if (!existsSync(uploadsDir)) {
   await mkdir(uploadsDir, { recursive: true });
 }
 
-// 정적 파일 제공 (업로드된 파일)
+// ========================================
+// ✅ 1) API 라우트 먼저 등록 (최우선!)
+// ========================================
+console.log('🔧 Registering API routes...');
+
+// 업로드 파일용 정적 폴더
 app.use('/uploads', express.static(uploadsDir));
 
-// API 라우트 (Static보다 먼저 등록!)
+// API 라우트들
 app.use('/api/auth', authRoutes);
 app.use('/api/workplaces', workplaceRoutes);
 app.use('/api/employees', employeeRoutes);
@@ -82,53 +87,46 @@ app.use('/api/push', pushRoutes);
 app.use('/api/announcements', announcementsRoutes);
 app.use('/api/insurance', insuranceRoutes);
 app.use('/api/community', communityRoutes);
-app.use('/api/admin/dev', adminDevRoutes); // ⚠️ 임시 개발자용 API (TODO: 삭제 필요)
+app.use('/api/admin/dev', adminDevRoutes);
 app.use('/api/rates-master', ratesMasterRoutes);
 
-// 프론트엔드 정적 파일 제공 (API 라우트 다음에!)
-// Railway 배포 시: backend/dist (nixpacks가 복사)
-// 로컬 개발 시: ../frontend/dist
+console.log('✅ API routes registered: /api/rates-master');
+
+// ========================================
+// ✅ 2) 프론트엔드 정적 파일 서빙
+// ========================================
 const frontendDistPath = existsSync(join(__dirname, 'dist')) 
   ? join(__dirname, 'dist')
   : join(__dirname, '..', 'frontend', 'dist');
 
+console.log('📁 Frontend dist path:', frontendDistPath);
+console.log('📁 Dist exists:', existsSync(frontendDistPath));
+
 if (existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
-  console.log('✅ 프론트엔드 정적 파일 서빙:', frontendDistPath);
-  
-  // SPA를 위한 catch-all 라우팅 (API 요청 제외!)
-  app.get('*', (req, res, next) => {
-    // API 요청은 넘어가도록
-    if (req.path.startsWith('/api/')) {
-      return next();
-    }
-    
-    const indexPath = join(frontendDistPath, 'index.html');
-    if (existsSync(indexPath)) {
-      res.sendFile(indexPath);
-    } else {
-      res.status(404).send('Frontend not found');
-    }
-  });
+  console.log('✅ Serving frontend static files from:', frontendDistPath);
 } else {
-  console.warn('⚠️ 프론트엔드 dist 폴더를 찾을 수 없습니다:', frontendDistPath);
-  
-  // 프론트엔드 없이 API만 제공
-  app.get('/', (req, res) => {
-    res.json({
-      message: '출퇴근 관리 시스템 API',
-      version: '1.0.0',
-      endpoints: {
-        auth: '/api/auth',
-        workplaces: '/api/workplaces',
-        employees: '/api/employees',
-        attendance: '/api/attendance',
-        salary: '/api/salary',
-        ratesMaster: '/api/rates-master'
-      }
-    });
-  });
+  console.warn('⚠️ Frontend dist folder not found:', frontendDistPath);
 }
+
+// ========================================
+// ✅ 3) SPA Fallback (마지막!)
+// ========================================
+app.get('*', (req, res) => {
+  const indexPath = join(frontendDistPath, 'index.html');
+  
+  if (existsSync(indexPath)) {
+    console.log(`📄 SPA fallback: ${req.path} -> index.html`);
+    res.sendFile(indexPath);
+  } else {
+    console.error(`❌ index.html not found at: ${indexPath}`);
+    res.status(404).json({ 
+      error: 'Not found',
+      message: 'Frontend not available',
+      path: req.path
+    });
+  }
+});
 
 // 에러 핸들러
 app.use((err, req, res, next) => {

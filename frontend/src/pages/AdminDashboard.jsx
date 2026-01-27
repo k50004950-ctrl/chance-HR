@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import { workplaceAPI, authAPI, announcementsAPI, insuranceAPI, communityAPI } from '../services/api';
+import { workplaceAPI, authAPI, announcementsAPI, insuranceAPI, communityAPI, ratesMasterAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const AdminDashboard = () => {
@@ -40,12 +40,27 @@ const AdminDashboard = () => {
   const [communityPosts, setCommunityPosts] = useState([]);
   const [communityLoading, setCommunityLoading] = useState(false);
   const [communityFilter, setCommunityFilter] = useState('all'); // all, owner, employee
+  
+  // 요율 관리 (rates_master)
+  const [ratesList, setRatesList] = useState([]);
+  const [ratesLoading, setRatesLoading] = useState(false);
+  const [ratesForm, setRatesForm] = useState({
+    effective_yyyymm: '',
+    nps_employee_rate_percent: 4.5,
+    nhis_employee_rate_percent: 3.545,
+    ltci_rate_of_nhis_percent: 12.95,
+    ei_employee_rate_percent: 0.9,
+    freelancer_withholding_rate_percent: 3.3,
+    memo: ''
+  });
+  const [editingRatesMonth, setEditingRatesMonth] = useState(null);
 
   useEffect(() => {
     loadWorkplaces();
     loadOwners();
     loadAnnouncements();
     loadInsuranceRates();
+    loadRatesList();
   }, []);
 
   useEffect(() => {
@@ -295,6 +310,79 @@ const AdminDashboard = () => {
     }
   };
 
+  // 요율 관리 함수들
+  const loadRatesList = async () => {
+    try {
+      setRatesLoading(true);
+      const response = await ratesMasterAPI.getList();
+      setRatesList(response.data || []);
+    } catch (error) {
+      console.error('요율 목록 로드 오류:', error);
+      setMessage({ type: 'error', text: '요율 목록을 불러오는데 실패했습니다.' });
+    } finally {
+      setRatesLoading(false);
+    }
+  };
+
+  const handleSaveRates = async (e) => {
+    e.preventDefault();
+    
+    if (!ratesForm.effective_yyyymm || !/^\d{6}$/.test(ratesForm.effective_yyyymm)) {
+      setMessage({ type: 'error', text: '적용 시작월을 YYYYMM 형식으로 입력해주세요 (예: 202601)' });
+      return;
+    }
+    
+    try {
+      setRatesLoading(true);
+      await ratesMasterAPI.save(ratesForm);
+      setMessage({ type: 'success', text: editingRatesMonth ? '요율이 수정되었습니다.' : '요율이 등록되었습니다.' });
+      setRatesForm({
+        effective_yyyymm: '',
+        nps_employee_rate_percent: 4.5,
+        nhis_employee_rate_percent: 3.545,
+        ltci_rate_of_nhis_percent: 12.95,
+        ei_employee_rate_percent: 0.9,
+        freelancer_withholding_rate_percent: 3.3,
+        memo: ''
+      });
+      setEditingRatesMonth(null);
+      loadRatesList();
+    } catch (error) {
+      console.error('요율 저장 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '요율 저장에 실패했습니다.' });
+    } finally {
+      setRatesLoading(false);
+    }
+  };
+
+  const handleEditRates = (rate) => {
+    setRatesForm({
+      effective_yyyymm: rate.effective_yyyymm,
+      nps_employee_rate_percent: parseFloat(rate.nps_employee_rate_percent),
+      nhis_employee_rate_percent: parseFloat(rate.nhis_employee_rate_percent),
+      ltci_rate_of_nhis_percent: parseFloat(rate.ltci_rate_of_nhis_percent),
+      ei_employee_rate_percent: parseFloat(rate.ei_employee_rate_percent),
+      freelancer_withholding_rate_percent: parseFloat(rate.freelancer_withholding_rate_percent),
+      memo: rate.memo || ''
+    });
+    setEditingRatesMonth(rate.effective_yyyymm);
+  };
+
+  const handleDeleteRates = async (yyyymm) => {
+    if (!window.confirm(`${yyyymm} 요율을 삭제하시겠습니까?`)) return;
+    
+    try {
+      setRatesLoading(true);
+      await ratesMasterAPI.delete(yyyymm);
+      setMessage({ type: 'success', text: '요율이 삭제되었습니다.' });
+      loadRatesList();
+    } catch (error) {
+      console.error('요율 삭제 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '요율 삭제에 실패했습니다.' });
+    } finally {
+      setRatesLoading(false);
+    }
+  };
 
   const openModal = (type, data = null) => {
     setModalType(type);
@@ -395,10 +483,17 @@ const AdminDashboard = () => {
           {isSuperAdmin && (
             <>
               <button
+                className={`nav-tab ${activeTab === 'rates' ? 'active' : ''}`}
+                onClick={() => setActiveTab('rates')}
+              >
+                💼 요율 관리
+              </button>
+              <button
                 className={`nav-tab ${activeTab === 'insurance' ? 'active' : ''}`}
                 onClick={() => setActiveTab('insurance')}
+                style={{ fontSize: '11px', opacity: 0.6 }}
               >
-                💼 4대보험 요율
+                (구)4대보험
               </button>
               <button
                 className={`nav-tab ${activeTab === 'announcements' ? 'active' : ''}`}
@@ -690,6 +785,217 @@ const AdminDashboard = () => {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* 요율 관리 (간소화 버전) */}
+        {activeTab === 'rates' && isSuperAdmin && (
+          <div>
+            {/* 요율 등록/수정 폼 */}
+            <div className="card" style={{ marginBottom: '24px' }}>
+              <h3 style={{ color: '#374151', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>💼</span>
+                <span>{editingRatesMonth ? '요율 수정' : '요율 등록'}</span>
+              </h3>
+              <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '20px' }}>
+                귀속월(YYYY-MM) 기준으로 4대보험/3.3% 요율을 등록합니다. 급여 계산 시 해당 귀속월에 맞는 요율이 자동으로 적용됩니다.
+              </p>
+              
+              <form onSubmit={handleSaveRates}>
+                <div className="grid grid-2" style={{ gap: '16px', marginBottom: '20px' }}>
+                  <div className="form-group">
+                    <label className="form-label">
+                      적용 시작월 * <span style={{ color: '#6b7280', fontSize: '12px' }}>(예: 202601)</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={ratesForm.effective_yyyymm}
+                      onChange={(e) => setRatesForm({ ...ratesForm, effective_yyyymm: e.target.value })}
+                      placeholder="YYYYMM (예: 202601)"
+                      pattern="\d{6}"
+                      required
+                      disabled={editingRatesMonth}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">프리랜서 원천징수율 (%)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={ratesForm.freelancer_withholding_rate_percent}
+                      onChange={(e) => setRatesForm({ ...ratesForm, freelancer_withholding_rate_percent: parseFloat(e.target.value) })}
+                      step="0.001"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <h4 style={{ marginBottom: '12px', color: '#374151', fontSize: '15px', fontWeight: '600' }}>
+                  4대보험 근로자 부담률 (%)
+                </h4>
+                <div className="grid grid-2" style={{ gap: '16px', marginBottom: '20px' }}>
+                  <div className="form-group">
+                    <label className="form-label">국민연금 (%)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={ratesForm.nps_employee_rate_percent}
+                      onChange={(e) => setRatesForm({ ...ratesForm, nps_employee_rate_percent: parseFloat(e.target.value) })}
+                      step="0.001"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">건강보험 (%)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={ratesForm.nhis_employee_rate_percent}
+                      onChange={(e) => setRatesForm({ ...ratesForm, nhis_employee_rate_percent: parseFloat(e.target.value) })}
+                      step="0.001"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      장기요양 (%) <span style={{ color: '#6b7280', fontSize: '12px' }}>건강보험료의 %</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={ratesForm.ltci_rate_of_nhis_percent}
+                      onChange={(e) => setRatesForm({ ...ratesForm, ltci_rate_of_nhis_percent: parseFloat(e.target.value) })}
+                      step="0.001"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">고용보험 (%)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={ratesForm.ei_employee_rate_percent}
+                      onChange={(e) => setRatesForm({ ...ratesForm, ei_employee_rate_percent: parseFloat(e.target.value) })}
+                      step="0.001"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">메모</label>
+                  <textarea
+                    className="form-input"
+                    value={ratesForm.memo}
+                    onChange={(e) => setRatesForm({ ...ratesForm, memo: e.target.value })}
+                    placeholder="요율 변경 사유 등"
+                    rows="2"
+                    style={{ resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+                  {editingRatesMonth && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setRatesForm({
+                          effective_yyyymm: '',
+                          nps_employee_rate_percent: 4.5,
+                          nhis_employee_rate_percent: 3.545,
+                          ltci_rate_of_nhis_percent: 12.95,
+                          ei_employee_rate_percent: 0.9,
+                          freelancer_withholding_rate_percent: 3.3,
+                          memo: ''
+                        });
+                        setEditingRatesMonth(null);
+                      }}
+                    >
+                      취소
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={ratesLoading}
+                  >
+                    {ratesLoading ? '처리 중...' : (editingRatesMonth ? '✅ 수정' : '✅ 등록')}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* 요율 목록 */}
+            <div className="card">
+              <h3 style={{ color: '#374151', marginBottom: '16px' }}>등록된 요율 목록</h3>
+              {ratesLoading ? (
+                <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
+                  로딩 중...
+                </p>
+              ) : ratesList.length === 0 ? (
+                <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
+                  등록된 요율이 없습니다.
+                </p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>적용 시작월</th>
+                        <th>국민연금(%)</th>
+                        <th>건강보험(%)</th>
+                        <th>장기요양(%)</th>
+                        <th>고용보험(%)</th>
+                        <th>3.3%(%)</th>
+                        <th>메모</th>
+                        <th>관리</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ratesList.map((rate) => (
+                        <tr key={rate.id}>
+                          <td style={{ fontWeight: '600' }}>
+                            {rate.effective_yyyymm.slice(0, 4)}-{rate.effective_yyyymm.slice(4, 6)}
+                          </td>
+                          <td>{parseFloat(rate.nps_employee_rate_percent).toFixed(3)}</td>
+                          <td>{parseFloat(rate.nhis_employee_rate_percent).toFixed(3)}</td>
+                          <td>{parseFloat(rate.ltci_rate_of_nhis_percent).toFixed(3)}</td>
+                          <td>{parseFloat(rate.ei_employee_rate_percent).toFixed(3)}</td>
+                          <td>{parseFloat(rate.freelancer_withholding_rate_percent).toFixed(3)}</td>
+                          <td style={{ fontSize: '12px', color: '#6b7280' }}>{rate.memo || '-'}</td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                className="btn btn-secondary"
+                                style={{ fontSize: '12px', padding: '4px 12px' }}
+                                onClick={() => handleEditRates(rate)}
+                              >
+                                수정
+                              </button>
+                              <button
+                                className="btn"
+                                style={{ 
+                                  fontSize: '12px', 
+                                  padding: '4px 12px',
+                                  background: '#ef4444',
+                                  color: 'white',
+                                  border: 'none'
+                                }}
+                                onClick={() => handleDeleteRates(rate.effective_yyyymm)}
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

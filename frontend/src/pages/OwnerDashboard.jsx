@@ -1783,7 +1783,7 @@ const OwnerDashboard = () => {
   };
 
   // 4대보험/세금 자동계산
-  const calculateDeductions = async (employeeId, basePay, dependentsCount = 1) => {
+  const calculateDeductions = async (employeeId, basePay, dependentsCount = 1, taxType = '4대보험') => {
     if (!basePay || basePay <= 0) {
       setToast({ type: 'error', message: '기본급을 먼저 입력해주세요.' });
       return;
@@ -1791,15 +1791,46 @@ const OwnerDashboard = () => {
 
     try {
       setCalculatingEmployeeId(employeeId);
-      setToast({ type: 'info', message: '4대보험료 및 소득세 자동 계산 중...' });
+      setToast({ type: 'info', message: '자동 계산 중...' });
       
-      // 귀속월 기준으로 4대보험료 계산
-      const insuranceResponse = await salaryAPI.calculateInsurance(
-        parseFloat(basePay),
-        selectedMonth
-      );
-      const insurance = insuranceResponse.data.insurance;
-      const employerBurden = insuranceResponse.data.employerBurden;
+      // 귀속월 기준으로 보험료/세금 계산
+      const insuranceResponse = await salaryAPI.calculateInsurance({
+        basePay: parseFloat(basePay),
+        payrollMonth: selectedMonth,
+        taxType: taxType
+      });
+      
+      const data = insuranceResponse.data;
+      
+      // 3.3% (프리랜서)
+      if (taxType === '3.3%') {
+        const deductions = {
+          withholding: data.withholding || 0
+        };
+        const netPay = data.netPay || 0;
+        const totalDeductions = data.withholding || 0;
+        
+        setSalaryDeductions(prev => ({
+          ...prev,
+          [employeeId]: {
+            deductions,
+            netPay,
+            totalDeductions,
+            appliedRateMonth: data.appliedRateMonth,
+            taxType: '3.3%'
+          }
+        }));
+        
+        setToast({ 
+          type: 'success', 
+          message: `3.3% 원천징수액이 계산되었습니다! (${data.appliedRateMonth} 요율 적용)` 
+        });
+        return;
+      }
+      
+      // 4대보험
+      const insurance = data.insurance;
+      const employerBurden = data.employerBurden;
       
       // 소득세 계산 (4대보험 공제 후 금액 기준)
       const afterInsurance = parseFloat(basePay) - insurance.total;
@@ -1839,6 +1870,8 @@ const OwnerDashboard = () => {
           deductions,
           netPay,
           totalDeductions,
+          appliedRateMonth: data.appliedRateMonth,
+          taxType: '4대보험',
           employerBurden: {
             nationalPension: employerBurden.nationalPension || 0,
             healthInsurance: employerBurden.healthInsurance || 0,
@@ -1850,7 +1883,7 @@ const OwnerDashboard = () => {
       
       setToast({ 
         type: 'success', 
-        message: `4대보험료 및 소득세가 자동 계산되었습니다! (${selectedMonth} 기준 요율 적용)` 
+        message: `4대보험료 및 소득세가 자동 계산되었습니다! (${data.appliedRateMonth} 요율 적용)` 
       });
     } catch (error) {
       console.error('자동 계산 오류:', error);
@@ -4904,7 +4937,15 @@ const OwnerDashboard = () => {
 
                 {/* 급여 확정 경고 모달 */}
                 {showConfirmWarning && (
-                  <div className="modal-overlay" onClick={() => setShowConfirmWarning(false)}>
+                  <div 
+                    className="modal-overlay" 
+                    onClick={(e) => {
+                      if (e.target === e.currentTarget) {
+                        setShowConfirmWarning(false);
+                      }
+                    }}
+                    style={{ zIndex: 1001 }}
+                  >
                     <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
                       <div className="modal-header" style={{ background: '#fef3c7', color: '#92400e' }}>
                         ⚠️ 급여 확정 확인
@@ -4930,29 +4971,80 @@ const OwnerDashboard = () => {
                         </p>
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                           <button
+                            type="button"
                             className="btn btn-secondary"
                             style={{ flex: 1 }}
-                            onClick={() => setShowConfirmWarning(false)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setShowConfirmWarning(false);
+                            }}
+                            disabled={loading}
                           >
                             취소
                           </button>
                           <button
+                            type="button"
                             className="btn"
                             style={{
                               flex: 1,
-                              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                              background: loading ? '#9ca3af' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                               color: 'white',
                               border: 'none',
-                              fontWeight: '700'
+                              fontWeight: '700',
+                              opacity: loading ? 0.6 : 1,
+                              cursor: loading ? 'not-allowed' : 'pointer'
                             }}
-                            onClick={() => {
-                              setSalaryConfirmed(true);
-                              setSalaryFlowStep(3);
-                              setShowConfirmWarning(false);
-                              setToast({ message: '✓ 급여가 확정되었습니다.', type: 'success' });
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (!loading) {
+                                setLoading(true);
+                                try {
+                                  // 확정할 직원 데이터 준비
+                                  const employees = salaryData.employees
+                                    .filter(emp => emp.attendance > 0)
+                                    .map(emp => {
+                                      const empDeductions = salaryDeductions[emp.id];
+                                      return {
+                                        employeeId: emp.id,
+                                        basePay: empDeductions?.basePay || emp.basePay || 0,
+                                        deductions: empDeductions?.deductions || {},
+                                        totalPay: empDeductions?.basePay || emp.basePay || 0,
+                                        totalDeductions: empDeductions?.totalDeductions || 0,
+                                        netPay: empDeductions?.netPay || emp.basePay || 0,
+                                        taxType: empDeductions?.taxType || '4대보험'
+                                      };
+                                    });
+                                  
+                                  // 급여 확정 API 호출
+                                  const response = await salaryAPI.finalize({
+                                    workplaceId: selectedWorkplaceId,
+                                    payrollMonth: selectedMonth,
+                                    employees: employees
+                                  });
+                                  
+                                  setSalaryConfirmed(true);
+                                  setSalaryFlowStep(4);
+                                  setShowConfirmWarning(false);
+                                  setToast({ 
+                                    message: `✓ 급여가 확정되었습니다. (${response.data.appliedRateMonth} 요율 적용)`, 
+                                    type: 'success' 
+                                  });
+                                } catch (error) {
+                                  console.error('급여 확정 오류:', error);
+                                  setToast({ 
+                                    message: error.response?.data?.message || '급여 확정에 실패했습니다.', 
+                                    type: 'error' 
+                                  });
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }
                             }}
+                            disabled={loading}
                           >
-                            확정하기
+                            {loading ? '처리 중...' : '확정하기'}
                           </button>
                         </div>
                       </div>

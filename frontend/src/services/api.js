@@ -143,7 +143,9 @@ export const salaryAPI = {
   publishSlip: (id) => api.put(`/salary/slips/${id}/publish`),
   generateMonthlySlips: (workplaceId, data) => api.post(`/salary/slips/generate/${workplaceId}`, data),
   generateEmployeeHistory: (userId) => api.post(`/salary/slips/generate-history/${userId}`),
-  getPayrollLedger: (workplaceId, payrollMonth) => api.get(`/salary/payroll-ledger/${workplaceId}/${payrollMonth}`)
+  getPayrollLedger: (workplaceId, payrollMonth) => api.get(`/salary/payroll-ledger/${workplaceId}/${payrollMonth}`),
+  calculateInsurance: (data) => api.post('/salary/calculate-insurance', data),
+  finalize: (data) => api.post('/salary/finalize', data)
 };
 
 // 과거 직원 API
@@ -191,6 +193,14 @@ export const insuranceAPI = {
   create: (data) => api.post('/insurance/rates', data),
   update: (id, data) => api.put(`/insurance/rates/${id}`, data),
   delete: (id) => api.delete(`/insurance/rates/${id}`)
+};
+
+// 요율 관리 API (rates_master)
+export const ratesMasterAPI = {
+  getByMonth: (yyyymm) => api.get('/rates-master', { params: { yyyymm } }),
+  getList: () => api.get('/rates-master/list'),
+  save: (data) => api.post('/rates-master', data),
+  delete: (yyyymm) => api.delete(`/rates-master/${yyyymm}`)
 };
 
 // 커뮤니티 API

@@ -812,73 +812,94 @@ router.post('/calculate-tax', authenticate, async (req, res) => {
 // 4대보험료 자동 계산
 router.post('/calculate-insurance', authenticate, async (req, res) => {
   try {
-    const { basePay, payrollMonth } = req.body;
+    const { basePay, payrollMonth, taxType } = req.body;
     
     if (!basePay || basePay < 0) {
       return res.status(400).json({ message: '과세대상 급여액을 입력해주세요.' });
     }
     
-    // 귀속월 기준 연도 추출 (예: "2025-12" -> 2025)
-    let targetYear = new Date().getFullYear();
-    if (payrollMonth) {
-      targetYear = parseInt(payrollMonth.split('-')[0]);
+    // 귀속월을 YYYYMM 형식으로 변환 (예: "2026-01" -> "202601")
+    let targetYyyyMm = new Date().toISOString().slice(0, 7).replace('-', '');
+    if (payrollMonth && /^\d{4}-\d{2}$/.test(payrollMonth)) {
+      targetYyyyMm = payrollMonth.replace('-', '');
     }
     
-    console.log(`📅 귀속월 기준 연도: ${targetYear}`);
+    console.log(`📅 귀속월: ${payrollMonth || '현재'} -> ${targetYyyyMm}`);
     
-    // 해당 연도의 보험 요율 조회
+    // rates_master에서 effective_yyyymm <= 귀속월 중 가장 최신 요율 조회
     let rates = await get(`
-      SELECT * FROM insurance_rates 
-      WHERE year = ?
-      ORDER BY effective_from DESC
+      SELECT * FROM rates_master 
+      WHERE effective_yyyymm <= ?
+      ORDER BY effective_yyyymm DESC
       LIMIT 1
-    `, [targetYear]);
+    `, [targetYyyyMm]);
     
     if (!rates) {
-      // 해당 연도 요율이 없으면 가장 최근 요율 사용
-      rates = await get(`
-        SELECT * FROM insurance_rates 
-        ORDER BY year DESC, effective_from DESC
-        LIMIT 1
-      `);
+      return res.status(404).json({ 
+        message: `적용 가능한 요율을 찾을 수 없습니다. (귀속월: ${targetYyyyMm})` 
+      });
     }
     
-    if (!rates) {
-      return res.status(404).json({ message: '적용 가능한 보험 요율을 찾을 수 없습니다.' });
+    console.log(`✅ 적용 요율: ${rates.effective_yyyymm}`);
+    
+    // 3.3% (프리랜서) 계산
+    if (taxType === '3.3%') {
+      const withholdingRate = parseFloat(rates.freelancer_withholding_rate_percent) / 100;
+      const withholding = Math.floor(basePay * withholdingRate);
+      const netPay = basePay - withholding;
+      
+      return res.json({
+        basePay,
+        appliedRateMonth: rates.effective_yyyymm,
+        taxType: '3.3%',
+        withholdingRate: parseFloat(rates.freelancer_withholding_rate_percent),
+        withholding,
+        netPay
+      });
     }
     
-    // 기준소득월액 (상한/하한 적용)
-    const pensionBase = Math.min(Math.max(basePay, rates.national_pension_min || 0), rates.national_pension_max || basePay);
-    const healthBase = Math.min(Math.max(basePay, rates.health_insurance_min || 0), rates.health_insurance_max || basePay);
+    // 4대보험 계산
+    // 기준소득월액 (상한/하한 적용 - 추후 rates_master에 추가 가능)
+    const pensionBase = basePay; // 현재는 상한/하한 미적용
+    const healthBase = basePay;
     
-    // 4대보험료 계산 (근로자 부담분)
-    const nationalPension = Math.floor(pensionBase * rates.national_pension_rate);
-    const healthInsurance = Math.floor(healthBase * rates.health_insurance_rate);
-    const longTermCare = Math.floor(healthInsurance * rates.long_term_care_rate);
-    const employmentInsurance = Math.floor(basePay * rates.employment_insurance_rate);
+    // 요율을 %에서 소수로 변환
+    const npsRate = parseFloat(rates.nps_employee_rate_percent) / 100;
+    const nhisRate = parseFloat(rates.nhis_employee_rate_percent) / 100;
+    const ltciRate = parseFloat(rates.ltci_rate_of_nhis_percent) / 100;
+    const eiRate = parseFloat(rates.ei_employee_rate_percent) / 100;
+    
+    // 4대보험료 계산 (근로자 부담분) - 원단위 절사
+    const nationalPension = Math.floor(pensionBase * npsRate);
+    const healthInsurance = Math.floor(healthBase * nhisRate);
+    const longTermCare = Math.floor(healthInsurance * ltciRate);
+    const employmentInsurance = Math.floor(basePay * eiRate);
     
     const totalInsurance = nationalPension + healthInsurance + longTermCare + employmentInsurance;
     
-    // 사업주 부담금 계산
-    const employerNationalPension = Math.floor(pensionBase * rates.national_pension_rate); // 국민연금: 근로자와 동일
-    const employerHealthInsurance = Math.floor(healthBase * rates.health_insurance_rate); // 건강보험: 근로자와 동일
-    const employerLongTermCare = Math.floor(employerHealthInsurance * rates.long_term_care_rate); // 장기요양: 건강보험의 일정 비율
-    // 고용보험: 사업주는 0.9% + 실업급여 0.8% = 1.7% (2026년 기준, 근로자는 0.9%만)
-    const employerEmploymentInsurance = Math.floor(basePay * (rates.employment_insurance_rate + 0.008)); // 근로자 부담분 + 실업급여 부담분
+    // 사업주 부담금 계산 (rates_master에 사업주 요율이 있으면 사용, 없으면 근로자와 동일)
+    const npsEmployerRate = rates.nps_employer_rate_percent ? parseFloat(rates.nps_employer_rate_percent) / 100 : npsRate;
+    const nhisEmployerRate = rates.nhis_employer_rate_percent ? parseFloat(rates.nhis_employer_rate_percent) / 100 : nhisRate;
+    const eiEmployerRate = rates.ei_employer_rate_percent ? parseFloat(rates.ei_employer_rate_percent) / 100 : eiRate;
+    
+    const employerNationalPension = Math.floor(pensionBase * npsEmployerRate);
+    const employerHealthInsurance = Math.floor(healthBase * nhisEmployerRate);
+    const employerLongTermCare = Math.floor(employerHealthInsurance * ltciRate);
+    const employerEmploymentInsurance = Math.floor(basePay * eiEmployerRate);
     
     const totalEmployerBurden = employerNationalPension + employerHealthInsurance + employerLongTermCare + employerEmploymentInsurance;
     
+    const netPay = basePay - totalInsurance;
+    
     res.json({
       basePay,
+      appliedRateMonth: rates.effective_yyyymm,
+      taxType: '4대보험',
       rates: {
-        nationalPension: rates.national_pension_rate,
-        healthInsurance: rates.health_insurance_rate,
-        longTermCare: rates.long_term_care_rate,
-        employmentInsurance: rates.employment_insurance_rate
-      },
-      baseAmounts: {
-        pension: pensionBase,
-        health: healthBase
+        nationalPension: parseFloat(rates.nps_employee_rate_percent),
+        healthInsurance: parseFloat(rates.nhis_employee_rate_percent),
+        longTermCare: parseFloat(rates.ltci_rate_of_nhis_percent),
+        employmentInsurance: parseFloat(rates.ei_employee_rate_percent)
       },
       insurance: {
         nationalPension,
@@ -893,11 +914,12 @@ router.post('/calculate-insurance', authenticate, async (req, res) => {
         longTermCare: employerLongTermCare,
         employmentInsurance: employerEmploymentInsurance,
         total: totalEmployerBurden
-      }
+      },
+      netPay
     });
   } catch (error) {
     console.error('4대보험료 계산 오류:', error);
-    res.status(500).json({ message: '4대보험료 계산 중 오류가 발생했습니다.' });
+    res.status(500).json({ message: '4대보험료 계산 중 오류가 발생했습니다.', error: error.message });
   }
 });
 
@@ -1468,6 +1490,95 @@ router.post('/slips/generate-history/:userId', authenticate, async (req, res) =>
   } catch (error) {
     console.error('과거 급여명세서 일괄 생성 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 급여 확정 (스냅샷 저장)
+router.post('/finalize', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+    
+    const { workplaceId, payrollMonth, employees } = req.body;
+    
+    if (!workplaceId || !payrollMonth || !employees || employees.length === 0) {
+      return res.status(400).json({ message: '필수 데이터가 누락되었습니다.' });
+    }
+    
+    // 귀속월을 YYYYMM 형식으로 변환
+    const targetYyyyMm = payrollMonth.replace('-', '');
+    
+    // 해당 귀속월에 적용된 요율 조회
+    const rates = await get(`
+      SELECT * FROM rates_master 
+      WHERE effective_yyyymm <= ?
+      ORDER BY effective_yyyymm DESC
+      LIMIT 1
+    `, [targetYyyyMm]);
+    
+    if (!rates) {
+      return res.status(404).json({ message: '적용 가능한 요율을 찾을 수 없습니다.' });
+    }
+    
+    // 트랜잭션으로 모든 직원의 급여 확정 스냅샷 저장
+    const conn = await db;
+    await conn.run('BEGIN TRANSACTION');
+    
+    try {
+      for (const emp of employees) {
+        // 기존 확정 데이터가 있으면 삭제 (재확정)
+        await conn.run(`
+          DELETE FROM payroll_finalized 
+          WHERE workplace_id = ? AND payroll_month = ? AND employee_id = ?
+        `, [workplaceId, payrollMonth, emp.employeeId]);
+        
+        // 스냅샷 저장
+        await conn.run(`
+          INSERT INTO payroll_finalized (
+            workplace_id, payroll_month, employee_id,
+            applied_effective_yyyymm, applied_rates_json,
+            base_pay, deductions_json, totals_json,
+            tax_type, finalized_by
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          workplaceId,
+          payrollMonth,
+          emp.employeeId,
+          rates.effective_yyyymm,
+          JSON.stringify({
+            nps_employee_rate_percent: rates.nps_employee_rate_percent,
+            nhis_employee_rate_percent: rates.nhis_employee_rate_percent,
+            ltci_rate_of_nhis_percent: rates.ltci_rate_of_nhis_percent,
+            ei_employee_rate_percent: rates.ei_employee_rate_percent,
+            freelancer_withholding_rate_percent: rates.freelancer_withholding_rate_percent
+          }),
+          emp.basePay || 0,
+          JSON.stringify(emp.deductions || {}),
+          JSON.stringify({
+            totalPay: emp.totalPay || emp.basePay || 0,
+            totalDeductions: emp.totalDeductions || 0,
+            netPay: emp.netPay || emp.basePay || 0
+          }),
+          emp.taxType || '4대보험',
+          req.user.id
+        ]);
+      }
+      
+      await conn.run('COMMIT');
+      
+      res.json({ 
+        message: '급여가 확정되었습니다.', 
+        appliedRateMonth: rates.effective_yyyymm,
+        finalizedCount: employees.length
+      });
+    } catch (error) {
+      await conn.run('ROLLBACK');
+      throw error;
+    }
+  } catch (error) {
+    console.error('급여 확정 오류:', error);
+    res.status(500).json({ message: '급여 확정 중 오류가 발생했습니다.', error: error.message });
   }
 });
 

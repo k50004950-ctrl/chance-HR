@@ -2975,116 +2975,207 @@ const OwnerDashboard = () => {
                   </div>
                 )}
 
-                {/* 오늘 해야 할 일 (데스크톱 전용) */}
-                {!isMobile && notifications.filter(n => n.urgent).length > 0 && (
-                  <div className="card" style={{
-                    marginBottom: '24px',
-                    background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
-                    border: '2px solid #ef4444'
-                  }}>
-                    <h3 style={{ marginBottom: '16px', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      🚨 긴급 확인 필요
-                    </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {notifications.filter(n => n.urgent).map((notif, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            padding: '16px',
-                            background: 'white',
-                            borderRadius: '12px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            border: '1px solid #fecaca'
-                          }}
-                          onClick={() => handleNotificationAction(notif.action)}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateX(4px)';
-                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.2)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateX(0)';
-                            e.currentTarget.style.boxShadow = 'none';
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{ fontSize: '32px' }}>{notif.icon}</div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: '700', color: '#374151', marginBottom: '4px' }}>
-                                {notif.title}
+                {/* 데스크톱 홈 화면: 3요약 카드 구조 (모바일과 동일) */}
+                {!isMobile && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+                    {(() => {
+                      const today = new Date().toISOString().split('T')[0];
+                      const todayAttendance = attendance.filter(a => a.date === today);
+                      const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
+                      const notCheckedOut = todayAttendance.filter(a => a.check_in_time && !a.check_out_time).length;
+                      const checkedInToday = todayAttendance.filter(a => a.check_in_time).length;
+                      const lateToday = todayAttendance.filter(a => {
+                        if (!a.check_in_time || !a.employee_work_start_time) return false;
+                        const checkIn = new Date(a.check_in_time);
+                        const [hours, minutes] = a.employee_work_start_time.split(':');
+                        const workStart = new Date(checkIn);
+                        workStart.setHours(parseInt(hours), parseInt(minutes), 0);
+                        return checkIn > workStart;
+                      }).length;
+                      const notCheckedIn = activeEmployees.length - checkedInToday;
+                      
+                      // 이번 달 급여 현황 데이터
+                      const currentMonth = new Date().toISOString().slice(0, 7);
+                      const currentMonthSalaryData = salaryData && salaryData.month === currentMonth ? salaryData : null;
+                      const totalMonthlyCost = currentMonthSalaryData 
+                        ? currentMonthSalaryData.employees.reduce((sum, emp) => sum + (emp.totalPay || emp.calculatedSalary || 0), 0)
+                        : activeEmployees.reduce((sum, emp) => sum + (emp.base_pay || 0), 0);
+                      const unconfirmedEmployees = currentMonthSalaryData 
+                        ? currentMonthSalaryData.employees.filter(emp => !emp.confirmed).length
+                        : activeEmployees.length;
+                      
+                      // 리스크 카운트
+                      const riskCount = notifications.length;
+                      const urgentRiskCount = notifications.filter(n => n.urgent).length;
+                      
+                      return (
+                        <>
+                          {/* 1. 오늘 출근 상황 카드 */}
+                          <div 
+                            onClick={() => handleTabChange('attendance')} 
+                            style={{ 
+                              cursor: 'pointer',
+                              background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
+                              borderRadius: '16px',
+                              padding: '28px',
+                              border: '1px solid #e5e7eb',
+                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                              transition: 'all 0.3s',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-4px)';
+                              e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
+                            }}
+                          >
+                            <div style={{ fontSize: '20px', fontWeight: '700', color: '#374151', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span>📊</span>
+                              <span>오늘 출근 상황</span>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                              <div>
+                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>출근</div>
+                                <div style={{ fontSize: '32px', fontWeight: '700', color: '#059669' }}>{checkedInToday}명</div>
                               </div>
-                              <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                                {notif.message}
+                              <div>
+                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>지각</div>
+                                <div style={{ fontSize: '32px', fontWeight: '700', color: '#f59e0b' }}>{lateToday}명</div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>미출근</div>
+                                <div style={{ fontSize: '32px', fontWeight: '700', color: notCheckedIn > 0 ? '#ef4444' : '#6b7280' }}>
+                                  {notCheckedIn}명 {notCheckedIn > 0 && '⚠️'}
+                                </div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>미퇴근</div>
+                                <div style={{ fontSize: '32px', fontWeight: '700', color: notCheckedOut > 0 ? '#ef4444' : '#6b7280' }}>
+                                  {notCheckedOut}명 {notCheckedOut > 0 && '⚠️'}
+                                </div>
                               </div>
                             </div>
-                            <button
-                              className="btn btn-primary"
-                              style={{ fontSize: '14px', padding: '8px 20px', whiteSpace: 'nowrap' }}
-                            >
-                              {notif.actionLabel}
-                            </button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                          
+                          {/* 2. 이번 달 급여 현황 카드 */}
+                          <div 
+                            onClick={() => handleTabChange('salary')}
+                            style={{ 
+                              cursor: 'pointer',
+                              background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
+                              borderRadius: '16px',
+                              padding: '28px',
+                              border: '1px solid #e5e7eb',
+                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                              transition: 'all 0.3s',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-4px)';
+                              e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
+                            }}
+                          >
+                            <div style={{ fontSize: '20px', fontWeight: '700', color: '#374151', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span>💰</span>
+                              <span>이번 달 급여 현황</span>
+                            </div>
+                            <div>
+                              <div style={{ marginBottom: '16px' }}>
+                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>예상 총 인건비</div>
+                                <div style={{ fontSize: '28px', fontWeight: '700', color: '#667eea' }}>
+                                  {totalMonthlyCost.toLocaleString()}원
+                                </div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>미확정 직원</div>
+                                <div style={{ fontSize: '24px', fontWeight: '600', color: unconfirmedEmployees > 0 ? '#f59e0b' : '#6b7280' }}>
+                                  {unconfirmedEmployees}명 {unconfirmedEmployees > 0 && '⚠️'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* 3. 리스크 센터 카드 */}
+                          <div 
+                            onClick={() => navigate('/notifications')}
+                            style={{ 
+                              cursor: 'pointer',
+                              background: urgentRiskCount > 0 
+                                ? 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)'
+                                : 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
+                              borderRadius: '16px',
+                              padding: '28px',
+                              border: urgentRiskCount > 0 ? '2px solid #fca5a5' : '1px solid #e5e7eb',
+                              boxShadow: urgentRiskCount > 0 ? '0 4px 12px rgba(239, 68, 68, 0.15)' : '0 4px 12px rgba(0, 0, 0, 0.05)',
+                              transition: 'all 0.3s',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-4px)';
+                              e.currentTarget.style.boxShadow = urgentRiskCount > 0 
+                                ? '0 8px 20px rgba(239, 68, 68, 0.25)'
+                                : '0 8px 20px rgba(0, 0, 0, 0.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = urgentRiskCount > 0 
+                                ? '0 4px 12px rgba(239, 68, 68, 0.15)'
+                                : '0 4px 12px rgba(0, 0, 0, 0.05)';
+                            }}
+                          >
+                            <div style={{ 
+                              fontSize: '20px', 
+                              fontWeight: '700', 
+                              color: urgentRiskCount > 0 ? '#dc2626' : '#374151', 
+                              marginBottom: '20px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}>
+                              <span>{urgentRiskCount > 0 ? '🚨' : '📋'}</span>
+                              <span>리스크 센터</span>
+                            </div>
+                            <div>
+                              <div style={{ marginBottom: '16px' }}>
+                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>총 알림</div>
+                                <div style={{ fontSize: '32px', fontWeight: '700', color: '#374151' }}>{riskCount}건</div>
+                              </div>
+                              {urgentRiskCount > 0 && (
+                                <div>
+                                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>긴급 알림</div>
+                                  <div style={{ fontSize: '24px', fontWeight: '700', color: '#dc2626' }}>{urgentRiskCount}건 ⚠️</div>
+                                </div>
+                              )}
+                              {notifications.slice(0, 3).map((notif, idx) => (
+                                <div key={idx} style={{ 
+                                  display: 'flex', 
+                                  justifyContent: 'space-between', 
+                                  alignItems: 'center',
+                                  marginTop: '8px',
+                                  padding: '8px',
+                                  background: 'rgba(255, 255, 255, 0.5)',
+                                  borderRadius: '8px',
+                                  fontSize: '13px',
+                                  color: '#6b7280'
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span>{notif.icon}</span>
+                                    <span>{notif.title}</span>
+                                  </div>
+                                  <span style={{ fontSize: '12px' }}>{notif.message}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
-                
-                {/* 요약 카드 (데스크톱 전용) */}
-                {!isMobile && <DashboardSummaryCards {...getDashboardStats()} />}
-                
-                {/* 주요 액션 버튼 (데스크톱 전용) */}
-                {!isMobile && <MainActionButtons
-                  onAddEmployee={() => {
-                    setModalType('employee');
-                    setFormData({
-                      id: null,
-                      username: '',
-                      password: '',
-                      name: '',
-                      phone: '',
-                      email: '',
-                      ssn: '',
-                      address: '',
-                      emergency_contact: '',
-                      emergency_phone: '',
-                      hire_date: '',
-                      gender: '',
-                      birth_date: '',
-                      career: '',
-                      job_type: '',
-                      employment_renewal_date: '',
-                      contract_start_date: '',
-                      contract_end_date: '',
-                      employment_notes: '',
-                      separation_type: '',
-                      separation_reason: '',
-                      position: '',
-                      department: '',
-                      notes: '',
-                      work_start_time: '09:00',
-                      work_end_time: '18:00',
-                      work_days: ['월', '화', '수', '목', '금'],
-                      pay_schedule_type: 'monthly_fixed',
-                      pay_day: 0,
-                      pay_after_days: 0,
-                      payroll_period_start_day: 1,
-                      payroll_period_end_day: 0,
-                      deduct_absence: false,
-                      salary_type: 'monthly',
-                      amount: '',
-                      weekly_holiday_pay: false,
-                      weekly_holiday_type: 'none',
-                      overtime_pay: false,
-                      tax_type: '4대보험',
-                      workplace_id: selectedWorkplace,
-                      resignation_date: ''
-                    });
-                    setShowModal(true);
-                  }}
-                  onViewAttendance={() => setActiveTab('attendance')}
-                  onCreatePayroll={() => setActiveTab('salary-slips')}
-                />}
 
                 {/* 일반 알림 - 요약 카드 (데스크톱 전용) */}
                 {!isMobile && notifications.filter(n => !n.urgent).length > 0 && (

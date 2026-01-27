@@ -1,0 +1,3 @@
+# Ignore frontend directory during auto-detection
+# Frontend is built and copied to backend/dist by nixpacks.toml
+frontend/node_modules

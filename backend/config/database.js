@@ -10,9 +10,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const dbPath = join(__dirname, '..', 'database.db');
-// Force SQLite usage - PostgreSQL schema migration not complete
-// Always use SQLite regardless of DATABASE_URL presence
-const USE_POSTGRES = false;
+// Use PostgreSQL on production (Railway), SQLite for local development
+const USE_POSTGRES = process.env.DATABASE_URL ? true : false;
 
 console.log('=================================');
 console.log('Database Configuration:');

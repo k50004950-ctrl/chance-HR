@@ -34,13 +34,15 @@ export const checkIncompleteCheckouts = async () => {
         a.check_in_time,
         a.date,
         u.name as user_name,
-        u.work_days,
-        u.work_hours,
+        ed.work_days,
+        ed.work_start_time,
+        ed.work_end_time,
         w.name as workplace_name,
         w.owner_id
       FROM attendance a
       JOIN users u ON a.user_id = u.id
       JOIN workplaces w ON a.workplace_id = w.id
+      LEFT JOIN employee_details ed ON ed.user_id = u.id
       WHERE a.date = ? 
       AND a.check_in_time IS NOT NULL 
       AND a.check_out_time IS NULL
@@ -84,46 +86,32 @@ export const checkIncompleteCheckouts = async () => {
         }
 
         // 2. 근무 종료 시간 확인 및 알림
-        if (record.work_hours) {
+        if (record.work_end_time) {
           try {
-            // 근무 시간 파싱 (예: "mon:09:00-18:00,tue:09:00-18:00")
-            const workHoursData = record.work_hours.split(',');
-            const dayMap = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
-            const currentDay = now.getDay();
+            const [endHour, endMinute] = record.work_end_time.split(':').map(Number);
+            const scheduledEndMinutes = endHour * 60 + endMinute;
 
-            for (const daySchedule of workHoursData) {
-              const [day, timeRange] = daySchedule.split(':');
-              if (dayMap[day.toLowerCase()] === currentDay && timeRange) {
-                const [startTime, endTime] = timeRange.split('-');
-                if (endTime) {
-                  const [endHour, endMinute] = endTime.split(':').map(Number);
-                  const scheduledEndMinutes = endHour * 60 + endMinute;
+            // 근무 종료 시간이 지났는지 확인 (30분 여유)
+            const timeSinceEnd = currentTimeMinutes - scheduledEndMinutes;
 
-                  // 근무 종료 시간이 지났는지 확인 (30분 여유)
-                  const timeSinceEnd = currentTimeMinutes - scheduledEndMinutes;
+            if (timeSinceEnd >= 30 && timeSinceEnd < 60) {
+              // 30분~1시간 사이에만 알림 (중복 방지)
+              console.log(`[퇴근 알림] ${record.user_name} - 근무 종료 시간 ${timeSinceEnd}분 경과`);
 
-                  if (timeSinceEnd >= 30 && timeSinceEnd < 60) {
-                    // 30분~1시간 사이에만 알림 (중복 방지)
-                    console.log(`[퇴근 알림] ${record.user_name} - 근무 종료 시간 ${timeSinceEnd}분 경과`);
+              // 근로자에게 알림
+              await sendPushToUser(record.user_id, {
+                title: '🔔 퇴근 체크 알림',
+                body: `근무 종료 시간이 지났습니다. 퇴근 체크를 해주세요!`,
+                url: `${process.env.FRONTEND_URL || ''}`
+              }).catch(err => console.error('근로자 알림 실패:', err));
 
-                    // 근로자에게 알림
-                    await sendPushToUser(record.user_id, {
-                      title: '🔔 퇴근 체크 알림',
-                      body: `근무 종료 시간이 지났습니다. 퇴근 체크를 해주세요!`,
-                      url: `${process.env.FRONTEND_URL || ''}`
-                    }).catch(err => console.error('근로자 알림 실패:', err));
-
-                    // 사업주에게 알림
-                    if (record.owner_id) {
-                      await sendPushToUser(record.owner_id, {
-                        title: '🔔 퇴근 미체크 알림',
-                        body: `${record.user_name}님이 근무 종료 시간이 지났지만 퇴근 체크를 하지 않았습니다. (${record.workplace_name})`,
-                        url: `${process.env.FRONTEND_URL || ''}`
-                      }).catch(err => console.error('사업주 알림 실패:', err));
-                    }
-                  }
-                }
-                break;
+              // 사업주에게 알림
+              if (record.owner_id) {
+                await sendPushToUser(record.owner_id, {
+                  title: '🔔 퇴근 미체크 알림',
+                  body: `${record.user_name}님이 근무 종료 시간이 지났지만 퇴근 체크를 하지 않았습니다. (${record.workplace_name})`,
+                  url: `${process.env.FRONTEND_URL || ''}`
+                }).catch(err => console.error('사업주 알림 실패:', err));
               }
             }
           } catch (parseError) {

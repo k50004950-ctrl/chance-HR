@@ -998,6 +998,42 @@ button:active {
     color: #10b981;
   }
   
+  .mobile-summary-value.warning {
+    color: #f59e0b;
+  }
+  
+  /* 모바일 홈 - 출근 상황 카드 통계 그리드 */
+  .mobile-summary-stat {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  
+  .mobile-summary-stat-label {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 6px;
+  }
+  
+  .mobile-summary-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+  }
+  
+  .mobile-summary-stat-value.urgent {
+    color: #ef4444;
+  }
+  
+  .mobile-summary-stat-value.success {
+    color: #10b981;
+  }
+  
+  .mobile-summary-stat-value.warning {
+    color: #f59e0b;
+  }
+  
   /* 홈 액션 버튼 간격 줄이기 (REMOVED - 하단 탭만 사용) */
   /* .home-action-button {
     min-height: 100px;

@@ -2798,49 +2798,137 @@ const OwnerDashboard = () => {
                         return checkIn > workStart;
                       }).length;
                       const notCheckedIn = activeEmployees.length - checkedInToday;
-                      const unpublishedSlips = employeeSlips.filter(s => !s.published).length;
+                      
+                      // 이번 달 급여 현황 데이터
+                      const currentMonth = new Date().toISOString().slice(0, 7);
+                      const currentMonthSalaryData = salaryData && salaryData.month === currentMonth ? salaryData : null;
+                      const totalMonthlyCost = currentMonthSalaryData 
+                        ? currentMonthSalaryData.employees.reduce((sum, emp) => sum + (emp.totalPay || emp.calculatedSalary || 0), 0)
+                        : activeEmployees.reduce((sum, emp) => sum + (emp.base_pay || 0), 0);
+                      const unconfirmedEmployees = currentMonthSalaryData 
+                        ? currentMonthSalaryData.employees.filter(emp => !emp.confirmed).length
+                        : activeEmployees.length;
+                      
+                      // 리스크 카운트 (generateNotifications 결과 재사용)
+                      const riskCount = notifications.length;
+                      const urgentRiskCount = notifications.filter(n => n.urgent).length;
                       
                       return (
                         <>
-                          {/* 1. 오늘 할 일 요약 */}
-                          {(notCheckedIn > 0 || unpublishedSlips > 0) && (
-                            <div className="mobile-home-summary">
-                              <div className="mobile-home-summary-title">
-                                📋 오늘 할 일
-                              </div>
-                              {notCheckedIn > 0 && (
-                                <div className="mobile-summary-row" onClick={() => handleTabChange('attendance')}>
-                                  <div className="mobile-summary-label">미출근</div>
-                                  <div className="mobile-summary-value urgent">{notCheckedIn}명</div>
-                                </div>
-                              )}
-                              {unpublishedSlips > 0 && (
-                                <div className="mobile-summary-row" onClick={() => handleTabChange('salary')}>
-                                  <div className="mobile-summary-label">급여 미발송</div>
-                                  <div className="mobile-summary-value urgent">{unpublishedSlips}명</div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          
-                          {/* 2. 오늘 출근 요약 */}
-                          <div className="mobile-home-summary">
+                          {/* 1. 오늘 출근 상황 카드 */}
+                          <div className="mobile-home-summary" onClick={() => handleTabChange('attendance')} style={{ cursor: 'pointer' }}>
                             <div className="mobile-home-summary-title">
-                              📊 오늘 출근 요약
+                              📊 오늘 출근 상황
                             </div>
-                            <div className="mobile-summary-row">
-                              <div className="mobile-summary-label">출근</div>
-                              <div className="mobile-summary-value success">{checkedInToday}명</div>
-                            </div>
-                            <div className="mobile-summary-row">
-                              <div className="mobile-summary-label">지각</div>
-                              <div className="mobile-summary-value">{lateToday}명</div>
-                            </div>
-                            <div className="mobile-summary-row">
-                              <div className="mobile-summary-label">미퇴근</div>
-                              <div className="mobile-summary-value urgent">{notCheckedOut}명</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                              <div className="mobile-summary-stat">
+                                <div className="mobile-summary-stat-label">출근</div>
+                                <div className="mobile-summary-stat-value success">{checkedInToday}명</div>
+                              </div>
+                              <div className="mobile-summary-stat">
+                                <div className="mobile-summary-stat-label">지각</div>
+                                <div className="mobile-summary-stat-value warning">{lateToday}명</div>
+                              </div>
+                              <div className="mobile-summary-stat">
+                                <div className="mobile-summary-stat-label">미출근</div>
+                                <div className={`mobile-summary-stat-value ${notCheckedIn > 0 ? 'urgent' : ''}`}>
+                                  {notCheckedIn}명 {notCheckedIn > 0 && '⚠️'}
+                                </div>
+                              </div>
+                              <div className="mobile-summary-stat">
+                                <div className="mobile-summary-stat-label">미퇴근</div>
+                                <div className={`mobile-summary-stat-value ${notCheckedOut > 0 ? 'urgent' : ''}`}>
+                                  {notCheckedOut}명 {notCheckedOut > 0 && '⚠️'}
+                                </div>
+                              </div>
                             </div>
                           </div>
+                          
+                          {/* 2. 이번 달 급여 현황 카드 */}
+                          <div className="mobile-home-summary">
+                            <div className="mobile-home-summary-title">
+                              💰 이번 달 급여 현황
+                            </div>
+                            <div style={{ marginTop: '12px' }}>
+                              <div className="mobile-summary-row">
+                                <div className="mobile-summary-label">예상 총 인건비</div>
+                                <div className="mobile-summary-value" style={{ fontSize: '18px', fontWeight: '700' }}>
+                                  {totalMonthlyCost.toLocaleString()}원
+                                </div>
+                              </div>
+                              <div className="mobile-summary-row">
+                                <div className="mobile-summary-label">미확정 직원</div>
+                                <div className="mobile-summary-value">{unconfirmedEmployees}명</div>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleTabChange('salary')}
+                              style={{
+                                width: '100%',
+                                marginTop: '12px',
+                                padding: '12px',
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              급여 관리로 이동 →
+                            </button>
+                          </div>
+                          
+                          {/* 3. 리스크 센터 카드 */}
+                          {riskCount > 0 && (
+                            <div className="mobile-home-summary" style={{ 
+                              background: urgentRiskCount > 0 ? 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)' : '#f9fafb',
+                              border: urgentRiskCount > 0 ? '2px solid #fca5a5' : '1px solid #e5e7eb'
+                            }}>
+                              <div className="mobile-home-summary-title" style={{ color: urgentRiskCount > 0 ? '#dc2626' : '#374151' }}>
+                                {urgentRiskCount > 0 ? '🚨' : '📋'} 리스크 센터
+                              </div>
+                              <div style={{ marginTop: '12px' }}>
+                                <div className="mobile-summary-row">
+                                  <div className="mobile-summary-label">총 알림</div>
+                                  <div className="mobile-summary-value">{riskCount}건</div>
+                                </div>
+                                {urgentRiskCount > 0 && (
+                                  <div className="mobile-summary-row">
+                                    <div className="mobile-summary-label">긴급 알림</div>
+                                    <div className="mobile-summary-value urgent">{urgentRiskCount}건 ⚠️</div>
+                                  </div>
+                                )}
+                                {notifications.slice(0, 3).map((notif, idx) => (
+                                  <div key={idx} className="mobile-summary-row" style={{ fontSize: '13px', color: '#6b7280' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <span>{notif.icon}</span>
+                                      <span>{notif.title}</span>
+                                    </div>
+                                    <span style={{ fontSize: '12px' }}>{notif.message}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <button
+                                onClick={() => navigate('/notifications')}
+                                style={{
+                                  width: '100%',
+                                  marginTop: '12px',
+                                  padding: '12px',
+                                  background: urgentRiskCount > 0 ? '#dc2626' : '#6b7280',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '8px',
+                                  fontSize: '14px',
+                                  fontWeight: '600',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                알림 센터로 이동 →
+                              </button>
+                            </div>
+                          )}
                         </>
                       );
                     })()}

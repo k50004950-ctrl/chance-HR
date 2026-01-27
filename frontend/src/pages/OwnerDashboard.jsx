@@ -3489,24 +3489,358 @@ const OwnerDashboard = () => {
             {/* 급여 계산 */}
             {activeTab === 'salary' && (
               <div className="card">
-                {/* 확정 상태 배지 */}
-                {salaryConfirmed && (
-                  <div style={{
-                    padding: '16px',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    borderRadius: '12px',
-                    color: 'white',
-                    marginBottom: '24px',
-                    textAlign: 'center',
-                    fontSize: '16px',
-                    fontWeight: '700',
-                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                  }}>
-                    ✓ 이번 달 급여가 확정되었습니다
-                  </div>
-                )}
+                {/* 모바일 Wizard UI */}
+                {isMobile ? (
+                  <div className="mobile-salary-wizard">
+                    {/* 상단: 진행 단계 */}
+                    <div style={{
+                      padding: '16px',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      borderRadius: '12px 12px 0 0',
+                      color: 'white',
+                      textAlign: 'center',
+                      marginBottom: '20px'
+                    }}>
+                      <div style={{ fontSize: '14px', opacity: '0.9', marginBottom: '4px' }}>
+                        급여 처리
+                      </div>
+                      <div style={{ fontSize: '24px', fontWeight: '700' }}>
+                        {salaryFlowStep}/4 단계
+                      </div>
+                    </div>
 
-                {/* 단계 진행 표시 */}
+                    {/* 확정 상태 배지 (모바일) */}
+                    {salaryConfirmed && (
+                      <div style={{
+                        padding: '12px',
+                        background: '#10b981',
+                        borderRadius: '8px',
+                        color: 'white',
+                        marginBottom: '16px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        fontWeight: '600'
+                      }}>
+                        ✓ 급여 확정됨
+                      </div>
+                    )}
+
+                    {/* 현재 단계 제목 */}
+                    <h3 style={{ 
+                      color: '#374151', 
+                      fontSize: '18px', 
+                      fontWeight: '700',
+                      marginBottom: '16px' 
+                    }}>
+                      {salaryFlowStep === 1 && '📋 근무 내역 확인'}
+                      {salaryFlowStep === 2 && '💰 급여 미리보기'}
+                      {salaryFlowStep === 3 && '✅ 급여 확정'}
+                      {salaryFlowStep === 4 && '📤 급여명세서 발송'}
+                    </h3>
+
+                    {/* 월 선택 (월별 보기일 때만) */}
+                    {salaryViewMode === 'month' && (
+                      <div style={{ marginBottom: '16px' }}>
+                        <label style={{ 
+                          display: 'block', 
+                          fontSize: '14px', 
+                          fontWeight: '600', 
+                          color: '#374151',
+                          marginBottom: '8px' 
+                        }}>
+                          📅 급여 계산 월
+                        </label>
+                        <input
+                          type="month"
+                          className="form-input"
+                          value={selectedMonth}
+                          onChange={(e) => setSelectedMonth(e.target.value)}
+                          style={{ width: '100%' }}
+                        />
+                        {salaryPeriodRange && (
+                          <div style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
+                            급여 기간: {salaryPeriodRange.startDate} ~ {salaryPeriodRange.endDate}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Step별 컨텐츠 */}
+                    {salaryData ? (
+                      <>
+                        {/* 총 지급액 요약 */}
+                        <div style={{
+                          padding: '16px',
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          borderRadius: '12px',
+                          color: 'white',
+                          marginBottom: '20px',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ fontSize: '12px', opacity: '0.9', marginBottom: '4px' }}>
+                            총 지급 급여 (세전)
+                          </div>
+                          <div style={{ fontSize: '28px', fontWeight: '700' }}>
+                            {formatCurrency(salaryData.totalSalary)}
+                          </div>
+                          <div style={{ fontSize: '12px', opacity: '0.8', marginTop: '4px' }}>
+                            {salaryData.employees?.length || 0}명
+                          </div>
+                        </div>
+
+                        {/* 직원별 급여 카드 리스트 */}
+                        {salaryData.employees && salaryData.employees.length > 0 ? (
+                          <div style={{ marginBottom: '80px' }}>
+                            {salaryData.employees.map((emp) => {
+                              const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
+                              const getPayDayText = () => {
+                                if (emp.payScheduleType === 'monthly') {
+                                  if (emp.payDay === 0) return '말일';
+                                  return `매월 ${emp.payDay}일`;
+                                } else if (emp.payScheduleType === 'hire_date') {
+                                  return `입사일 기준`;
+                                }
+                                return '-';
+                              };
+                              
+                              return (
+                                <div 
+                                  key={emp.employeeId}
+                                  style={{
+                                    padding: '16px',
+                                    background: 'white',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '12px',
+                                    marginBottom: '12px',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                  }}
+                                >
+                                  {/* 카드 헤더: 직원명 + 급여유형 */}
+                                  <div style={{ 
+                                    display: 'flex', 
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: '12px',
+                                    paddingBottom: '12px',
+                                    borderBottom: '1px solid #f3f4f6'
+                                  }}>
+                                    <div>
+                                      <div style={{ fontSize: '16px', fontWeight: '700', color: '#111827' }}>
+                                        {emp.employeeName}
+                                      </div>
+                                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                                        {getSalaryTypeName(emp.salaryType)} · {emp.taxType || '4대보험'}
+                                      </div>
+                                    </div>
+                                    <div style={{
+                                      padding: '4px 12px',
+                                      background: '#eff6ff',
+                                      borderRadius: '6px',
+                                      fontSize: '12px',
+                                      fontWeight: '600',
+                                      color: '#2563eb'
+                                    }}>
+                                      {getPayDayText()}
+                                    </div>
+                                  </div>
+
+                                  {/* 카드 본문: 급여 정보 */}
+                                  <div style={{ 
+                                    display: 'grid', 
+                                    gridTemplateColumns: '1fr 1fr',
+                                    gap: '8px',
+                                    marginBottom: '12px'
+                                  }}>
+                                    <div>
+                                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>기본급</div>
+                                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                                        {formatCurrency(emp.baseAmount)}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>근무일수</div>
+                                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                                        {emp.totalWorkDays}일
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>근무시간</div>
+                                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                                        {emp.totalWorkHours}h
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>주휴수당</div>
+                                      <div style={{ fontSize: '14px', fontWeight: '600', color: emp.weeklyHolidayPayAmount > 0 ? '#10b981' : '#9ca3af' }}>
+                                        {emp.weeklyHolidayPayAmount > 0 ? `+${Number(emp.weeklyHolidayPayAmount).toLocaleString()}원` : '-'}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* 총 지급액 (Step2에서는 수정 가능) */}
+                                  <div style={{
+                                    padding: '12px',
+                                    background: '#f9fafb',
+                                    borderRadius: '8px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                  }}>
+                                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                                      총 지급액
+                                    </span>
+                                    {salaryFlowStep === 2 ? (
+                                      <input
+                                        type="number"
+                                        className="form-input"
+                                        value={editedSalaries[emp.employeeId] ?? totalPay}
+                                        onChange={(e) => {
+                                          const value = parseInt(e.target.value) || 0;
+                                          setEditedSalaries(prev => ({
+                                            ...prev,
+                                            [emp.employeeId]: value
+                                          }));
+                                        }}
+                                        style={{ 
+                                          width: '140px', 
+                                          padding: '6px 8px', 
+                                          fontSize: '14px',
+                                          fontWeight: '700',
+                                          textAlign: 'right'
+                                        }}
+                                      />
+                                    ) : (
+                                      <span style={{ fontSize: '18px', fontWeight: '700', color: '#667eea' }}>
+                                        {formatCurrency(totalPay)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div style={{ 
+                            padding: '40px 20px', 
+                            textAlign: 'center', 
+                            color: '#9ca3af' 
+                          }}>
+                            급여 데이터가 없습니다.
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ 
+                        padding: '40px 20px', 
+                        textAlign: 'center', 
+                        color: '#9ca3af' 
+                      }}>
+                        월을 선택하면 급여 데이터가 표시됩니다.
+                      </div>
+                    )}
+
+                    {/* 하단 고정 버튼 (모바일) */}
+                    {salaryData && salaryData.employees && salaryData.employees.length > 0 && (
+                      <div style={{
+                        position: 'fixed',
+                        bottom: 'calc(70px + env(safe-area-inset-bottom))',
+                        left: '0',
+                        right: '0',
+                        padding: '16px',
+                        background: 'white',
+                        borderTop: '1px solid #e5e7eb',
+                        boxShadow: '0 -4px 6px rgba(0,0,0,0.05)',
+                        zIndex: 100
+                      }}>
+                        <div style={{ display: 'flex', gap: '12px', maxWidth: '600px', margin: '0 auto' }}>
+                          {salaryFlowStep === 1 && (
+                            <button
+                              className="btn btn-primary"
+                              style={{ flex: 1, fontSize: '16px', fontWeight: '700', minHeight: '48px' }}
+                              onClick={() => setSalaryFlowStep(2)}
+                            >
+                              다음: 급여 미리보기 →
+                            </button>
+                          )}
+                          
+                          {salaryFlowStep === 2 && (
+                            <>
+                              <button
+                                className="btn btn-secondary"
+                                style={{ flex: 1, fontSize: '16px', minHeight: '48px' }}
+                                onClick={() => setSalaryFlowStep(1)}
+                              >
+                                ← 이전
+                              </button>
+                              <button
+                                className="btn"
+                                style={{
+                                  flex: 1,
+                                  fontSize: '16px',
+                                  fontWeight: '700',
+                                  minHeight: '48px',
+                                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                  color: 'white',
+                                  border: 'none'
+                                }}
+                                onClick={() => setShowConfirmWarning(true)}
+                              >
+                                급여 확정
+                              </button>
+                            </>
+                          )}
+                          
+                          {salaryFlowStep === 3 && (
+                            <>
+                              <button
+                                className="btn btn-secondary"
+                                style={{ flex: 1, fontSize: '16px', minHeight: '48px' }}
+                                onClick={() => {
+                                  setSalaryFlowStep(2);
+                                  setSalaryConfirmed(false);
+                                }}
+                              >
+                                ← 이전
+                              </button>
+                              <button
+                                className="btn btn-success"
+                                style={{ flex: 1, fontSize: '16px', fontWeight: '700', minHeight: '48px' }}
+                                onClick={() => {
+                                  setSalaryFlowStep(4);
+                                  setActiveTab('salary-slips');
+                                }}
+                              >
+                                명세서 발송 →
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {/* 데스크탑: 기존 UI 유지 */}
+                    {/* 확정 상태 배지 */}
+                    {salaryConfirmed && (
+                      <div style={{
+                        padding: '16px',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        borderRadius: '12px',
+                        color: 'white',
+                        marginBottom: '24px',
+                        textAlign: 'center',
+                        fontSize: '16px',
+                        fontWeight: '700',
+                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                      }}>
+                        ✓ 이번 달 급여가 확정되었습니다
+                      </div>
+                    )}
+
+                    {/* 단계 진행 표시 */}
+                  </>
+                )}
                 <div style={{ marginBottom: '32px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
                     {[

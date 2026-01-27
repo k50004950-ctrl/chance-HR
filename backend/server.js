@@ -47,7 +47,8 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
-app.use(cors({
+// CORS 설정 (정적 파일은 제외하고 API만 적용)
+const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
@@ -55,11 +56,13 @@ app.use(cors({
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      // 같은 도메인의 요청은 허용
+      callback(null, true);
     }
   },
   credentials: true
-}));
+};
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -81,9 +84,9 @@ if (!existsSync(uploadsDir)) {
 console.log('🔧 Registering API routes...');
 
 // 검증용 Ping 엔드포인트 (가장 먼저!)
-app.get('/api/_ping', (req, res) => {
+app.get('/api/_ping', cors(corsOptions), (req, res) => {
   console.log('✅ Ping endpoint hit!');
-  res.json({ 
+  res.json({
     ok: true, 
     message: 'API is working',
     timestamp: new Date().toISOString()
@@ -94,28 +97,28 @@ console.log('✅ Registered: /api/_ping');
 // 업로드 파일용 정적 폴더
 app.use('/uploads', express.static(uploadsDir));
 
-// API 라우트들
-app.use('/api/auth', authRoutes);
-app.use('/api/workplaces', workplaceRoutes);
-app.use('/api/employees', employeeRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/salary', salaryRoutes);
-app.use('/api/seed', seedRoutes);
-app.use('/api/past-employees', pastEmployeesRoutes);
-app.use('/api/salary-history', salaryHistoryRoutes);
-app.use('/api/past-payroll', pastPayrollRoutes);
-app.use('/api/push', pushRoutes);
-app.use('/api/announcements', announcementsRoutes);
-app.use('/api/insurance', insuranceRoutes);
-app.use('/api/community', communityRoutes);
-app.use('/api/admin/dev', adminDevRoutes);
+// API 라우트들 (CORS 적용)
+app.use('/api/auth', cors(corsOptions), authRoutes);
+app.use('/api/workplaces', cors(corsOptions), workplaceRoutes);
+app.use('/api/employees', cors(corsOptions), employeeRoutes);
+app.use('/api/attendance', cors(corsOptions), attendanceRoutes);
+app.use('/api/salary', cors(corsOptions), salaryRoutes);
+app.use('/api/seed', cors(corsOptions), seedRoutes);
+app.use('/api/past-employees', cors(corsOptions), pastEmployeesRoutes);
+app.use('/api/salary-history', cors(corsOptions), salaryHistoryRoutes);
+app.use('/api/past-payroll', cors(corsOptions), pastPayrollRoutes);
+app.use('/api/push', cors(corsOptions), pushRoutes);
+app.use('/api/announcements', cors(corsOptions), announcementsRoutes);
+app.use('/api/insurance', cors(corsOptions), insuranceRoutes);
+app.use('/api/community', cors(corsOptions), communityRoutes);
+app.use('/api/admin/dev', cors(corsOptions), adminDevRoutes);
 
 // ratesMaster 라우트 - 상세 로깅
 console.log('🔧 Importing ratesMaster routes from:', './routes/ratesMaster.js');
 console.log('🔧 ratesMasterRoutes type:', typeof ratesMasterRoutes);
 console.log('🔧 ratesMasterRoutes value:', ratesMasterRoutes);
 
-app.use('/api/rates-master', ratesMasterRoutes);
+app.use('/api/rates-master', cors(corsOptions), ratesMasterRoutes);
 console.log('✅ Registered: /api/rates-master');
 
 // 등록된 라우트 검증

@@ -10,8 +10,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const dbPath = join(__dirname, '..', 'database.db');
-// Temporarily force SQLite for Railway deployment (PostgreSQL schema not ready)
-const USE_POSTGRES = false; // process.env.DATABASE_URL ? true : false;
+// Force SQLite usage - PostgreSQL schema migration not complete
+// Always use SQLite regardless of DATABASE_URL presence
+const USE_POSTGRES = false;
+
+console.log('=================================');
+console.log('Database Configuration:');
+console.log('USE_POSTGRES:', USE_POSTGRES);
+console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('Database Path:', dbPath);
+console.log('=================================');
 
 let db;
 let pool;

@@ -349,7 +349,14 @@ const AdminDashboard = () => {
       loadRatesList();
     } catch (error) {
       console.error('요율 저장 오류:', error);
-      setMessage({ type: 'error', text: error.response?.data?.message || '요율 저장에 실패했습니다.' });
+      console.error('Error response:', error.response?.data);
+      
+      let errorMessage = error.response?.data?.message || '요율 저장에 실패했습니다.';
+      if (error.response?.data?.detail) {
+        errorMessage += ` (상세: ${error.response.data.detail})`;
+      }
+      
+      setMessage({ type: 'error', text: errorMessage });
     } finally {
       setRatesLoading(false);
     }

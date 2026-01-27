@@ -783,6 +783,73 @@ export const initDatabase = async () => {
         )
       `);
 
+      // Rates_master 테이블 (요율 마스터)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS rates_master (
+          id SERIAL PRIMARY KEY,
+          effective_yyyymm VARCHAR(6) UNIQUE NOT NULL,
+          nps_employee_rate_percent DECIMAL(10, 3) NOT NULL,
+          nhis_employee_rate_percent DECIMAL(10, 3) NOT NULL,
+          ltci_rate_of_nhis_percent DECIMAL(10, 3) NOT NULL,
+          ei_employee_rate_percent DECIMAL(10, 3) NOT NULL,
+          freelancer_withholding_rate_percent DECIMAL(10, 3) NOT NULL,
+          nps_employer_rate_percent DECIMAL(10, 3),
+          nhis_employer_rate_percent DECIMAL(10, 3),
+          ei_employer_rate_percent DECIMAL(10, 3),
+          nps_min_amount INTEGER DEFAULT 0,
+          nps_max_amount INTEGER DEFAULT 0,
+          nhis_min_amount INTEGER DEFAULT 0,
+          nhis_max_amount INTEGER DEFAULT 0,
+          memo TEXT,
+          created_by INTEGER REFERENCES users(id),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Payroll_finalized 테이블 (급여 확정 스냅샷)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS payroll_finalized (
+          id SERIAL PRIMARY KEY,
+          workplace_id INTEGER NOT NULL REFERENCES workplaces(id),
+          payroll_month VARCHAR(7) NOT NULL,
+          employee_id INTEGER NOT NULL REFERENCES users(id),
+          applied_effective_yyyymm VARCHAR(6) NOT NULL,
+          applied_rates_json TEXT NOT NULL,
+          base_pay DECIMAL(15, 2) NOT NULL,
+          deductions_json TEXT NOT NULL,
+          totals_json TEXT NOT NULL,
+          tax_type VARCHAR(20) DEFAULT '4대보험',
+          finalized_by INTEGER NOT NULL REFERENCES users(id),
+          finalized_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(workplace_id, payroll_month, employee_id)
+        )
+      `);
+
+      // 202601 기본 요율 데이터 삽입
+      const existingRatesMaster = await pool.query(
+        "SELECT * FROM rates_master WHERE effective_yyyymm = $1",
+        ['202601']
+      );
+      if (existingRatesMaster.rows.length === 0) {
+        await pool.query(`
+          INSERT INTO rates_master 
+          (effective_yyyymm, nps_employee_rate_percent, nhis_employee_rate_percent,
+           ltci_rate_of_nhis_percent, ei_employee_rate_percent, 
+           freelancer_withholding_rate_percent, memo)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, [
+          '202601',
+          4.5,    // 국민연금
+          3.545,  // 건강보험
+          12.95,  // 장기요양
+          0.9,    // 고용보험
+          3.3,    // 프리랜서 원천징수
+          '2026년 1월 기본 요율'
+        ]);
+        console.log('✅ 2026-01 기본 요율이 등록되었습니다.');
+      }
+
       console.log('PostgreSQL 데이터베이스 초기화 완료');
     } else {
       // SQLite 초기화 (기존 코드)
@@ -1342,6 +1409,74 @@ export const initDatabase = async () => {
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
       `);
+
+      // Rates_master 테이블 (요율 마스터)
+      await run(`
+        CREATE TABLE IF NOT EXISTS rates_master (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          effective_yyyymm TEXT UNIQUE NOT NULL,
+          nps_employee_rate_percent REAL NOT NULL,
+          nhis_employee_rate_percent REAL NOT NULL,
+          ltci_rate_of_nhis_percent REAL NOT NULL,
+          ei_employee_rate_percent REAL NOT NULL,
+          freelancer_withholding_rate_percent REAL NOT NULL,
+          nps_employer_rate_percent REAL,
+          nhis_employer_rate_percent REAL,
+          ei_employer_rate_percent REAL,
+          nps_min_amount INTEGER DEFAULT 0,
+          nps_max_amount INTEGER DEFAULT 0,
+          nhis_min_amount INTEGER DEFAULT 0,
+          nhis_max_amount INTEGER DEFAULT 0,
+          memo TEXT,
+          created_by INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (created_by) REFERENCES users(id)
+        )
+      `);
+
+      // Payroll_finalized 테이블 (급여 확정 스냅샷)
+      await run(`
+        CREATE TABLE IF NOT EXISTS payroll_finalized (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          workplace_id INTEGER NOT NULL,
+          payroll_month TEXT NOT NULL,
+          employee_id INTEGER NOT NULL,
+          applied_effective_yyyymm TEXT NOT NULL,
+          applied_rates_json TEXT NOT NULL,
+          base_pay REAL NOT NULL,
+          deductions_json TEXT NOT NULL,
+          totals_json TEXT NOT NULL,
+          tax_type TEXT DEFAULT '4대보험',
+          finalized_by INTEGER NOT NULL,
+          finalized_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(workplace_id, payroll_month, employee_id),
+          FOREIGN KEY (workplace_id) REFERENCES workplaces(id),
+          FOREIGN KEY (employee_id) REFERENCES users(id),
+          FOREIGN KEY (finalized_by) REFERENCES users(id)
+        )
+      `);
+
+      // 202601 기본 요율 데이터 삽입
+      const existingRatesMaster = await get('SELECT * FROM rates_master WHERE effective_yyyymm = ?', ['202601']);
+      if (!existingRatesMaster) {
+        await run(`
+          INSERT INTO rates_master 
+          (effective_yyyymm, nps_employee_rate_percent, nhis_employee_rate_percent,
+           ltci_rate_of_nhis_percent, ei_employee_rate_percent, 
+           freelancer_withholding_rate_percent, memo)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [
+          '202601',
+          4.5,    // 국민연금
+          3.545,  // 건강보험
+          12.95,  // 장기요양
+          0.9,    // 고용보험
+          3.3,    // 프리랜서 원천징수
+          '2026년 1월 기본 요율'
+        ]);
+        console.log('✅ 2026-01 기본 요율이 등록되었습니다.');
+      }
 
       // 기본 관리자 계정 생성
       const adminExists = await get('SELECT * FROM users WHERE username = ?', ['admin']);

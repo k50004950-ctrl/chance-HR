@@ -35,6 +35,10 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+console.log('🚀 Server starting...');
+console.log('📍 Entry file: backend/server.js');
+console.log('📅 Build timestamp:', new Date().toISOString());
+
 // CORS 설정
 const allowedOrigins = [
   'http://localhost:3000',

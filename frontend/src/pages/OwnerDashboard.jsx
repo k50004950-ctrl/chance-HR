@@ -26,6 +26,8 @@ const OwnerDashboard = () => {
   const [highlightedRecordId, setHighlightedRecordId] = useState(null);
   const [salaryFlowStep, setSalaryFlowStep] = useState(1); // 급여 계산 단계: 1=근무내역, 2=미리보기, 3=확정, 4=발송
   const [editedSalaries, setEditedSalaries] = useState({}); // 수정된 급여: { employeeId: amount }
+  const [salaryDeductions, setSalaryDeductions] = useState({}); // 자동계산된 공제: { employeeId: { deductions, netPay, employerBurden } }
+  const [calculatingEmployeeId, setCalculatingEmployeeId] = useState(null); // 자동계산 중인 직원 ID
   const [salaryConfirmed, setSalaryConfirmed] = useState(false); // 급여 확정 여부
   const [showConfirmWarning, setShowConfirmWarning] = useState(false); // 확정 경고 모달
   const [notifications, setNotifications] = useState([]); // 알림 목록
@@ -1759,6 +1761,87 @@ const OwnerDashboard = () => {
       case 'monthly': return '월급';
       case 'annual': return '연봉';
       default: return type;
+    }
+  };
+
+  // 4대보험/세금 자동계산
+  const calculateDeductions = async (employeeId, basePay, dependentsCount = 1) => {
+    if (!basePay || basePay <= 0) {
+      setToast({ type: 'error', message: '기본급을 먼저 입력해주세요.' });
+      return;
+    }
+
+    try {
+      setCalculatingEmployeeId(employeeId);
+      setToast({ type: 'info', message: '4대보험료 및 소득세 자동 계산 중...' });
+      
+      // 귀속월 기준으로 4대보험료 계산
+      const insuranceResponse = await salaryAPI.calculateInsurance(
+        parseFloat(basePay),
+        selectedMonth
+      );
+      const insurance = insuranceResponse.data.insurance;
+      const employerBurden = insuranceResponse.data.employerBurden;
+      
+      // 소득세 계산 (4대보험 공제 후 금액 기준)
+      const afterInsurance = parseFloat(basePay) - insurance.total;
+      const taxResponse = await salaryAPI.calculateTax(
+        afterInsurance,
+        parseInt(dependentsCount) || 1
+      );
+      
+      const incomeTax = taxResponse.data.incomeTax || 0;
+      const localIncomeTax = Math.floor(incomeTax * 0.1);
+      
+      // 공제 항목
+      const deductions = {
+        nationalPension: insurance.nationalPension || 0,
+        healthInsurance: insurance.healthInsurance || 0,
+        longTermCare: insurance.longTermCare || 0,
+        employmentInsurance: insurance.employmentInsurance || 0,
+        incomeTax: incomeTax,
+        localIncomeTax: localIncomeTax
+      };
+      
+      // 실수령액 계산
+      const totalDeductions = 
+        deductions.nationalPension +
+        deductions.healthInsurance +
+        deductions.longTermCare +
+        deductions.employmentInsurance +
+        deductions.incomeTax +
+        deductions.localIncomeTax;
+      
+      const netPay = parseFloat(basePay) - totalDeductions;
+      
+      // 상태 저장
+      setSalaryDeductions(prev => ({
+        ...prev,
+        [employeeId]: {
+          deductions,
+          netPay,
+          totalDeductions,
+          employerBurden: {
+            nationalPension: employerBurden.nationalPension || 0,
+            healthInsurance: employerBurden.healthInsurance || 0,
+            longTermCare: employerBurden.longTermCare || 0,
+            employmentInsurance: employerBurden.employmentInsurance || 0
+          }
+        }
+      }));
+      
+      setToast({ 
+        type: 'success', 
+        message: `4대보험료 및 소득세가 자동 계산되었습니다! (${selectedMonth} 기준 요율 적용)` 
+      });
+    } catch (error) {
+      console.error('자동 계산 오류:', error);
+      setToast({ 
+        type: 'error', 
+        message: error.response?.data?.message || '자동 계산에 실패했습니다.' 
+      });
+    } finally {
+      setCalculatingEmployeeId(null);
     }
   };
 
@@ -3715,6 +3798,121 @@ const OwnerDashboard = () => {
                                       </span>
                                     )}
                                   </div>
+
+                                  {/* Step2: 자동계산 버튼 */}
+                                  {salaryFlowStep === 2 && (
+                                    <div style={{ marginTop: '12px' }}>
+                                      <button
+                                        className="btn btn-primary"
+                                        onClick={() => calculateDeductions(
+                                          emp.employeeId,
+                                          editedSalaries[emp.employeeId] ?? totalPay,
+                                          1 // dependentsCount, 나중에 직원 정보에서 가져올 수 있음
+                                        )}
+                                        disabled={calculatingEmployeeId === emp.employeeId}
+                                        style={{
+                                          width: '100%',
+                                          fontSize: '14px',
+                                          padding: '10px',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          gap: '6px'
+                                        }}
+                                      >
+                                        {calculatingEmployeeId === emp.employeeId ? (
+                                          <>
+                                            <span className="btn-loading-spinner"></span>
+                                            계산 중...
+                                          </>
+                                        ) : (
+                                          <>🧮 4대보험/세금 자동계산</>
+                                        )}
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {/* 자동계산 결과 표시 */}
+                                  {salaryDeductions[emp.employeeId] && (
+                                    <div style={{
+                                      marginTop: '12px',
+                                      padding: '12px',
+                                      background: '#f0fdf4',
+                                      border: '1px solid #86efac',
+                                      borderRadius: '8px'
+                                    }}>
+                                      <div style={{ 
+                                        fontSize: '12px', 
+                                        fontWeight: '600', 
+                                        color: '#166534',
+                                        marginBottom: '8px'
+                                      }}>
+                                        💰 공제 항목 ({selectedMonth} 기준)
+                                      </div>
+                                      <div style={{ display: 'grid', gap: '4px', fontSize: '12px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                          <span style={{ color: '#6b7280' }}>국민연금</span>
+                                          <span style={{ fontWeight: '600', color: '#374151' }}>
+                                            {salaryDeductions[emp.employeeId].deductions.nationalPension.toLocaleString()}원
+                                          </span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                          <span style={{ color: '#6b7280' }}>건강보험</span>
+                                          <span style={{ fontWeight: '600', color: '#374151' }}>
+                                            {salaryDeductions[emp.employeeId].deductions.healthInsurance.toLocaleString()}원
+                                          </span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                          <span style={{ color: '#6b7280' }}>장기요양</span>
+                                          <span style={{ fontWeight: '600', color: '#374151' }}>
+                                            {salaryDeductions[emp.employeeId].deductions.longTermCare.toLocaleString()}원
+                                          </span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                          <span style={{ color: '#6b7280' }}>고용보험</span>
+                                          <span style={{ fontWeight: '600', color: '#374151' }}>
+                                            {salaryDeductions[emp.employeeId].deductions.employmentInsurance.toLocaleString()}원
+                                          </span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                          <span style={{ color: '#6b7280' }}>소득세</span>
+                                          <span style={{ fontWeight: '600', color: '#374151' }}>
+                                            {salaryDeductions[emp.employeeId].deductions.incomeTax.toLocaleString()}원
+                                          </span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                          <span style={{ color: '#6b7280' }}>지방소득세</span>
+                                          <span style={{ fontWeight: '600', color: '#374151' }}>
+                                            {salaryDeductions[emp.employeeId].deductions.localIncomeTax.toLocaleString()}원
+                                          </span>
+                                        </div>
+                                        <div style={{ 
+                                          display: 'flex', 
+                                          justifyContent: 'space-between',
+                                          paddingTop: '8px',
+                                          marginTop: '8px',
+                                          borderTop: '1px solid #86efac'
+                                        }}>
+                                          <span style={{ fontWeight: '600', color: '#166534' }}>공제 합계</span>
+                                          <span style={{ fontWeight: '700', color: '#ef4444' }}>
+                                            -{salaryDeductions[emp.employeeId].totalDeductions.toLocaleString()}원
+                                          </span>
+                                        </div>
+                                        <div style={{ 
+                                          display: 'flex', 
+                                          justifyContent: 'space-between',
+                                          paddingTop: '8px',
+                                          marginTop: '4px',
+                                          borderTop: '1px solid #86efac'
+                                        }}>
+                                          <span style={{ fontWeight: '700', fontSize: '14px', color: '#166534' }}>실수령액</span>
+                                          <span style={{ fontWeight: '700', fontSize: '16px', color: '#10b981' }}>
+                                            {salaryDeductions[emp.employeeId].netPay.toLocaleString()}원
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}

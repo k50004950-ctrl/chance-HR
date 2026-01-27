@@ -25,6 +25,7 @@ import announcementsRoutes from './routes/announcements.js';
 import insuranceRoutes from './routes/insurance.js';
 import communityRoutes from './routes/community.js';
 import adminDevRoutes from './routes/adminDev.js'; // ⚠️ 임시 개발자용 API
+import ratesMasterRoutes from './routes/ratesMaster.js';
 import { startPaydayScheduler } from './services/payrollSchedule.js';
 import { startAttendanceScheduler } from './services/attendanceScheduler.js';
 
@@ -96,6 +97,7 @@ app.use('/api/announcements', announcementsRoutes);
 app.use('/api/insurance', insuranceRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/admin/dev', adminDevRoutes); // ⚠️ 임시 개발자용 API (TODO: 삭제 필요)
+app.use('/api/rates-master', ratesMasterRoutes);
 
 // 기본 라우트
 app.get('/', (req, res) => {

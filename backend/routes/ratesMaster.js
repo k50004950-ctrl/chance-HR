@@ -1,5 +1,5 @@
 import express from 'express';
-import { pool } from '../config/database.js'; // ✅ Named import로 수정
+import { query } from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -17,7 +17,7 @@ router.get('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Invalid yyyymm format. Expected: YYYYMM (e.g. 202601)' });
     }
     
-    const query = `
+    const sql = `
       SELECT *
       FROM rates_master
       WHERE effective_yyyymm <= $1
@@ -25,8 +25,7 @@ router.get('/', authenticateToken, async (req, res) => {
       LIMIT 1
     `;
     
-    const result = await pool.query(query, [yyyymm]);
-    const rows = Array.isArray(result) ? result : (result?.rows ?? []);
+    const rows = await query(sql, [yyyymm]);
     
     if (rows.length === 0) {
       return res.status(404).json({ message: 'No applicable rate found for the given period' });
@@ -39,21 +38,14 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * GET /api/rates-master/list
- * 전체 요율 목록 조회 (최신순)
- * 
- * ✅ 인증 불필요 (공개 API)
- * - 급여 계산 시 프론트에서 직접 요율 조회 가능
- * - Content-Type: application/json
- * - Response: [] (빈 배열) 또는 요율 객체 배열
- */
 router.get('/list', async (req, res) => {
-  console.log('📋 GET /api/rates-master/list - Public access (no auth required)');
+  console.log('📋 GET /api/rates-master/list - Public access');
+
   try {
-    const { rows } = await pool.query(
+    const rows = await query(
       'SELECT * FROM rates_master ORDER BY effective_yyyymm DESC'
     );
+
     console.log(`✅ Fetched ${rows.length} rates from rates_master`);
     return res.json(rows);
   } catch (err) {
@@ -110,7 +102,7 @@ router.post('/', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res)
       return res.status(400).json({ message: '필수 요율 필드가 누락되었습니다' });
     }
     
-    const query = `
+    const sql = `
       INSERT INTO rates_master (
         effective_yyyymm,
         nps_employee_rate_percent,
@@ -168,8 +160,7 @@ router.post('/', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res)
     
     console.log('💾 Executing query with values:', values);
     
-    const result = await pool.query(query, values);
-    const rows = Array.isArray(result) ? result : (result?.rows ?? []);
+    const rows = await query(sql, values);
     const savedRate = rows[0] || null;
     
     console.log('✅ Rate saved successfully:', savedRate);
@@ -211,9 +202,8 @@ router.delete('/:effective_yyyymm', authenticateToken, requireRole('SUPER_ADMIN'
       return res.status(400).json({ message: 'Invalid effective_yyyymm format' });
     }
     
-    const query = 'DELETE FROM rates_master WHERE effective_yyyymm = $1 RETURNING *';
-    const result = await pool.query(query, [effective_yyyymm]);
-    const rows = Array.isArray(result) ? result : (result?.rows ?? []);
+    const sql = 'DELETE FROM rates_master WHERE effective_yyyymm = $1 RETURNING *';
+    const rows = await query(sql, [effective_yyyymm]);
     
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Rate not found' });

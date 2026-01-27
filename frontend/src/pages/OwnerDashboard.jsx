@@ -3623,6 +3623,127 @@ const OwnerDashboard = () => {
             {/* 급여 계산 */}
             {activeTab === 'salary' && (
               <div className="card">
+                {/* 이번 달 급여 현황 요약 바 */}
+                {salaryData && (() => {
+                  const totalSalary = salaryData.totalSalary || 0;
+                  const employees = salaryData.employees || [];
+                  const confirmed = employees.filter(emp => {
+                    // 확정된 직원: 자동계산 결과가 있거나 수정된 급여가 있음
+                    return salaryDeductions[emp.employeeId] || editedSalaries[emp.employeeId];
+                  });
+                  const notConfirmed = employees.filter(emp => {
+                    return !salaryDeductions[emp.employeeId] && !editedSalaries[emp.employeeId];
+                  });
+                  // 실제 DB에 급여명세서가 발송된 직원 수 (employeeSlips 사용)
+                  const published = employeeSlips.filter(slip => 
+                    slip.published && 
+                    slip.period === selectedMonth &&
+                    employees.some(emp => emp.employeeId === slip.employee_id)
+                  );
+                  const notPublished = employees.filter(emp => {
+                    const hasPublished = employeeSlips.some(slip => 
+                      slip.published && 
+                      slip.period === selectedMonth && 
+                      slip.employee_id === emp.employeeId
+                    );
+                    return !hasPublished;
+                  });
+
+                  return (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      borderRadius: '16px',
+                      padding: isMobile ? '20px 16px' : '24px 28px',
+                      marginBottom: '24px',
+                      boxShadow: '0 10px 20px rgba(102, 126, 234, 0.2)'
+                    }}>
+                      <div style={{
+                        color: 'white',
+                        fontSize: isMobile ? '18px' : '20px',
+                        fontWeight: '700',
+                        marginBottom: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span>💰</span>
+                        <span>이번 달 급여 현황</span>
+                      </div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+                        gap: isMobile ? '12px' : '16px'
+                      }}>
+                        {/* 총 인건비 */}
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '12px',
+                          padding: isMobile ? '16px' : '20px',
+                          textAlign: 'center',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                          gridColumn: isMobile ? 'span 2' : 'span 1'
+                        }}>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>💸 총 인건비</div>
+                          <div style={{ fontSize: isMobile ? '24px' : '28px', fontWeight: '700', color: '#667eea' }}>
+                            {formatCurrency(totalSalary)}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
+                            {employees.length}명
+                          </div>
+                        </div>
+                        
+                        {/* 지급 완료 */}
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '12px',
+                          padding: isMobile ? '16px' : '20px',
+                          textAlign: 'center',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                        }}>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>✓ 지급 완료</div>
+                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: '#059669' }}>
+                            {published.length}
+                          </div>
+                        </div>
+
+                        {/* 미확정 - 강조 */}
+                        <div style={{
+                          background: notConfirmed.length > 0 ? 'rgba(245, 158, 11, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '12px',
+                          padding: isMobile ? '16px' : '20px',
+                          textAlign: 'center',
+                          boxShadow: notConfirmed.length > 0 ? '0 4px 12px rgba(245, 158, 11, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                          border: notConfirmed.length > 0 ? '2px solid #d97706' : 'none'
+                        }}>
+                          <div style={{ fontSize: '12px', color: notConfirmed.length > 0 ? '#fff' : '#6b7280', marginBottom: '8px', fontWeight: '600' }}>
+                            ⚠️ 미확정
+                          </div>
+                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: notConfirmed.length > 0 ? '#fff' : '#6b7280' }}>
+                            {notConfirmed.length}
+                          </div>
+                        </div>
+
+                        {/* 미지급 - 강조 */}
+                        <div style={{
+                          background: notPublished.length > 0 ? 'rgba(239, 68, 68, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '12px',
+                          padding: isMobile ? '16px' : '20px',
+                          textAlign: 'center',
+                          boxShadow: notPublished.length > 0 ? '0 4px 12px rgba(239, 68, 68, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                          border: notPublished.length > 0 ? '2px solid #dc2626' : 'none'
+                        }}>
+                          <div style={{ fontSize: '12px', color: notPublished.length > 0 ? '#fff' : '#6b7280', marginBottom: '8px', fontWeight: '600' }}>
+                            📤 미지급
+                          </div>
+                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: notPublished.length > 0 ? '#fff' : '#6b7280' }}>
+                            {notPublished.length}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* 모바일 Wizard UI */}
                 {isMobile ? (
                   <div className="mobile-salary-wizard">
@@ -3725,8 +3846,45 @@ const OwnerDashboard = () => {
                         {/* 직원별 급여 카드 리스트 */}
                         {salaryData.employees && salaryData.employees.length > 0 ? (
                           <div style={{ marginBottom: '80px' }}>
-                            {salaryData.employees.map((emp) => {
+                            {(() => {
+                              // 정렬 우선순위: 미확정/미지급 > 계산 완료 대기 > 지급 완료
+                              const sortedEmployees = [...salaryData.employees].sort((a, b) => {
+                                const aConfirmed = !!(salaryDeductions[a.employeeId] || editedSalaries[a.employeeId]);
+                                const bConfirmed = !!(salaryDeductions[b.employeeId] || editedSalaries[b.employeeId]);
+                                const aPublished = employeeSlips.some(slip => 
+                                  slip.published && 
+                                  slip.period === selectedMonth && 
+                                  slip.employee_id === a.employeeId
+                                );
+                                const bPublished = employeeSlips.some(slip => 
+                                  slip.published && 
+                                  slip.period === selectedMonth && 
+                                  slip.employee_id === b.employeeId
+                                );
+
+                                // 우선순위 계산
+                                const getPriority = (confirmed, published) => {
+                                  if (!confirmed) return 1; // 미확정
+                                  if (confirmed && !published) return 2; // 확정됐지만 미지급
+                                  return 3; // 지급 완료
+                                };
+
+                                const aPriority = getPriority(aConfirmed, aPublished);
+                                const bPriority = getPriority(bConfirmed, bPublished);
+
+                                return aPriority - bPriority;
+                              });
+
+                              return sortedEmployees.map((emp) => {
                               const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
+                              const isConfirmed = !!(salaryDeductions[emp.employeeId] || editedSalaries[emp.employeeId]);
+                              const isPublished = employeeSlips.some(slip => 
+                                slip.published && 
+                                slip.period === selectedMonth && 
+                                slip.employee_id === emp.employeeId
+                              );
+                              const isProblem = !isConfirmed || (isConfirmed && !isPublished);
+                              
                               const getPayDayText = () => {
                                 if (emp.payScheduleType === 'monthly') {
                                   if (emp.payDay === 0) return '말일';
@@ -3746,7 +3904,12 @@ const OwnerDashboard = () => {
                                     border: '1px solid #e5e7eb',
                                     borderRadius: '12px',
                                     marginBottom: '12px',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                    ...(isProblem && {
+                                      border: !isConfirmed ? '2px solid #f59e0b' : '2px solid #ef4444',
+                                      background: !isConfirmed ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                                      boxShadow: !isConfirmed ? '0 4px 12px rgba(245, 158, 11, 0.3)' : '0 4px 12px rgba(239, 68, 68, 0.3)'
+                                    })
                                   }}
                                 >
                                   {/* 카드 헤더: 직원명 + 급여유형 */}
@@ -3854,7 +4017,7 @@ const OwnerDashboard = () => {
                                   {salaryFlowStep === 2 && (
                                     <div style={{ marginTop: '12px' }}>
                                       <button
-                                        className="btn btn-primary"
+                                        className="btn"
                                         onClick={() => calculateDeductions(
                                           emp.employeeId,
                                           editedSalaries[emp.employeeId] ?? totalPay,
@@ -3864,11 +4027,18 @@ const OwnerDashboard = () => {
                                         style={{
                                           width: '100%',
                                           fontSize: '14px',
+                                          fontWeight: '700',
                                           padding: '10px',
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
-                                          gap: '6px'
+                                          gap: '6px',
+                                          ...(isProblem && {
+                                            background: !isConfirmed ? '#f59e0b' : '#667eea',
+                                            color: 'white',
+                                            boxShadow: !isConfirmed ? '0 4px 8px rgba(245, 158, 11, 0.3)' : '0 4px 8px rgba(102, 126, 234, 0.3)',
+                                            border: 'none'
+                                          })
                                         }}
                                       >
                                         {calculatingEmployeeId === emp.employeeId ? (
@@ -3877,7 +4047,7 @@ const OwnerDashboard = () => {
                                             계산 중...
                                           </>
                                         ) : (
-                                          <>🧮 4대보험/세금 자동계산</>
+                                          <>{isProblem && !isConfirmed ? '⚠️ 즉시 계산 필요' : '🧮 4대보험/세금 자동계산'}</>
                                         )}
                                       </button>
                                     </div>
@@ -3966,7 +4136,8 @@ const OwnerDashboard = () => {
                                   )}
                                 </div>
                               );
-                            })}
+                            });
+                            })()}
                           </div>
                         ) : (
                           <div style={{ 

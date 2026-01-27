@@ -164,6 +164,9 @@ router.post('/reset-test-owner', authenticateToken, requireRole('SUPER_ADMIN'), 
       error: 'test_owner 생성/리셋 실패',
       message: error.message
     });
+  } finally {
+    // PostgreSQL 연결 반환 (SQLite는 no-op)
+    db.release();
   }
 });
 
@@ -214,6 +217,9 @@ router.get('/test-owner-info', authenticateToken, requireRole('SUPER_ADMIN'), as
       error: 'test_owner 정보 조회 실패',
       message: error.message
     });
+  } finally {
+    // PostgreSQL 연결 반환 (SQLite는 no-op)
+    db.release();
   }
 });
 

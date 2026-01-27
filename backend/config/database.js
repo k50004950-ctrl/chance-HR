@@ -1499,7 +1499,57 @@ export const initDatabase = async () => {
   }
 };
 
+// getConnection 함수 추가 (PostgreSQL/SQLite 통합)
+export const getConnection = async () => {
+  if (USE_POSTGRES) {
+    // PostgreSQL: pool에서 client를 가져옴
+    const client = await pool.connect();
+    
+    // SQLite와 동일한 인터페이스 제공
+    return {
+      query: (sql, params) => client.query(sql, params),
+      run: async (sql, params = []) => {
+        // SQLite의 ? 를 PostgreSQL의 $1, $2로 변환
+        let pgSql = sql;
+        let paramIndex = 1;
+        pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+        
+        const result = await client.query(pgSql, params);
+        return { lastID: result.rows[0]?.id, changes: result.rowCount };
+      },
+      get: async (sql, params = []) => {
+        // SQLite의 ? 를 PostgreSQL의 $1, $2로 변환
+        let pgSql = sql;
+        let paramIndex = 1;
+        pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+        
+        const result = await client.query(pgSql, params);
+        return result.rows[0];
+      },
+      all: async (sql, params = []) => {
+        // SQLite의 ? 를 PostgreSQL의 $1, $2로 변환
+        let pgSql = sql;
+        let paramIndex = 1;
+        pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+        
+        const result = await client.query(pgSql, params);
+        return result.rows;
+      },
+      release: () => client.release()
+    };
+  } else {
+    // SQLite: 기존 db 객체를 래핑
+    return {
+      query: query,
+      run: run,
+      get: get,
+      all: query, // query는 all과 동일
+      release: () => {} // SQLite는 release 불필요
+    };
+  }
+};
+
 // pool export 추가 (PostgreSQL용)
 export { pool };
 
-export default { query, run, get, initDatabase, pool };
+export default { query, run, get, initDatabase, pool, getConnection };

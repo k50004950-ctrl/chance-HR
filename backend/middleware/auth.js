@@ -18,6 +18,9 @@ export const authenticate = (req, res, next) => {
   }
 };
 
+// Alias for consistency (some routes use authenticateToken)
+export const authenticateToken = authenticate;
+
 export const authorizeRole = (roles) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -33,4 +36,9 @@ export const authorizeRole = (roles) => {
 
     next();
   };
+};
+
+// Helper function for single role requirement
+export const requireRole = (role) => {
+  return authorizeRole(role);
 };

@@ -6,7 +6,7 @@ const MobileBottomNav = ({ activeTab, onTabChange }) => {
     { id: 'attendance', icon: '📊', label: '출근' },
     { id: 'salary', icon: '💰', label: '급여' },
     { id: 'roster', icon: '👥', label: '직원' },
-    { id: 'more', icon: '⋯', label: '더보기' }
+    { id: 'settings', icon: '⚙️', label: '설정' }
   ];
 
   return (

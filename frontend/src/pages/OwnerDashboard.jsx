@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI, pushAPI, announcementsAPI, communityAPI } from '../services/api';
@@ -16,6 +16,10 @@ import MobileLayout from '../components/MobileLayout';
 import MobileDashboard from '../components/MobileDashboard';
 import MobileActionCard from '../components/MobileActionCard';
 import useIsMobile from '../hooks/useIsMobile';
+import { useEmployeeSort } from '../hooks/useEmployeeSort';
+import { useAttendanceSort } from '../hooks/useAttendanceSort';
+import { createEmployeeRiskMap, countEmployeesWithRisks } from '../utils/employeeRiskCalculator';
+import { getAttendanceStatus as getAttendanceStatusUtil } from '../utils/attendanceStatus';
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
@@ -147,6 +151,40 @@ const OwnerDashboard = () => {
   const uploadBaseUrl =
     import.meta.env.VITE_API_URL?.replace('/api', '') ||
     (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
+
+  // ============================================
+  // P0 리팩터링: 로직 분리 및 캐싱
+  // ============================================
+  
+  // 직원 리스크 맵 생성 (employees가 변경될 때만 재계산)
+  const employeeRiskMap = useMemo(() => {
+    return createEmployeeRiskMap(employees);
+  }, [employees]);
+
+  // 직원 필터링 (고용 상태별)
+  const filteredEmployees = useMemo(() => {
+    if (!employees || employees.length === 0) return [];
+    
+    if (employmentStatusFilter === 'all') return employees;
+    
+    return employees.filter(emp => {
+      if (employmentStatusFilter === 'active') return emp.employment_status === 'active';
+      if (employmentStatusFilter === 'on_leave') return emp.employment_status === 'on_leave';
+      if (employmentStatusFilter === 'resigned') return emp.employment_status === 'resigned';
+      return true;
+    });
+  }, [employees, employmentStatusFilter]);
+
+  // 직원 정렬 (리스크 우선 → 이름순)
+  const sortedEmployees = useEmployeeSort(filteredEmployees, employeeRiskMap, true);
+
+  // 리스크가 있는 직원 수 계산
+  const riskCount = useMemo(() => {
+    return countEmployeesWithRisks(employeeRiskMap);
+  }, [employeeRiskMap]);
+
+  // 출근 기록 정렬 (문제 우선 → 최신순)
+  const sortedAttendance = useAttendanceSort(attendance, employees, true);
 
   // location state에서 activeTab 설정 (NotificationsPage에서 탭 전환 시)
   useEffect(() => {
@@ -320,40 +358,9 @@ const OwnerDashboard = () => {
     setActiveTab(action);
   };
 
-  // 출퇴근 상태 판단 함수
+  // 출퇴근 상태 판단 함수 (리팩터링: 유틸로 분리됨)
   const getAttendanceStatus = (record) => {
-    // 휴가인 경우
-    if (record.leave_type) {
-      return { type: 'leave', label: record.leave_type === 'annual' ? '연차' : record.leave_type === 'paid' ? '유급휴가' : '무급휴가', color: '#3b82f6' };
-    }
-
-    // 미퇴근
-    if (record.check_in_time && !record.check_out_time) {
-      return { type: 'not_checked_out', label: '⚠️ 미퇴근', color: '#dc2626', bgColor: '#fee2e2' };
-    }
-
-    // 미완료
-    if (!record.check_in_time || !record.check_out_time) {
-      return { type: 'incomplete', label: '⏱ 미완료', color: '#ef4444', bgColor: '#fee2e2' };
-    }
-
-    // 정상 출퇴근 (시간 체크)
-    const employee = employees.find(emp => emp.name === record.employee_name);
-    if (employee && employee.work_start_time && record.check_in_time) {
-      const checkInTime = new Date(record.check_in_time);
-      const [startHour, startMinute] = employee.work_start_time.split(':').map(Number);
-      const workStartTime = new Date(checkInTime);
-      workStartTime.setHours(startHour, startMinute, 0, 0);
-
-      // 10분 이상 늦었으면 지각
-      const lateMins = (checkInTime - workStartTime) / 1000 / 60;
-      if (lateMins > 10) {
-        return { type: 'late', label: '🕐 지각', color: '#f59e0b', bgColor: '#fef3c7' };
-      }
-    }
-
-    // 정상
-    return { type: 'completed', label: '✓ 정상', color: '#059669', bgColor: '#d1fae5' };
+    return getAttendanceStatusUtil(record, employees);
   };
 
   const checkAnnouncements = async () => {

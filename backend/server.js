@@ -67,10 +67,17 @@ if (!existsSync(uploadsDir)) {
 app.use('/uploads', express.static(uploadsDir));
 
 // 프론트엔드 정적 파일 제공 (프로덕션 환경)
-const frontendDistPath = join(__dirname, '..', 'frontend', 'dist');
+// Railway 배포 시: backend/dist (nixpacks가 복사)
+// 로컬 개발 시: ../frontend/dist
+const frontendDistPath = existsSync(join(__dirname, 'dist')) 
+  ? join(__dirname, 'dist')
+  : join(__dirname, '..', 'frontend', 'dist');
+
 if (existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
   console.log('✅ 프론트엔드 정적 파일 서빙:', frontendDistPath);
+} else {
+  console.warn('⚠️ 프론트엔드 dist 폴더를 찾을 수 없습니다:', frontendDistPath);
 }
 
 // API 라우트

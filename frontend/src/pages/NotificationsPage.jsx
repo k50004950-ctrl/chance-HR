@@ -32,28 +32,49 @@ const NotificationsPage = () => {
         padding: '16px',
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'space-between',
         gap: '12px'
       }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              padding: '8px',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '20px'
+            }}
+          >
+            ←
+          </button>
+          <h1 style={{ 
+            fontSize: '20px', 
+            fontWeight: '700', 
+            color: '#111827',
+            margin: 0 
+          }}>
+            알림
+          </h1>
+        </div>
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/', { state: { activeTab: 'community' } })}
           style={{
-            padding: '8px',
-            background: 'transparent',
+            padding: '8px 16px',
+            background: '#667eea',
+            color: 'white',
             border: 'none',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: '600',
             cursor: 'pointer',
-            fontSize: '20px'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
           }}
         >
-          ←
+          💬 소통방
         </button>
-        <h1 style={{ 
-          fontSize: '20px', 
-          fontWeight: '700', 
-          color: '#111827',
-          margin: 0 
-        }}>
-          알림
-        </h1>
       </div>
 
       {/* 알림 목록 */}

@@ -34,7 +34,6 @@ const OwnerDashboard = () => {
   const [salaryConfirmed, setSalaryConfirmed] = useState(false); // 급여 확정 여부
   const [showConfirmWarning, setShowConfirmWarning] = useState(false); // 확정 경고 모달
   const [notifications, setNotifications] = useState([]); // 알림 목록
-  const [showMoreMenu, setShowMoreMenu] = useState(false); // 더보기 메뉴
   const [workplaces, setWorkplaces] = useState([]);
   const [selectedWorkplace, setSelectedWorkplace] = useState(null);
   const [employees, setEmployees] = useState([]);
@@ -2123,223 +2122,15 @@ const OwnerDashboard = () => {
                 💸 급여 보내기
               </button>
               
-              {/* 더보기 메뉴 */}
+              {/* 설정 메뉴 */}
               <div style={{ position: 'relative', display: 'inline-block' }}>
                 <button
-                  className={`nav-tab ${showMoreMenu ? 'active' : ''}`}
-                  onClick={() => setShowMoreMenu(!showMoreMenu)}
+                  className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('settings')}
                   style={{ fontSize: '16px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  ⋯ 더보기
-                  <span style={{ fontSize: '12px' }}>{showMoreMenu ? '▲' : '▼'}</span>
+                  ⚙️ 설정
                 </button>
-                
-                {showMoreMenu && (
-                  <>
-                    <div
-                      onClick={() => setShowMoreMenu(false)}
-                      style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        zIndex: 9999
-                      }}
-                    />
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      right: 0,
-                      marginTop: '8px',
-                      background: 'white',
-                      borderRadius: '12px',
-                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-                      zIndex: 10000,
-                      minWidth: '220px',
-                      border: '1px solid #e5e7eb',
-                      overflow: 'hidden'
-                    }}>
-                      <button
-                        onClick={() => { setActiveTab('calendar'); setShowMoreMenu(false); }}
-                        style={{
-                          width: '100%',
-                          padding: '16px 20px',
-                          border: 'none',
-                          background: activeTab === 'calendar' ? '#f3f4f6' : 'white',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontSize: '15px',
-                          fontWeight: '600',
-                          color: '#374151',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = activeTab === 'calendar' ? '#f3f4f6' : 'white'}
-                      >
-                        📅 출근 달력
-                      </button>
-                      <button
-                        onClick={() => { setActiveTab('roster'); setShowMoreMenu(false); }}
-                        style={{
-                          width: '100%',
-                          padding: '16px 20px',
-                          border: 'none',
-                          background: activeTab === 'roster' ? '#f3f4f6' : 'white',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontSize: '15px',
-                          fontWeight: '600',
-                          color: '#374151',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = activeTab === 'roster' ? '#f3f4f6' : 'white'}
-                      >
-                        👥 직원 관리
-                      </button>
-                      <button
-                        onClick={() => { setActiveTab('salary-slips'); setShowMoreMenu(false); }}
-                        style={{
-                          width: '100%',
-                          padding: '16px 20px',
-                          border: 'none',
-                          background: activeTab === 'salary-slips' ? '#f3f4f6' : 'white',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontSize: '15px',
-                          fontWeight: '600',
-                          color: '#374151',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = activeTab === 'salary-slips' ? '#f3f4f6' : 'white'}
-                      >
-                        📝 급여명세서
-                      </button>
-                      <button
-                        onClick={() => { setActiveTab('severance'); setShowMoreMenu(false); }}
-                        style={{
-                          width: '100%',
-                          padding: '16px 20px',
-                          border: 'none',
-                          background: activeTab === 'severance' ? '#f3f4f6' : 'white',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontSize: '15px',
-                          fontWeight: '600',
-                          color: '#374151',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = activeTab === 'severance' ? '#f3f4f6' : 'white'}
-                      >
-                        🧮 퇴직금 계산
-                      </button>
-                      <button
-                        onClick={() => { setActiveTab('resigned'); setShowMoreMenu(false); }}
-                        style={{
-                          width: '100%',
-                          padding: '16px 20px',
-                          border: 'none',
-                          background: activeTab === 'resigned' ? '#f3f4f6' : 'white',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontSize: '15px',
-                          fontWeight: '600',
-                          color: '#374151',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = activeTab === 'resigned' ? '#f3f4f6' : 'white'}
-                      >
-                        🧾 퇴사 처리
-                      </button>
-                      <button
-                        onClick={() => { setActiveTab('past-employees'); setShowMoreMenu(false); }}
-                        style={{
-                          width: '100%',
-                          padding: '16px 20px',
-                          border: 'none',
-                          background: activeTab === 'past-employees' ? '#f3f4f6' : 'white',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontSize: '15px',
-                          fontWeight: '600',
-                          color: '#374151',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = activeTab === 'past-employees' ? '#f3f4f6' : 'white'}
-                      >
-                        📁 서류 보관함
-                      </button>
-                      <button
-                        onClick={() => { setActiveTab('community'); setShowMoreMenu(false); }}
-                        style={{
-                          width: '100%',
-                          padding: '16px 20px',
-                          border: 'none',
-                          background: activeTab === 'community' ? '#f3f4f6' : 'white',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontSize: '15px',
-                          fontWeight: '600',
-                          color: '#374151',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          transition: 'background 0.2s',
-                          borderBottom: '1px solid #e5e7eb'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = activeTab === 'community' ? '#f3f4f6' : 'white'}
-                      >
-                        💬 소통방
-                      </button>
-                      <button
-                        onClick={() => { setActiveTab('settings'); setShowMoreMenu(false); }}
-                        style={{
-                          width: '100%',
-                          padding: '16px 20px',
-                          border: 'none',
-                          background: activeTab === 'settings' ? '#f3f4f6' : 'white',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontSize: '15px',
-                          fontWeight: '600',
-                          color: '#374151',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = activeTab === 'settings' ? '#f3f4f6' : 'white'}
-                      >
-                        ⚙️ 설정
-                      </button>
-                    </div>
-                  </>
-                )}
               </div>
             </div>}
 
@@ -2478,7 +2269,7 @@ const OwnerDashboard = () => {
                 ) : (
                   /* 데스크톱 헤더 */
                   <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', gap: '16px' }}>
                       <div>
                         <h3 style={{ color: '#374151', marginBottom: '12px' }}>📋 근로자 명부</h3>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -2528,12 +2319,28 @@ const OwnerDashboard = () => {
                           </button>
                         </div>
                       </div>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => openModal('employee')}
-                      >
-                        + 직원 등록
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => setActiveTab('resigned')}
+                          style={{ fontSize: '14px', padding: '8px 16px' }}
+                        >
+                          🧾 퇴사 처리
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => setActiveTab('past-employees')}
+                          style={{ fontSize: '14px', padding: '8px 16px' }}
+                        >
+                          📁 서류 보관함
+                        </button>
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => openModal('employee')}
+                        >
+                          + 직원 등록
+                        </button>
+                      </div>
                     </div>
                     
                     <p style={{ color: '#6b7280', marginBottom: '20px', fontSize: '14px' }}>
@@ -3194,59 +3001,30 @@ const OwnerDashboard = () => {
                   </div>
                 </div>
 
-                {/* 빠른 링크 */}
-                <div className="card" style={{ marginTop: '32px' }}>
-                  <h3 style={{ marginBottom: '20px', color: '#374151' }}>⚡ 자주 찾는 메뉴</h3>
-                  <div className="grid grid-4" style={{ gap: '16px' }}>
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => setActiveTab('roster')}
-                      style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', fontSize: '15px', fontWeight: '600' }}
-                    >
-                      <span style={{ fontSize: '32px' }}>👥</span>
-                      <span>직원 관리</span>
-                    </button>
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => setActiveTab('calendar')}
-                      style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', fontSize: '15px', fontWeight: '600' }}
-                    >
-                      <span style={{ fontSize: '32px' }}>📅</span>
-                      <span>출근 달력</span>
-                    </button>
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => setActiveTab('salary-slips')}
-                      style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', fontSize: '15px', fontWeight: '600' }}
-                    >
-                      <span style={{ fontSize: '32px' }}>📝</span>
-                      <span>급여명세서</span>
-                    </button>
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => setActiveTab('community')}
-                      style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', fontSize: '15px', fontWeight: '600' }}
-                    >
-                      <span style={{ fontSize: '32px' }}>💬</span>
-                      <span>소통방</span>
-                    </button>
-                  </div>
-                </div>
               </div>
             )}
 
             {/* 당월 출근현황 */}
             {activeTab === 'attendance' && (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
                   <h3 style={{ color: '#374151', margin: 0 }}>📊 당월 출근현황</h3>
-                  <input
-                    type="month"
-                    className="form-input"
-                    style={{ width: 'auto' }}
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setActiveTab('calendar')}
+                      style={{ fontSize: '14px', padding: '8px 16px' }}
+                    >
+                      📅 출근 달력
+                    </button>
+                    <input
+                      type="month"
+                      className="form-input"
+                      style={{ width: 'auto' }}
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                    />
+                  </div>
                 </div>
 
               {/* QR 출퇴근 */}
@@ -4193,14 +3971,28 @@ const OwnerDashboard = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h3 style={{ color: '#374151' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                  <h3 style={{ color: '#374151', margin: 0 }}>
                     {salaryFlowStep === 1 && 'Step 1. 이번 달 근무 내역 확인'}
                     {salaryFlowStep === 2 && 'Step 2. 급여 미리보기'}
                     {salaryFlowStep === 3 && 'Step 3. 급여 확정'}
                     {salaryFlowStep === 4 && 'Step 4. 급여명세서 발송'}
                   </h3>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setActiveTab('salary-slips')}
+                      style={{ fontSize: '14px', padding: '8px 16px' }}
+                    >
+                      📝 급여명세서
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setActiveTab('severance')}
+                      style={{ fontSize: '14px', padding: '8px 16px' }}
+                    >
+                      🧮 퇴직금 계산
+                    </button>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <button
                         className={`btn ${salaryViewMode === 'month' ? 'btn-primary' : 'btn-secondary'}`}
@@ -7848,7 +7640,7 @@ const OwnerDashboard = () => {
             onClick={() => handleTabChange('dashboard')}
           >
             <div className="mobile-nav-icon">🏠</div>
-            <div className="mobile-nav-label">Home</div>
+            <div className="mobile-nav-label">홈</div>
           </button>
 
           <button
@@ -7884,11 +7676,11 @@ const OwnerDashboard = () => {
           </button>
 
           <button
-            className={`mobile-nav-item ${activeTab === 'more' ? 'active' : ''}`}
-            onClick={() => handleTabChange('more')}
+            className={`mobile-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => handleTabChange('settings')}
           >
-            <div className="mobile-nav-icon">⋯</div>
-            <div className="mobile-nav-label">더보기</div>
+            <div className="mobile-nav-icon">⚙️</div>
+            <div className="mobile-nav-label">설정</div>
           </button>
         </nav>
       )}

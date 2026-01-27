@@ -59,6 +59,12 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 요청 로깅 (모든 요청)
+app.use((req, res, next) => {
+  console.log(`📨 ${req.method} ${req.path}`);
+  next();
+});
+
 // uploads 폴더 생성
 const uploadsDir = join(__dirname, 'uploads');
 if (!existsSync(uploadsDir)) {
@@ -69,6 +75,17 @@ if (!existsSync(uploadsDir)) {
 // ✅ 1) API 라우트 먼저 등록 (최우선!)
 // ========================================
 console.log('🔧 Registering API routes...');
+
+// 검증용 Ping 엔드포인트 (가장 먼저!)
+app.get('/api/_ping', (req, res) => {
+  console.log('✅ Ping endpoint hit!');
+  res.json({ 
+    ok: true, 
+    message: 'API is working',
+    timestamp: new Date().toISOString()
+  });
+});
+console.log('✅ Registered: /api/_ping');
 
 // 업로드 파일용 정적 폴더
 app.use('/uploads', express.static(uploadsDir));
@@ -88,9 +105,23 @@ app.use('/api/announcements', announcementsRoutes);
 app.use('/api/insurance', insuranceRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/admin/dev', adminDevRoutes);
-app.use('/api/rates-master', ratesMasterRoutes);
 
-console.log('✅ API routes registered: /api/rates-master');
+// ratesMaster 라우트 - 상세 로깅
+console.log('🔧 Importing ratesMaster routes from:', './routes/ratesMaster.js');
+console.log('🔧 ratesMasterRoutes type:', typeof ratesMasterRoutes);
+console.log('🔧 ratesMasterRoutes value:', ratesMasterRoutes);
+
+app.use('/api/rates-master', ratesMasterRoutes);
+console.log('✅ Registered: /api/rates-master');
+
+// 등록된 라우트 검증
+app._router.stack.forEach((middleware) => {
+  if (middleware.route) {
+    console.log('  Route:', middleware.route.path);
+  } else if (middleware.name === 'router') {
+    console.log('  Router middleware');
+  }
+});
 
 // ========================================
 // ✅ 2) 프론트엔드 정적 파일 서빙

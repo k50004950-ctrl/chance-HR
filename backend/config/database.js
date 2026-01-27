@@ -1499,4 +1499,7 @@ export const initDatabase = async () => {
   }
 };
 
-export default { query, run, get, initDatabase };
+// pool export 추가 (PostgreSQL용)
+export { pool };
+
+export default { query, run, get, initDatabase, pool };

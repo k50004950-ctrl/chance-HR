@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI, pushAPI, announcementsAPI, communityAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +19,7 @@ import useIsMobile from '../hooks/useIsMobile';
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [tabLoading, setTabLoading] = useState(false);
@@ -7773,6 +7775,14 @@ const OwnerDashboard = () => {
           >
             <div className="mobile-nav-icon">👥</div>
             <div className="mobile-nav-label">직원</div>
+          </button>
+
+          <button
+            className="mobile-nav-item"
+            onClick={() => navigate('/notifications')}
+          >
+            <div className="mobile-nav-icon">🔔</div>
+            <div className="mobile-nav-label">알림</div>
           </button>
 
           <button

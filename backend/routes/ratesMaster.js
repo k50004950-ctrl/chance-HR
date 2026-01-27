@@ -41,8 +41,14 @@ router.get('/', authenticateToken, async (req, res) => {
 /**
  * GET /api/rates-master/list
  * 전체 요율 목록 조회 (최신순)
+ * 
+ * ✅ 인증 불필요 (공개 API)
+ * - 급여 계산 시 프론트에서 직접 요율 조회 가능
+ * - Content-Type: application/json
+ * - Response: [] (빈 배열) 또는 요율 객체 배열
  */
-router.get('/list', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res) => {
+router.get('/list', async (req, res) => {
+  console.log('📋 GET /api/rates-master/list - Public access (no auth required)');
   try {
     const query = `
       SELECT *
@@ -51,9 +57,10 @@ router.get('/list', authenticateToken, requireRole('SUPER_ADMIN'), async (req, r
     `;
     
     const result = await pool.query(query);
+    console.log(`✅ Fetched ${result.rows.length} rates from rates_master`);
     res.json(result.rows);
   } catch (error) {
-    console.error('Error fetching rates list:', error);
+    console.error('❌ Error fetching rates list:', error);
     res.status(500).json({ message: 'Failed to fetch rates list', error: error.message });
   }
 });

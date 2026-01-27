@@ -96,8 +96,13 @@ if (existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
   console.log('✅ 프론트엔드 정적 파일 서빙:', frontendDistPath);
   
-  // SPA를 위한 catch-all 라우팅 (모든 비-API 요청을 index.html로)
-  app.get('*', (req, res) => {
+  // SPA를 위한 catch-all 라우팅 (API 요청 제외!)
+  app.get('*', (req, res, next) => {
+    // API 요청은 넘어가도록
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+    
     const indexPath = join(frontendDistPath, 'index.html');
     if (existsSync(indexPath)) {
       res.sendFile(indexPath);

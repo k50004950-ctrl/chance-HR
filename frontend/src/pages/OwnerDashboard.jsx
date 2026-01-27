@@ -3007,6 +3007,115 @@ const OwnerDashboard = () => {
             {/* 당월 출근현황 */}
             {activeTab === 'attendance' && (
               <div>
+                {/* 오늘 출근 상황 요약 바 */}
+                {(() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  const todayRecords = attendance.filter(a => a.date === today);
+                  const completedToday = todayRecords.filter(a => {
+                    const status = getAttendanceStatus(a);
+                    return status.type === 'completed';
+                  });
+                  const lateToday = todayRecords.filter(a => {
+                    const status = getAttendanceStatus(a);
+                    return status.type === 'late';
+                  });
+                  const notCheckedIn = employees.filter(emp => 
+                    emp.employment_status === 'active' && 
+                    !todayRecords.some(r => r.employee_name === emp.name)
+                  );
+                  const notCheckedOut = todayRecords.filter(a => a.check_in_time && !a.check_out_time && !a.leave_type);
+
+                  return (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      borderRadius: '16px',
+                      padding: isMobile ? '20px 16px' : '24px 28px',
+                      marginBottom: '24px',
+                      boxShadow: '0 10px 20px rgba(102, 126, 234, 0.2)'
+                    }}>
+                      <div style={{
+                        color: 'white',
+                        fontSize: isMobile ? '18px' : '20px',
+                        fontWeight: '700',
+                        marginBottom: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span>📊</span>
+                        <span>오늘 출근 상황</span>
+                      </div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+                        gap: isMobile ? '12px' : '16px'
+                      }}>
+                        {/* 정상 */}
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '12px',
+                          padding: isMobile ? '16px' : '20px',
+                          textAlign: 'center',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                        }}>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>✓ 정상</div>
+                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: '#059669' }}>
+                            {completedToday.length}
+                          </div>
+                        </div>
+                        
+                        {/* 지각 */}
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '12px',
+                          padding: isMobile ? '16px' : '20px',
+                          textAlign: 'center',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                        }}>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>🕐 지각</div>
+                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: '#f59e0b' }}>
+                            {lateToday.length}
+                          </div>
+                        </div>
+
+                        {/* 미출근 - 강조 */}
+                        <div style={{
+                          background: notCheckedIn.length > 0 ? 'rgba(239, 68, 68, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '12px',
+                          padding: isMobile ? '16px' : '20px',
+                          textAlign: 'center',
+                          boxShadow: notCheckedIn.length > 0 ? '0 4px 12px rgba(239, 68, 68, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                          border: notCheckedIn.length > 0 ? '2px solid #dc2626' : 'none'
+                        }}>
+                          <div style={{ fontSize: '12px', color: notCheckedIn.length > 0 ? '#fff' : '#6b7280', marginBottom: '8px', fontWeight: '600' }}>
+                            ❌ 미출근
+                          </div>
+                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: notCheckedIn.length > 0 ? '#fff' : '#6b7280' }}>
+                            {notCheckedIn.length}
+                          </div>
+                        </div>
+
+                        {/* 미퇴근 - 강조 */}
+                        <div style={{
+                          background: notCheckedOut.length > 0 ? 'rgba(239, 68, 68, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '12px',
+                          padding: isMobile ? '16px' : '20px',
+                          textAlign: 'center',
+                          boxShadow: notCheckedOut.length > 0 ? '0 4px 12px rgba(239, 68, 68, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                          border: notCheckedOut.length > 0 ? '2px solid #dc2626' : 'none'
+                        }}>
+                          <div style={{ fontSize: '12px', color: notCheckedOut.length > 0 ? '#fff' : '#6b7280', marginBottom: '8px', fontWeight: '600' }}>
+                            ⚠️ 미퇴근
+                          </div>
+                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: notCheckedOut.length > 0 ? '#fff' : '#6b7280' }}>
+                            {notCheckedOut.length}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
                   <h3 style={{ color: '#374151', margin: 0 }}>📊 당월 출근현황</h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -3293,7 +3402,31 @@ const OwnerDashboard = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {attendance.map((record) => {
+                            {(() => {
+                              // 정렬 우선순위: 미출근/미퇴근 > 지각 > 정상
+                              const sortedAttendance = [...attendance].sort((a, b) => {
+                                const statusA = getAttendanceStatus(a);
+                                const statusB = getAttendanceStatus(b);
+                                
+                                const priorityMap = {
+                                  'notCheckedOut': 1,
+                                  'incomplete': 1,
+                                  'late': 2,
+                                  'completed': 3
+                                };
+                                
+                                const priorityA = priorityMap[statusA.type] || 4;
+                                const priorityB = priorityMap[statusB.type] || 4;
+                                
+                                // 우선순위가 같으면 날짜 최신순
+                                if (priorityA === priorityB) {
+                                  return new Date(b.date) - new Date(a.date);
+                                }
+                                
+                                return priorityA - priorityB;
+                              });
+                              
+                              return sortedAttendance.map((record) => {
                               const status = getAttendanceStatus(record);
                               return (
                                 <tr 
@@ -3343,19 +3476,52 @@ const OwnerDashboard = () => {
                                   </td>
                                 </tr>
                               );
-                            })}
+                            });
+                            })()}
                           </tbody>
                         </table>
                       </div>
 
                       {/* 모바일 카드 뷰 */}
                       <div className="attendance-card-view">
-                        {attendance.map((record) => {
+                        {(() => {
+                          // 정렬 우선순위: 미출근/미퇴근 > 지각 > 정상
+                          const sortedAttendance = [...attendance].sort((a, b) => {
+                            const statusA = getAttendanceStatus(a);
+                            const statusB = getAttendanceStatus(b);
+                            
+                            const priorityMap = {
+                              'notCheckedOut': 1,
+                              'incomplete': 1,
+                              'late': 2,
+                              'completed': 3
+                            };
+                            
+                            const priorityA = priorityMap[statusA.type] || 4;
+                            const priorityB = priorityMap[statusB.type] || 4;
+                            
+                            // 우선순위가 같으면 날짜 최신순
+                            if (priorityA === priorityB) {
+                              return new Date(b.date) - new Date(a.date);
+                            }
+                            
+                            return priorityA - priorityB;
+                          });
+                          
+                          return sortedAttendance.map((record) => {
                           const status = getAttendanceStatus(record);
+                          const isProblem = status.type === 'incomplete' || status.type === 'notCheckedOut';
                           return (
                             <div
                               key={record.id}
                               className={`attendance-card ${highlightedRecordId === record.id ? 'card-highlight' : ''}`}
+                              style={{
+                                ...(isProblem && {
+                                  border: '2px solid #ef4444',
+                                  background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+                                })
+                              }}
                             >
                               {/* 상단: 직원명 + 상태배지 */}
                               <div style={{ 
@@ -3420,26 +3586,33 @@ const OwnerDashboard = () => {
 
                               {/* 하단: 수정 버튼 full-width */}
                               <button
-                                className="btn btn-secondary"
+                                className="btn"
                                 style={{ 
                                   width: '100%', 
                                   fontSize: '14px', 
-                                  fontWeight: '600',
+                                  fontWeight: '700',
                                   padding: '14px 16px',
                                   minHeight: '48px',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  gap: '8px'
+                                  gap: '8px',
+                                  ...(isProblem && {
+                                    background: '#dc2626',
+                                    color: 'white',
+                                    boxShadow: '0 4px 8px rgba(220, 38, 38, 0.3)',
+                                    border: 'none'
+                                  })
                                 }}
                                 onClick={() => openModal('editAttendance', record)}
                               >
                                 <span style={{ fontSize: '16px' }}>✏️</span>
-                                <span>출근기록 수정</span>
+                                <span>{isProblem ? '즉시 수정 필요' : '출근기록 수정'}</span>
                               </button>
                             </div>
                           );
-                        })}
+                        });
+                        })()}
                       </div>
                     </>
                   )}

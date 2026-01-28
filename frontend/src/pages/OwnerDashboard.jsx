@@ -4802,7 +4802,13 @@ const OwnerDashboard = () => {
                                 <th>근무시간</th>
                                 <th>기본 급여</th>
                               <th>주휴수당</th>
-                                <th>총 지급액</th>
+                                <th>총 지급액 (세전)</th>
+                                {salaryFlowStep === 2 && (
+                                  <>
+                                    <th>공제 합계</th>
+                                    <th>실수령액 (세후)</th>
+                                  </>
+                                )}
                               </tr>
                             </thead>
                             <tbody>
@@ -4834,30 +4840,76 @@ const OwnerDashboard = () => {
                                     <td style={{ fontWeight: '700', color: '#667eea' }}>
                                       {salaryFlowStep === 2 ? (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                          <input
-                                            type="number"
-                                            className="form-input"
-                                            value={editedSalaries[emp.employeeId] ?? totalPay}
-                                            onChange={(e) => {
-                                              const value = parseInt(e.target.value) || 0;
-                                              setEditedSalaries(prev => ({
-                                                ...prev,
-                                                [emp.employeeId]: value
-                                              }));
+                                          <span style={{ fontSize: '14px', fontWeight: '700' }}>
+                                            {formatCurrency(salaryDeductions[emp.id]?.basePay || totalPay)}
+                                          </span>
+                                          <button
+                                            className="btn btn-sm"
+                                            style={{
+                                              padding: '4px 12px',
+                                              fontSize: '12px',
+                                              background: '#667eea',
+                                              color: 'white',
+                                              border: 'none',
+                                              borderRadius: '4px',
+                                              cursor: 'pointer'
                                             }}
-                                            style={{ 
-                                              width: '140px', 
-                                              padding: '6px 8px', 
-                                              fontSize: '14px',
-                                              fontWeight: '700'
+                                            onClick={async () => {
+                                              try {
+                                                const taxType = emp.taxType || '4대보험';
+                                                const response = await salaryAPI.calculateInsurance({
+                                                  basePay: totalPay,
+                                                  payrollMonth: selectedMonth,
+                                                  taxType: taxType
+                                                });
+                                                
+                                                setSalaryDeductions(prev => ({
+                                                  ...prev,
+                                                  [emp.id]: {
+                                                    basePay: totalPay,
+                                                    taxType: taxType,
+                                                    deductions: response.data.deductions,
+                                                    totalDeductions: response.data.totalDeductions,
+                                                    netPay: response.data.netPay
+                                                  }
+                                                }));
+                                                
+                                                setToast({ 
+                                                  message: `✓ ${emp.employeeName} 공제액이 계산되었습니다.`, 
+                                                  type: 'success' 
+                                                });
+                                              } catch (error) {
+                                                console.error('공제액 계산 오류:', error);
+                                                setToast({ 
+                                                  message: '공제액 계산에 실패했습니다.', 
+                                                  type: 'error' 
+                                                });
+                                              }
                                             }}
-                                          />
-                                          <span style={{ fontSize: '14px' }}>원</span>
+                                          >
+                                            수정
+                                          </button>
                                         </div>
                                       ) : (
                                         formatCurrency(totalPay)
                                       )}
                                     </td>
+                                    {salaryFlowStep === 2 && (
+                                      <>
+                                        <td style={{ fontWeight: '600', color: '#ef4444' }}>
+                                          {salaryDeductions[emp.id] ? 
+                                            formatCurrency(salaryDeductions[emp.id].totalDeductions) : 
+                                            '-'
+                                          }
+                                        </td>
+                                        <td style={{ fontWeight: '700', color: '#10b981', fontSize: '15px' }}>
+                                          {salaryDeductions[emp.id] ? 
+                                            formatCurrency(salaryDeductions[emp.id].netPay) : 
+                                            formatCurrency(totalPay)
+                                          }
+                                        </td>
+                                      </>
+                                    )}
                                   </tr>
                                 );
                               })}

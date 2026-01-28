@@ -8,8 +8,9 @@ const router = express.Router();
  * GET /api/rates-master?yyyymm=202601
  * 특정 귀속월에 적용될 요율 조회
  * effective_yyyymm <= yyyymm 중 가장 최신 1개
+ * Public API - 급여 계산 시 사용
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { yyyymm } = req.query;
     

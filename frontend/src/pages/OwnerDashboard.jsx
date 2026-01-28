@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI, pushAPI, announcementsAPI, communityAPI } from '../services/api';
@@ -4935,10 +4936,9 @@ const OwnerDashboard = () => {
                   </>
                 )}
 
-                {/* 급여 확정 경고 모달 */}
-                {showConfirmWarning && (
+                {/* 급여 확정 경고 모달 - Portal 사용 */}
+                {showConfirmWarning && ReactDOM.createPortal(
                   <div 
-                    className="modal-overlay" 
                     style={{ 
                       position: 'fixed',
                       top: 0,
@@ -4949,46 +4949,29 @@ const OwnerDashboard = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      zIndex: 999999,
-                      pointerEvents: 'auto',
-                      cursor: 'default'
+                      zIndex: 999999
                     }}
-                    onClick={(e) => {
-                      if (e.target === e.currentTarget) {
-                        setShowConfirmWarning(false);
-                      }
-                    }}
+                    onClick={() => setShowConfirmWarning(false)}
                   >
                     <div 
-                      className="modal" 
                       style={{ 
                         maxWidth: '500px',
                         width: '90%',
                         backgroundColor: 'white',
                         borderRadius: '8px',
                         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                        zIndex: 1000000,
-                        pointerEvents: 'auto',
-                        position: 'relative'
+                        overflow: 'hidden'
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="modal-header" style={{ background: '#fef3c7', color: '#92400e' }}>
+                      <div style={{ background: '#fef3c7', color: '#92400e', padding: '16px', fontWeight: '600' }}>
                         ⚠️ 급여 확정 확인
                       </div>
                       <div style={{ padding: '24px', textAlign: 'center' }}>
-                        <div style={{
-                          fontSize: '48px',
-                          marginBottom: '16px'
-                        }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>
                           ⚠️
                         </div>
-                        <p style={{
-                          fontSize: '18px',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '16px'
-                        }}>
+                        <p style={{ fontSize: '18px', fontWeight: '600', color: '#374151', marginBottom: '16px' }}>
                           확정 후에는 수정이 어렵습니다.
                         </p>
                         <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>
@@ -4998,36 +4981,38 @@ const OwnerDashboard = () => {
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                           <button
                             type="button"
-                            className="btn btn-secondary"
-                            style={{ flex: 1 }}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setShowConfirmWarning(false);
+                            style={{
+                              flex: 1,
+                              padding: '10px 20px',
+                              backgroundColor: '#6b7280',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontWeight: '600'
                             }}
+                            onClick={() => setShowConfirmWarning(false)}
                             disabled={loading}
                           >
                             취소
                           </button>
                           <button
                             type="button"
-                            className="btn"
                             style={{
                               flex: 1,
+                              padding: '10px 20px',
                               background: loading ? '#9ca3af' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                               color: 'white',
                               border: 'none',
+                              borderRadius: '6px',
+                              cursor: loading ? 'not-allowed' : 'pointer',
                               fontWeight: '700',
-                              opacity: loading ? 0.6 : 1,
-                              cursor: loading ? 'not-allowed' : 'pointer'
+                              opacity: loading ? 0.6 : 1
                             }}
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
+                            onClick={async () => {
                               if (!loading) {
                                 setLoading(true);
                                 try {
-                                  // 확정할 직원 데이터 준비
                                   const employees = salaryData.employees
                                     .filter(emp => emp.attendance > 0)
                                     .map(emp => {
@@ -5043,7 +5028,6 @@ const OwnerDashboard = () => {
                                       };
                                     });
                                   
-                                  // 급여 확정 API 호출
                                   const response = await salaryAPI.finalize({
                                     workplaceId: selectedWorkplace?.workplaceId,
                                     payrollMonth: selectedMonth,
@@ -5056,9 +5040,10 @@ const OwnerDashboard = () => {
                                   setSalaryFlowStep(4);
                                   setShowConfirmWarning(false);
                                   setToast({ 
-                                    message: `✓ 급여가 확정되었습니다. (${response.data.appliedRateMonth} 요율 적용)`, 
+                                    message: `✓ 급여가 확정되었습니다.`, 
                                     type: 'success' 
                                   });
+                                  loadSalary();
                                 } catch (error) {
                                   console.error('급여 확정 오류:', error);
                                   setToast({ 
@@ -5077,7 +5062,8 @@ const OwnerDashboard = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </div>,
+                  document.body
                 )}
               </div>
             )}

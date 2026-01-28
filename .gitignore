@@ -30,6 +30,7 @@ dist/
 build/
 frontend/dist/
 frontend/build/
+!backend/dist/
 # backend/dist/ is deployed (excluded from ignore)
 
 # IDE

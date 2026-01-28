@@ -151,6 +151,16 @@ if (existsSync(frontendDistPath)) {
 // ✅ 3) SPA Fallback (마지막!)
 // ========================================
 app.get('*', (req, res) => {
+  // API 요청이나 정적 파일 요청은 fallback하지 않음
+  if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/') || 
+      req.path.includes('.js') || req.path.includes('.css') || 
+      req.path.includes('.png') || req.path.includes('.jpg') || 
+      req.path.includes('.ico') || req.path.includes('.svg') ||
+      req.path.includes('.woff') || req.path.includes('.woff2')) {
+    console.log(`⏭️  Skipping SPA fallback for: ${req.path}`);
+    return res.status(404).send('Not found');
+  }
+  
   const indexPath = join(frontendDistPath, 'index.html');
   
   if (existsSync(indexPath)) {

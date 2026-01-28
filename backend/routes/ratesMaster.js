@@ -63,7 +63,7 @@ router.get('/list', async (req, res) => {
  * 요율 등록 또는 수정 (UPSERT)
  * SUPER_ADMIN만 가능
  */
-router.post('/', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res) => {
+router.post('/', authenticateToken, requireRole('super_admin'), async (req, res) => {
   try {
     console.log('📋 POST /api/rates-master 요청 수신');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
@@ -195,7 +195,7 @@ router.post('/', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res)
  * 요율 삭제
  * SUPER_ADMIN만 가능
  */
-router.delete('/:effective_yyyymm', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res) => {
+router.delete('/:effective_yyyymm', authenticateToken, requireRole('super_admin'), async (req, res) => {
   try {
     const { effective_yyyymm } = req.params;
     

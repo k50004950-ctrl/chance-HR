@@ -216,6 +216,52 @@ const OwnerDashboard = () => {
     }
   }, [employees, attendance, employeeSlips]);
 
+  // Step2 진입 시 자동으로 4대보험 계산
+  useEffect(() => {
+    const autoCalculateDeductions = async () => {
+      if (salaryFlowStep === 2 && salaryData && salaryData.employees && salaryData.employees.length > 0) {
+        // 이미 계산된 데이터가 있으면 스킵
+        if (Object.keys(salaryDeductions).length > 0) return;
+        
+        try {
+          const newDeductions = {};
+          
+          for (const emp of salaryData.employees) {
+            const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
+            const taxType = emp.taxType || '4대보험';
+            
+            try {
+              const response = await salaryAPI.calculateInsurance({
+                basePay: totalPay,
+                payrollMonth: selectedMonth,
+                taxType: taxType
+              });
+              
+              newDeductions[emp.id] = {
+                basePay: totalPay,
+                taxType: taxType,
+                deductions: response.data.deductions,
+                totalDeductions: response.data.totalDeductions,
+                netPay: response.data.netPay
+              };
+            } catch (error) {
+              console.error(`${emp.employeeName} 자동계산 오류:`, error);
+            }
+          }
+          
+          if (Object.keys(newDeductions).length > 0) {
+            setSalaryDeductions(newDeductions);
+            console.log(`✓ Step2 진입: ${Object.keys(newDeductions).length}명의 공제액 자동계산 완료`);
+          }
+        } catch (error) {
+          console.error('Step2 자동계산 오류:', error);
+        }
+      }
+    };
+    
+    autoCalculateDeductions();
+  }, [salaryFlowStep, salaryData, selectedMonth]);
+
   const loadDashboardData = async () => {
     if (!selectedWorkplace) return;
     
@@ -4784,9 +4830,75 @@ const OwnerDashboard = () => {
                             borderRadius: '8px',
                             marginBottom: '20px',
                             fontSize: '14px',
-                            color: '#166534'
+                            color: '#166534',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '12px'
                           }}>
-                            💡 <strong>급여 수정:</strong> 총 지급액을 수정할 수 있습니다. 수정 후 다음 단계로 진행하세요.
+                            <div>
+                              💡 <strong>급여 수정:</strong> 각 직원의 "수정" 버튼을 눌러 4대보험/공제액을 계산하거나, 전체 자동계산 버튼을 사용하세요.
+                            </div>
+                            <button
+                              className="btn"
+                              style={{
+                                padding: '8px 16px',
+                                fontSize: '14px',
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                fontWeight: '600'
+                              }}
+                              onClick={async () => {
+                                try {
+                                  setLoading(true);
+                                  const newDeductions = {};
+                                  
+                                  for (const emp of salaryData.employees) {
+                                    const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
+                                    const taxType = emp.taxType || '4대보험';
+                                    
+                                    try {
+                                      const response = await salaryAPI.calculateInsurance({
+                                        basePay: totalPay,
+                                        payrollMonth: selectedMonth,
+                                        taxType: taxType
+                                      });
+                                      
+                                      newDeductions[emp.id] = {
+                                        basePay: totalPay,
+                                        taxType: taxType,
+                                        deductions: response.data.deductions,
+                                        totalDeductions: response.data.totalDeductions,
+                                        netPay: response.data.netPay
+                                      };
+                                    } catch (error) {
+                                      console.error(`${emp.employeeName} 계산 오류:`, error);
+                                    }
+                                  }
+                                  
+                                  setSalaryDeductions(newDeductions);
+                                  setToast({ 
+                                    message: `✓ 전체 ${Object.keys(newDeductions).length}명의 공제액이 계산되었습니다.`, 
+                                    type: 'success' 
+                                  });
+                                } catch (error) {
+                                  console.error('전체 계산 오류:', error);
+                                  setToast({ 
+                                    message: '전체 계산에 실패했습니다.', 
+                                    type: 'error' 
+                                  });
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }}
+                              disabled={loading}
+                            >
+                              {loading ? '계산 중...' : '🔄 전체 자동계산'}
+                            </button>
                           </div>
                         )}
                         <div style={{ overflowX: 'auto' }}>

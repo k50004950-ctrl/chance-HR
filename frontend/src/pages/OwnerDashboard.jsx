@@ -4944,9 +4944,9 @@ const OwnerDashboard = () => {
                         setShowConfirmWarning(false);
                       }
                     }}
-                    style={{ zIndex: 1001 }}
+                    style={{ zIndex: 1001, pointerEvents: 'auto' }}
                   >
-                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', pointerEvents: 'auto', position: 'relative', zIndex: 1002 }}>
                       <div className="modal-header" style={{ background: '#fef3c7', color: '#92400e' }}>
                         ⚠️ 급여 확정 확인
                       </div>

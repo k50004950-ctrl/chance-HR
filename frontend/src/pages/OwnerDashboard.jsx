@@ -4937,16 +4937,23 @@ const OwnerDashboard = () => {
 
                 {/* 급여 확정 경고 모달 */}
                 {showConfirmWarning && (
-                  <div 
-                    className="modal-overlay" 
-                    onClick={(e) => {
-                      if (e.target === e.currentTarget) {
-                        setShowConfirmWarning(false);
-                      }
-                    }}
-                    style={{ zIndex: 1001, pointerEvents: 'auto' }}
-                  >
-                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', pointerEvents: 'auto', position: 'relative', zIndex: 1002 }}>
+                  <>
+                    <div 
+                      className="modal-overlay" 
+                      style={{ zIndex: 1001 }}
+                      onClick={() => setShowConfirmWarning(false)}
+                    />
+                    <div 
+                      className="modal" 
+                      style={{ 
+                        maxWidth: '500px', 
+                        position: 'fixed',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 1002
+                      }}
+                    >
                       <div className="modal-header" style={{ background: '#fef3c7', color: '#92400e' }}>
                         ⚠️ 급여 확정 확인
                       </div>
@@ -5049,7 +5056,7 @@ const OwnerDashboard = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
             )}

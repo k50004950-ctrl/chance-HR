@@ -5029,8 +5029,8 @@ const OwnerDashboard = () => {
                                     workplaceId: selectedWorkplace?.workplaceId,
                                     payrollMonth: selectedMonth,
                                     employeeSalaries: employees,
-                                    appliedEffectiveYyyymm: currentRates?.effective_yyyymm,
-                                    appliedRatesJson: JSON.stringify(currentRates)
+                                    appliedEffectiveYyyymm: selectedMonth?.replace('-', ''),
+                                    appliedRatesJson: JSON.stringify({ rates_applied: true, month: selectedMonth })
                                   });
                                   
                                   setSalaryConfirmed(true);

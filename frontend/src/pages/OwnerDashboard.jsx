@@ -7900,10 +7900,11 @@ const OwnerDashboard = () => {
                           setMessage({ type: 'info', text: '4대보험료 및 소득세 자동 계산 중...' });
                           
                           // 귀속월 기준으로 4대보험료 계산
-                          const insuranceResponse = await salaryAPI.calculateInsurance(
-                            parseFloat(slipFormData.basePay),
-                            slipFormData.payrollMonth
-                          );
+                          const insuranceResponse = await salaryAPI.calculateInsurance({
+                            basePay: parseFloat(slipFormData.basePay),
+                            payrollMonth: slipFormData.payrollMonth,
+                            taxType: '4대보험'
+                          });
                           const insurance = insuranceResponse.data.insurance;
                           const employerBurden = insuranceResponse.data.employerBurden;
                           

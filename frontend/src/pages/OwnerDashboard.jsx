@@ -4940,8 +4940,7 @@ const OwnerDashboard = () => {
                   <>
                     <div 
                       className="modal-overlay" 
-                      style={{ zIndex: 1001 }}
-                      onClick={() => setShowConfirmWarning(false)}
+                      style={{ zIndex: 1001, pointerEvents: 'none' }}
                     />
                     <div 
                       className="modal" 
@@ -4951,7 +4950,8 @@ const OwnerDashboard = () => {
                         top: '50%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        zIndex: 1002
+                        zIndex: 1002,
+                        pointerEvents: 'auto'
                       }}
                     >
                       <div className="modal-header" style={{ background: '#fef3c7', color: '#92400e' }}>

@@ -5026,9 +5026,11 @@ const OwnerDashboard = () => {
                                   
                                   // 급여 확정 API 호출
                                   const response = await salaryAPI.finalize({
-                                    workplaceId: selectedWorkplaceId,
+                                    workplaceId: selectedWorkplace?.workplaceId,
                                     payrollMonth: selectedMonth,
-                                    employees: employees
+                                    employeeSalaries: employees,
+                                    appliedEffectiveYyyymm: currentRates?.effective_yyyymm,
+                                    appliedRatesJson: JSON.stringify(currentRates)
                                   });
                                   
                                   setSalaryConfirmed(true);

@@ -4937,22 +4937,37 @@ const OwnerDashboard = () => {
 
                 {/* 급여 확정 경고 모달 */}
                 {showConfirmWarning && (
-                  <>
-                    <div 
-                      className="modal-overlay" 
-                      style={{ zIndex: 1001, pointerEvents: 'none' }}
-                    />
+                  <div 
+                    className="modal-overlay" 
+                    style={{ 
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 10000
+                    }}
+                    onClick={(e) => {
+                      if (e.target === e.currentTarget) {
+                        setShowConfirmWarning(false);
+                      }
+                    }}
+                  >
                     <div 
                       className="modal" 
                       style={{ 
-                        maxWidth: '500px', 
-                        position: 'fixed',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        zIndex: 1002,
-                        pointerEvents: 'auto'
+                        maxWidth: '500px',
+                        width: '90%',
+                        backgroundColor: 'white',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        zIndex: 10001
                       }}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <div className="modal-header" style={{ background: '#fef3c7', color: '#92400e' }}>
                         ⚠️ 급여 확정 확인
@@ -5058,7 +5073,7 @@ const OwnerDashboard = () => {
                         </div>
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             )}

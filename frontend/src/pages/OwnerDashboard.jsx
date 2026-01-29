@@ -19,6 +19,10 @@ import MobileActionCard from '../components/MobileActionCard';
 import useIsMobile from '../hooks/useIsMobile';
 import { useEmployeeSort } from '../hooks/useEmployeeSort';
 import { useAttendanceSort } from '../hooks/useAttendanceSort';
+import { useSalaryCalculation } from '../hooks/useSalaryCalculation';
+import { useSalaryFinalize } from '../hooks/useSalaryFinalize';
+import { useAttendance } from '../hooks/useAttendance';
+import { useRatesManager } from '../hooks/useRatesManager';
 import { createEmployeeRiskMap, countEmployeesWithRisks } from '../utils/employeeRiskCalculator';
 import { getAttendanceStatus as getAttendanceStatusUtil } from '../utils/attendanceStatus';
 
@@ -27,6 +31,12 @@ const OwnerDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  
+  // 공용 비즈니스 로직 Hooks
+  const salaryCalc = useSalaryCalculation();
+  const salaryFinalize = useSalaryFinalize();
+  const attendanceManager = useAttendance();
+  const ratesManager = useRatesManager();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [tabLoading, setTabLoading] = useState(false);
   const [toast, setToast] = useState(null);

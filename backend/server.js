@@ -12,6 +12,7 @@ dotenv.config();
 // 라우트 임포트
 import { initDatabase } from './config/database.js';
 import authRoutes from './routes/auth.js';
+import authV2Routes from './routes/authV2.js';  // 새 인증 시스템
 import workplaceRoutes from './routes/workplaces.js';
 import employeeRoutes from './routes/employees.js';
 import attendanceRoutes from './routes/attendance.js';
@@ -99,6 +100,7 @@ app.use('/uploads', express.static(uploadsDir));
 
 // API 라우트들 (CORS 적용)
 app.use('/api/auth', cors(corsOptions), authRoutes);
+app.use('/api/v2/auth', cors(corsOptions), authV2Routes);  // 새 인증 시스템 (독립 회원가입)
 app.use('/api/workplaces', cors(corsOptions), workplaceRoutes);
 app.use('/api/employees', cors(corsOptions), employeeRoutes);
 app.use('/api/attendance', cors(corsOptions), attendanceRoutes);

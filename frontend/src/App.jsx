@@ -5,6 +5,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 // Pages
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import LoginV2 from './pages/LoginV2';
+import SignupV2 from './pages/SignupV2';
+import EmployeeMatchRequest from './pages/EmployeeMatchRequest';
 import AdminDashboard from './pages/AdminDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
@@ -44,6 +47,8 @@ const AppRouter = () => {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
       <Route path="/signup" element={user ? <Navigate to="/" /> : <Signup />} />
+      <Route path="/login-v2" element={user ? <Navigate to="/" /> : <LoginV2 />} />
+      <Route path="/signup-v2" element={user ? <Navigate to="/" /> : <SignupV2 />} />
       <Route path="/guide" element={<UsageGuide />} />
       <Route path="/qr" element={<QrAttendance />} />
       <Route
@@ -51,6 +56,14 @@ const AppRouter = () => {
         element={
           <ProtectedRoute>
             <NotificationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/employee/match-request"
+        element={
+          <ProtectedRoute allowedRoles={['employee']}>
+            <EmployeeMatchRequest />
           </ProtectedRoute>
         }
       />

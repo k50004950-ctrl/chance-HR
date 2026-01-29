@@ -653,22 +653,22 @@ const AdminDashboard = () => {
               </p>
             ) : (
               <div style={{ overflowX: 'auto' }}>
-                <table className="table">
+                <table className="table" style={{ minWidth: '100%', tableLayout: 'auto' }}>
                   <thead>
                     <tr>
-                      <th>이름</th>
-                      <th>상호</th>
-                      <th>사용자명</th>
-                      <th>전화번호</th>
-                      <th>이메일</th>
-                      <th>추천인</th>
-                      <th>세무사 상호</th>
-                      <th>서비스 동의</th>
-                      <th>관리 사업장</th>
-                      <th>직원 수</th>
-                      <th>상태</th>
-                      <th>등록일</th>
-                      <th>작업</th>
+                      <th style={{ minWidth: '80px' }}>이름</th>
+                      <th style={{ minWidth: '120px' }}>상호</th>
+                      <th style={{ minWidth: '100px' }}>사용자명</th>
+                      <th style={{ minWidth: '110px' }}>전화번호</th>
+                      <th style={{ minWidth: '150px' }}>이메일</th>
+                      <th style={{ minWidth: '80px' }}>추천인</th>
+                      <th style={{ minWidth: '100px' }}>세무사</th>
+                      <th style={{ minWidth: '80px', textAlign: 'center' }}>동의</th>
+                      <th style={{ minWidth: '80px', textAlign: 'center' }}>사업장</th>
+                      <th style={{ minWidth: '70px', textAlign: 'center' }}>직원</th>
+                      <th style={{ minWidth: '70px', textAlign: 'center' }}>상태</th>
+                      <th style={{ minWidth: '100px' }}>등록일</th>
+                      <th style={{ minWidth: '220px', width: '220px' }}>작업</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -756,25 +756,26 @@ const AdminDashboard = () => {
                           </span>
                         </td>
                         <td>{new Date(owner.created_at).toLocaleDateString('ko-KR')}</td>
-                        <td>
+                        <td style={{ minWidth: '220px', whiteSpace: 'nowrap' }}>
                           {owner.approval_status === 'approved' && (
                             <button
                               className="btn btn-sm"
                               style={{
                                 background: '#fee2e2',
                                 color: '#991b1b',
-                                padding: '6px 12px',
-                                border: '1px solid #fecaca'
+                                padding: '5px 10px',
+                                border: '1px solid #fecaca',
+                                fontSize: '13px'
                               }}
                               onClick={() => handleToggleOwnerStatus(owner.id, owner.name)}
                             >
-                              ⏸️ 일시 중지
+                              ⏸️ 중지
                             </button>
                           )}
                           {owner.approval_status === 'suspended' && (
                             <button
                               className="btn btn-sm btn-primary"
-                              style={{ padding: '6px 12px' }}
+                              style={{ padding: '5px 10px', fontSize: '13px' }}
                               onClick={() => handleToggleOwnerStatus(owner.id, owner.name)}
                             >
                               ▶️ 활성화
@@ -785,13 +786,14 @@ const AdminDashboard = () => {
                             style={{
                               background: '#fff1f2',
                               color: '#be123c',
-                              padding: '6px 12px',
+                              padding: '5px 10px',
                               border: '1px solid #fecdd3',
-                              marginLeft: '8px'
+                              marginLeft: '6px',
+                              fontSize: '13px'
                             }}
                             onClick={() => handleDeleteOwner(owner.id, owner.name, owner.role)}
                           >
-                            🗑️ 완전 삭제
+                            🗑️ 삭제
                           </button>
                         </td>
                       </tr>

@@ -4861,16 +4861,28 @@ const OwnerDashboard = () => {
                                   setLoading(true);
                                   const newDeductions = {};
                                   
-                                  for (const emp of salaryData.employees) {
-                                    const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
-                                    const taxType = emp.taxType || '4대보험';
-                                    
-                                    try {
-                                      const response = await salaryAPI.calculateInsurance({
-                                        basePay: totalPay,
-                                        payrollMonth: selectedMonth,
-                                        taxType: taxType
-                                      });
+          for (const emp of salaryData.employees) {
+            const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
+            const taxType = emp.taxType || '4대보험';
+            
+            console.log(`🔍 Step2 자동계산: ${emp.employeeName}`, {
+              totalPay,
+              taxType,
+              hasValue: !!totalPay && totalPay > 0
+            });
+            
+            // 급여액이 없으면 스킵
+            if (!totalPay || totalPay <= 0) {
+              console.warn(`⚠️ ${emp.employeeName}: 급여액 없음, 자동계산 스킵`);
+              continue;
+            }
+            
+            try {
+              const response = await salaryAPI.calculateInsurance({
+                basePay: totalPay,
+                payrollMonth: selectedMonth,
+                taxType: taxType
+              });
                                       
                                       newDeductions[emp.id] = {
                                         basePay: totalPay,
@@ -5188,6 +5200,25 @@ const OwnerDashboard = () => {
                                     if (!updatedDeductions[emp.id] || !updatedDeductions[emp.id].deductions || Object.keys(updatedDeductions[emp.id].deductions).length === 0) {
                                       const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
                                       const taxType = emp.taxType || '4대보험';
+                                      
+                                      console.log(`🔍 ${emp.employeeName} 계산 시작:`, {
+                                        employeeId: emp.employeeId,
+                                        id: emp.id,
+                                        totalPay,
+                                        taxType,
+                                        selectedMonth
+                                      });
+                                      
+                                      // 데이터 검증
+                                      if (!totalPay || totalPay <= 0) {
+                                        console.error(`❌ ${emp.employeeName}: totalPay가 유효하지 않음 (${totalPay})`);
+                                        setToast({ 
+                                          message: `${emp.employeeName}의 급여액이 설정되지 않았습니다. 금액을 입력해주세요.`, 
+                                          type: 'error' 
+                                        });
+                                        setLoading(false);
+                                        return;
+                                      }
                                       
                                       try {
                                         const response = await salaryAPI.calculateInsurance({

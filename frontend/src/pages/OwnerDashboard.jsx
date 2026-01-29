@@ -5409,74 +5409,32 @@ const OwnerDashboard = () => {
                             <h4 style={{ margin: '0 0 12px 0', color: '#0369a1' }}>🎉 데이터 로드 성공!</h4>
                             <p style={{ margin: 0 }}>총 {payrollLedgerData.slips.length}개의 급여명세서가 있습니다.</p>
                           </div>
+
+                          <div style={{ background: '#fff3cd', padding: '12px', marginBottom: '16px', borderRadius: '8px' }}>
+                            <strong>⚠️ 테스트 모드:</strong> 간단한 테이블로 테스트 중입니다.
+                          </div>
+
                           <div style={{ overflowX: 'auto' }}>
-                            <table className="data-table" style={{ fontSize: '12px' }}>
-                            <thead>
-                              <tr>
-                                <th rowSpan="2">직원명</th>
-                                <th rowSpan="2">인건비구분</th>
-                                <th rowSpan="2">기본급</th>
-                                <th colSpan="4">근로자 부담금</th>
-                                <th colSpan="2">세금</th>
-                                <th rowSpan="2">공제합계</th>
-                                <th rowSpan="2">실수령액</th>
-                                <th colSpan="4">사업주 부담금</th>
-                                <th rowSpan="2">사업주 부담금 합계</th>
-                                <th rowSpan="2">지급일</th>
-                              </tr>
-                              <tr>
-                                <th>국민연금</th>
-                                <th>건강보험</th>
-                                <th>고용보험</th>
-                                <th>장기요양</th>
-                                <th>소득세</th>
-                                <th>지방세</th>
-                                <th>국민연금</th>
-                                <th>건강보험</th>
-                                <th>고용보험</th>
-                                <th>장기요양</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {payrollLedgerData.slips.map((slip) => (
-                                <tr key={slip.id}>
-                                  <td>{slip.employee_name}</td>
-                                  <td>{slip.tax_type}</td>
-                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.base_pay).toLocaleString()}원</td>
-                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.national_pension || 0).toLocaleString()}원</td>
-                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.health_insurance || 0).toLocaleString()}원</td>
-                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.employment_insurance || 0).toLocaleString()}원</td>
-                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.long_term_care || 0).toLocaleString()}원</td>
-                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.income_tax || 0).toLocaleString()}원</td>
-                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.local_income_tax || 0).toLocaleString()}원</td>
-                                  <td style={{ textAlign: 'right' }}>{parseInt(slip.total_deductions || 0).toLocaleString()}원</td>
-                                  <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{parseInt(slip.net_pay || 0).toLocaleString()}원</td>
-                                  <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(slip.employer_national_pension || 0).toLocaleString()}원</td>
-                                  <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(slip.employer_health_insurance || 0).toLocaleString()}원</td>
-                                  <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(slip.employer_employment_insurance || 0).toLocaleString()}원</td>
-                                  <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(slip.employer_long_term_care || 0).toLocaleString()}원</td>
-                                  <td style={{ textAlign: 'right', background: '#fef3c7', fontWeight: 'bold' }}>{parseInt(slip.total_employer_burden || 0).toLocaleString()}원</td>
-                                  <td>{slip.pay_date ? new Date(slip.pay_date).toLocaleDateString('ko-KR') : '-'}</td>
+                            <table className="data-table">
+                              <thead>
+                                <tr>
+                                  <th>직원명</th>
+                                  <th>구분</th>
+                                  <th>기본급</th>
+                                  <th>실수령액</th>
+                                  <th>지급일</th>
                                 </tr>
-                              ))}
-                              <tr style={{ background: '#f3f4f6', fontWeight: 'bold' }}>
-                                <td colSpan="2">합계</td>
-                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_base_pay).toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_national_pension).toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_health_insurance).toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_employment_insurance).toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_long_term_care).toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_income_tax).toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_local_income_tax).toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_deductions).toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right' }}>{parseInt(payrollLedgerData.totals.total_net_pay).toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(payrollLedgerData.totals.total_employer_national_pension).toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(payrollLedgerData.totals.total_employer_health_insurance).toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(payrollLedgerData.totals.total_employer_employment_insurance).toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(payrollLedgerData.totals.total_employer_long_term_care).toLocaleString()}원</td>
-                                <td style={{ textAlign: 'right', background: '#fef3c7' }}>{parseInt(payrollLedgerData.totals.total_employer_burden).toLocaleString()}원</td>
-                                <td>-</td>
-                              </tr>
+                              </thead>
+                              <tbody>
+                                {payrollLedgerData.slips.map((slip, index) => (
+                                  <tr key={index}>
+                                    <td>{slip.employee_name || '이름없음'}</td>
+                                    <td>{slip.tax_type || '-'}</td>
+                                    <td style={{ textAlign: 'right' }}>{Number(slip.base_pay || 0).toLocaleString()}원</td>
+                                    <td style={{ textAlign: 'right' }}>{Number(slip.net_pay || 0).toLocaleString()}원</td>
+                                    <td>{slip.pay_date || '-'}</td>
+                                  </tr>
+                                ))}
                               </tbody>
                             </table>
                           </div>

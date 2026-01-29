@@ -111,6 +111,7 @@ const OwnerDashboard = () => {
   const [pushLoading, setPushLoading] = useState(false);
   const [pushPublicKeyReady, setPushPublicKeyReady] = useState(true);
   const [qrCollapsed, setQrCollapsed] = useState(true);
+  const [payrollLedgerCollapsed, setPayrollLedgerCollapsed] = useState(false); // 급여대장은 초기에 펼쳐져 있음
   const [currentAnnouncement, setCurrentAnnouncement] = useState(null);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [workplaceForm, setWorkplaceForm] = useState({
@@ -2210,7 +2211,7 @@ const OwnerDashboard = () => {
                 onClick={() => setActiveTab('salary')}
                 style={{ fontSize: '16px', fontWeight: '700' }}
               >
-                💸 급여 보내기
+                💸 급여명세서 보내기
               </button>
               <button
                 className={`nav-tab ${activeTab === 'roster' ? 'active' : ''}`}
@@ -4086,7 +4087,7 @@ const OwnerDashboard = () => {
                       </div>
                       <div style={{
                         display: 'grid',
-                        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+                        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(2, 1fr)',
                         gap: isMobile ? '12px' : '16px'
                       }}>
                         {/* 총 인건비 */}
@@ -4095,8 +4096,7 @@ const OwnerDashboard = () => {
                           borderRadius: '12px',
                           padding: isMobile ? '16px' : '20px',
                           textAlign: 'center',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                          gridColumn: isMobile ? 'span 2' : 'span 1'
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                         }}>
                           <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>💸 총 인건비</div>
                           <div style={{ fontSize: isMobile ? '24px' : '28px', fontWeight: '700', color: '#667eea' }}>
@@ -4104,20 +4104,6 @@ const OwnerDashboard = () => {
                           </div>
                           <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
                             {employees.length}명
-                          </div>
-                        </div>
-                        
-                        {/* 지급 완료 */}
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.95)',
-                          borderRadius: '12px',
-                          padding: isMobile ? '16px' : '20px',
-                          textAlign: 'center',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-                        }}>
-                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>✓ 지급 완료</div>
-                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: '#059669' }}>
-                            {published.length}
                           </div>
                         </div>
 
@@ -4135,23 +4121,6 @@ const OwnerDashboard = () => {
                           </div>
                           <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: notConfirmed.length > 0 ? '#fff' : '#6b7280' }}>
                             {notConfirmed.length}
-                          </div>
-                        </div>
-
-                        {/* 미지급 - 강조 */}
-                        <div style={{
-                          background: notPublished.length > 0 ? 'rgba(239, 68, 68, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-                          borderRadius: '12px',
-                          padding: isMobile ? '16px' : '20px',
-                          textAlign: 'center',
-                          boxShadow: notPublished.length > 0 ? '0 4px 12px rgba(239, 68, 68, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
-                          border: notPublished.length > 0 ? '2px solid #dc2626' : 'none'
-                        }}>
-                          <div style={{ fontSize: '12px', color: notPublished.length > 0 ? '#fff' : '#6b7280', marginBottom: '8px', fontWeight: '600' }}>
-                            📤 미지급
-                          </div>
-                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: notPublished.length > 0 ? '#fff' : '#6b7280' }}>
-                            {notPublished.length}
                           </div>
                         </div>
                       </div>
@@ -4207,33 +4176,6 @@ const OwnerDashboard = () => {
                       {salaryFlowStep === 3 && '✅ 급여 확정'}
                       {salaryFlowStep === 4 && '📤 급여명세서 발송'}
                     </h3>
-
-                    {/* 월 선택 (월별 보기일 때만) */}
-                    {salaryViewMode === 'month' && (
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ 
-                          display: 'block', 
-                          fontSize: '14px', 
-                          fontWeight: '600', 
-                          color: '#374151',
-                          marginBottom: '8px' 
-                        }}>
-                          📅 급여 계산 월
-                        </label>
-                        <input
-                          type="month"
-                          className="form-input"
-                          value={selectedMonth}
-                          onChange={(e) => setSelectedMonth(e.target.value)}
-                          style={{ width: '100%' }}
-                        />
-                        {salaryPeriodRange && (
-                          <div style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
-                            급여 기간: {salaryPeriodRange.startDate} ~ {salaryPeriodRange.endDate}
-                          </div>
-                        )}
-                      </div>
-                    )}
 
                     {/* Step별 컨텐츠 */}
                     {salaryData ? (
@@ -5366,16 +5308,14 @@ const OwnerDashboard = () => {
                       className="btn btn-secondary"
                       style={{ fontSize: '14px', padding: '6px 16px' }}
                       onClick={() => {
-                        const newCollapsed = !qrCollapsed;
-                        setQrCollapsed(newCollapsed);
-                        // qrCollapsed를 ledger collapsed 상태로 사용
+                        setPayrollLedgerCollapsed(!payrollLedgerCollapsed);
                       }}
                     >
-                      {qrCollapsed ? '▼ 펼치기' : '▲ 접기'}
+                      {payrollLedgerCollapsed ? '▼ 펼치기' : '▲ 접기'}
                     </button>
                   </div>
 
-                  {!qrCollapsed && (
+                  {!payrollLedgerCollapsed && (
                     <>
                       <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                         <input

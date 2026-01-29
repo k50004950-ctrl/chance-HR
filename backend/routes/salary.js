@@ -1181,16 +1181,22 @@ router.get('/payroll-ledger/:workplaceId/:payrollMonth', authenticate, async (re
       return res.status(403).json({ message: '권한이 없습니다.' });
     }
 
-    // 해당 월의 모든 급여명세서 조회 (확정된 급여 포함)
+    // 해당 월의 모든 급여명세서 조회 (확정된 급여 포함, 퇴사자 필터링)
     const slips = await query(
       `SELECT 
         ss.*,
         u.name as employee_name,
         u.username as employee_username,
+        ed.resignation_date,
         'slip' as source
       FROM salary_slips ss
       JOIN users u ON ss.user_id = u.id
+      LEFT JOIN employee_details ed ON u.id = ed.user_id
       WHERE ss.workplace_id = ? AND ss.payroll_month = ?
+      AND (
+        ed.resignation_date IS NULL 
+        OR ed.resignation_date >= (ss.payroll_month || '-01')::date
+      )
       
       UNION ALL
       
@@ -1218,10 +1224,16 @@ router.get('/payroll-ledger/:workplaceId/:payrollMonth', authenticate, async (re
         pf.created_at,
         u.name as employee_name,
         u.username as employee_username,
+        ed.resignation_date,
         'finalized' as source
       FROM payroll_finalized pf
       JOIN users u ON pf.employee_id = u.id
+      LEFT JOIN employee_details ed ON u.id = ed.user_id
       WHERE pf.workplace_id = ? AND pf.payroll_month = ?
+      AND (
+        ed.resignation_date IS NULL 
+        OR ed.resignation_date >= (pf.payroll_month || '-01')::date
+      )
       AND NOT EXISTS (
         SELECT 1 FROM salary_slips ss2 
         WHERE ss2.workplace_id = pf.workplace_id 

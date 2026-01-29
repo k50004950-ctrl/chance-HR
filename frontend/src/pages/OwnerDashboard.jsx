@@ -5399,25 +5399,11 @@ const OwnerDashboard = () => {
                         </button>
                       </div>
 
-                      {/* 렌더링 테스트 */}
-                      {(() => {
-                        if (!payrollLedgerData || !payrollLedgerData.slips) {
-                          return (
-                            <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
-                              월을 선택하고 조회 버튼을 클릭하세요.
-                            </p>
-                          );
-                        }
+                      <div style={{ background: '#dcfce7', padding: '8px', marginBottom: '12px', fontSize: '12px', borderRadius: '4px', color: '#166534' }}>
+                        ✅ 코드 버전: v4 (2026-01-29 18:00) - 새 코드 로드됨
+                      </div>
 
-                        if (payrollLedgerData.slips.length === 0) {
-                          return (
-                            <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
-                              해당 월에 배포된 급여명세서가 없습니다.
-                            </p>
-                          );
-                        }
-
-                        return (
+                      {payrollLedgerData && payrollLedgerData.slips && payrollLedgerData.slips.length > 0 && (
                           <div style={{ overflowX: 'auto' }}>
                             <table className="data-table" style={{ fontSize: '12px' }}>
                             <thead>
@@ -5489,8 +5475,13 @@ const OwnerDashboard = () => {
                               </tbody>
                             </table>
                           </div>
-                        );
-                      })()}
+                      )}
+
+                      {(!payrollLedgerData || !payrollLedgerData.slips || payrollLedgerData.slips.length === 0) && (
+                        <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
+                          {!payrollLedgerData ? '월을 선택하고 조회 버튼을 클릭하세요.' : '해당 월에 배포된 급여명세서가 없습니다.'}
+                        </p>
+                      )}
                     </>
                   )}
                 </div>

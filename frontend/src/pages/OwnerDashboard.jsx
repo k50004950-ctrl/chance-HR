@@ -2231,7 +2231,7 @@ const OwnerDashboard = () => {
                 onClick={() => setActiveTab('salary')}
                 style={{ fontSize: '16px', fontWeight: '700' }}
               >
-                💸 급여명세서 보내기
+                📋 급여명세서 관리
               </button>
               <button
                 className={`nav-tab ${activeTab === 'roster' ? 'active' : ''}`}
@@ -2251,6 +2251,24 @@ const OwnerDashboard = () => {
                   ⚙️ 설정
                 </button>
               </div>
+
+              {/* 급여명세서 메뉴 */}
+              <button
+                className={`nav-tab ${activeTab === 'salary-slips' ? 'active' : ''}`}
+                onClick={() => setActiveTab('salary-slips')}
+                style={{ fontSize: '16px', fontWeight: '700' }}
+              >
+                📄 급여명세서
+              </button>
+
+              {/* 퇴직금 계산 메뉴 */}
+              <button
+                className={`nav-tab ${activeTab === 'severance' ? 'active' : ''}`}
+                onClick={() => setActiveTab('severance')}
+                style={{ fontSize: '16px', fontWeight: '700' }}
+              >
+                🧮 퇴직금 계산
+              </button>
             </div>}
 
             {activeTab === 'calendar' && (
@@ -4705,20 +4723,6 @@ const OwnerDashboard = () => {
                     {salaryFlowStep === 4 && 'Step 4. 급여명세서 발송'}
                   </h3>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => setActiveTab('salary-slips')}
-                      style={{ fontSize: '14px', padding: '8px 16px' }}
-                    >
-                      📝 급여명세서
-                    </button>
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => setActiveTab('severance')}
-                      style={{ fontSize: '14px', padding: '8px 16px' }}
-                    >
-                      🧮 퇴직금 계산
-                    </button>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <button
                         className={`btn ${salaryViewMode === 'month' ? 'btn-primary' : 'btn-secondary'}`}

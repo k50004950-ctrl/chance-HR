@@ -207,6 +207,16 @@ const OwnerDashboard = () => {
       loadCommunityPosts();
     } else if (activeTab === 'dashboard' && selectedWorkplace) {
       loadDashboardData();
+      
+      // 대시보드 자동 새로고침 (30초마다)
+      const refreshInterval = setInterval(() => {
+        console.log('🔄 대시보드 데이터 자동 새로고침');
+        loadDashboardData();
+      }, 30000); // 30초
+      
+      return () => {
+        clearInterval(refreshInterval);
+      };
     }
   }, [activeTab, selectedWorkplace]);
 
@@ -444,6 +454,16 @@ const OwnerDashboard = () => {
       loadEmployees();
       if (activeTab === 'attendance' || activeTab === 'calendar') {
         loadAttendance();
+        
+        // 출근 탭 자동 새로고침 (30초마다)
+        const attendanceRefreshInterval = setInterval(() => {
+          console.log('🔄 출근 데이터 자동 새로고침');
+          loadAttendance();
+        }, 30000); // 30초
+        
+        return () => {
+          clearInterval(attendanceRefreshInterval);
+        };
       }
       if (activeTab === 'salary' || activeTab === 'severance') {
         loadSalary();

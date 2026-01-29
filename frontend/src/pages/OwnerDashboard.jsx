@@ -2144,6 +2144,7 @@ const OwnerDashboard = () => {
                  activeTab === 'calendar' ? '출근 달력' :
                  activeTab === 'severance' ? '퇴직금 계산' :
                  activeTab === 'past-employees' ? '서류 보관함' :
+                 activeTab === 'matching' ? '매칭 요청' :
                  activeTab === 'community' ? '소통방' :
                  activeTab === 'settings' ? '설정' : '더보기'}
               </h2>
@@ -8879,13 +8880,16 @@ const OwnerDashboard = () => {
             <div className="mobile-nav-label">직원</div>
           </button>
 
-          <button
-            className="mobile-nav-item"
-            onClick={() => navigate('/notifications')}
-          >
-            <div className="mobile-nav-icon">🔔</div>
-            <div className="mobile-nav-label">알림</div>
-          </button>
+          {/* V2: 매칭 요청 (사업주가 company를 가지고 있을 때만 표시) */}
+          {ownerCompanyId && (
+            <button
+              className={`mobile-nav-item ${activeTab === 'matching' ? 'active' : ''}`}
+              onClick={() => handleTabChange('matching')}
+            >
+              <div className="mobile-nav-icon">🔔</div>
+              <div className="mobile-nav-label">매칭</div>
+            </button>
+          )}
 
           <button
             className={`mobile-nav-item ${activeTab === 'settings' ? 'active' : ''}`}

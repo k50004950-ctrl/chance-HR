@@ -1548,20 +1548,17 @@ router.post('/finalize', authenticate, async (req, res) => {
       return res.status(404).json({ message: '적용 가능한 요율을 찾을 수 없습니다.' });
     }
     
-    // 트랜잭션으로 모든 직원의 급여 확정 스냅샷 저장
-    const conn = await db;
-    await conn.run('BEGIN TRANSACTION');
-    
+    // 모든 직원의 급여 확정 스냅샷 저장
     try {
       for (const emp of employees) {
         // 기존 확정 데이터가 있으면 삭제 (재확정)
-        await conn.run(`
+        await run(`
           DELETE FROM payroll_finalized 
           WHERE workplace_id = ? AND payroll_month = ? AND employee_id = ?
         `, [workplaceId, payrollMonth, emp.employeeId]);
         
         // 스냅샷 저장
-        await conn.run(`
+        await run(`
           INSERT INTO payroll_finalized (
             workplace_id, payroll_month, employee_id,
             applied_effective_yyyymm, applied_rates_json,
@@ -1592,16 +1589,14 @@ router.post('/finalize', authenticate, async (req, res) => {
         ]);
       }
       
-      await conn.run('COMMIT');
-      
       res.json({ 
         message: '급여가 확정되었습니다.', 
         appliedRateMonth: rates.effective_yyyymm,
         finalizedCount: employees.length
       });
-    } catch (error) {
-      await conn.run('ROLLBACK');
-      throw error;
+    } catch (innerError) {
+      console.error('급여 확정 저장 오류:', innerError);
+      throw innerError;
     }
   } catch (error) {
     console.error('급여 확정 오류:', error);

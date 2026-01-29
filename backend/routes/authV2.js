@@ -125,7 +125,25 @@ router.post('/signup', async (req, res) => {
           [companyId, userId]
         );
 
-        console.log(`✅ 사업주 회원가입 완료: ${username} (company_id: ${companyId})`);
+        // 🏢 기본 사업장(workplace) 자동 생성
+        const workplaceResult = await run(
+          `INSERT INTO workplaces (
+            owner_id, company_id, name, business_number, address, phone, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+          [userId, companyId, name + '의 사업장', business_number, '', phone]
+        );
+        
+        const workplaceId = workplaceResult.lastID;
+        console.log(`🏢 기본 사업장 생성: workplace_id ${workplaceId}`);
+
+        // users 테이블에 workplace_id 연결
+        await run(
+          `UPDATE users SET workplace_id = ? WHERE id = ?`,
+          [workplaceId, userId]
+        );
+        console.log(`🔗 사용자와 사업장 연결 완료`);
+
+        console.log(`✅ 사업주 회원가입 완료: ${username} (company_id: ${companyId}, workplace_id: ${workplaceId})`);
       } catch (companyError) {
         console.error('회사 등록 오류:', companyError);
         // 회사 등록 실패해도 사용자 계정은 생성되었으므로 계속 진행

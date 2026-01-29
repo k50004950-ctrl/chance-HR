@@ -560,4 +560,85 @@ router.post('/create-test-workers', authenticate, async (req, res) => {
   }
 });
 
+// 총관리자 전용: 계정 완전 삭제
+router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // 자기 자신은 삭제 불가
+    if (parseInt(userId) === req.user.id) {
+      return res.status(400).json({ message: '자신의 계정은 삭제할 수 없습니다.' });
+    }
+
+    // 삭제할 사용자 확인
+    const userToDelete = await get('SELECT * FROM users WHERE id = ?', [userId]);
+    
+    if (!userToDelete) {
+      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    // 관련된 모든 데이터 삭제 (순서 중요: 외래키 제약조건 고려)
+    console.log(`🗑️ 사용자 삭제 시작: ${userToDelete.username} (ID: ${userId})`);
+
+    // 1. 출퇴근 기록 삭제
+    await run('DELETE FROM attendance WHERE user_id = ?', [userId]);
+    console.log('  ✅ 출퇴근 기록 삭제 완료');
+
+    // 2. 급여 정보 삭제
+    await run('DELETE FROM salary_info WHERE user_id = ?', [userId]);
+    console.log('  ✅ 급여 정보 삭제 완료');
+
+    // 3. 급여 명세서 삭제
+    await run('DELETE FROM salary_slips WHERE user_id = ?', [userId]);
+    console.log('  ✅ 급여 명세서 삭제 완료');
+
+    // 4. 확정된 급여 기록 삭제
+    await run('DELETE FROM payroll_finalized WHERE employee_id = ?', [userId]);
+    console.log('  ✅ 확정 급여 기록 삭제 완료');
+
+    // 5. 직원 상세정보 삭제
+    await run('DELETE FROM employee_details WHERE user_id = ?', [userId]);
+    console.log('  ✅ 직원 상세정보 삭제 완료');
+
+    // 6. 공지사항 읽음 상태 삭제
+    await run('DELETE FROM user_announcements WHERE user_id = ?', [userId]);
+    console.log('  ✅ 공지사항 읽음 상태 삭제 완료');
+
+    // 7. 작성한 공지사항 삭제 (사업주/관리자인 경우)
+    await run('DELETE FROM announcements WHERE created_by = ?', [userId]);
+    console.log('  ✅ 작성한 공지사항 삭제 완료');
+
+    // 8. 소유한 사업장 삭제 (사업주인 경우)
+    if (userToDelete.role === 'owner') {
+      const workplaces = await query('SELECT id FROM workplaces WHERE owner_id = ?', [userId]);
+      for (const workplace of workplaces) {
+        // 사업장 소속 직원들의 workplace_id를 NULL로 설정
+        await run('UPDATE users SET workplace_id = NULL WHERE workplace_id = ?', [workplace.id]);
+        // 사업장 삭제
+        await run('DELETE FROM workplaces WHERE id = ?', [workplace.id]);
+      }
+      console.log('  ✅ 소유 사업장 삭제 완료');
+    }
+
+    // 9. 사용자 계정 삭제
+    await run('DELETE FROM users WHERE id = ?', [userId]);
+    console.log('  ✅ 사용자 계정 삭제 완료');
+
+    console.log(`🎉 사용자 삭제 완료: ${userToDelete.username}`);
+
+    res.json({ 
+      message: '사용자가 완전히 삭제되었습니다.',
+      deletedUser: {
+        id: userToDelete.id,
+        username: userToDelete.username,
+        name: userToDelete.name,
+        role: userToDelete.role
+      }
+    });
+  } catch (error) {
+    console.error('사용자 삭제 오류:', error);
+    res.status(500).json({ message: '사용자 삭제 중 오류가 발생했습니다.' });
+  }
+});
+
 export default router;

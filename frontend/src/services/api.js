@@ -49,6 +49,7 @@ export const authAPI = {
   approveOwner: (id, action) => api.post(`/auth/approve-owner/${id}`, { action }),
   toggleOwnerStatus: (id) => api.put(`/auth/owners/${id}/toggle-status`),
   deleteOwner: (id) => api.delete(`/auth/owners/${id}`),
+  deleteUser: (id) => api.delete(`/auth/delete-user/${id}`),
   changePassword: (data) => api.put('/auth/change-password', data),
   resetPassword: (data) => api.put('/auth/reset-password', data),
   createTestWorkers: () => api.post('/auth/create-test-workers')

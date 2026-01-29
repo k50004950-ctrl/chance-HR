@@ -85,19 +85,27 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleDeleteOwner = async (ownerId, ownerName) => {
-    if (!window.confirm(`${ownerName} 사업주 계정을 삭제하면 해당 사업장의 직원/급여/출퇴근 데이터가 모두 삭제됩니다.\n정말 삭제하시겠습니까?`)) {
+  const handleDeleteOwner = async (ownerId, ownerName, ownerRole = '사업주') => {
+    const roleText = ownerRole === 'employee' ? '직원' : 
+                     ownerRole === 'owner' ? '사업주' : '사용자';
+    
+    if (!window.confirm(`⚠️ ${ownerName} ${roleText} 계정을 완전히 삭제하시겠습니까?\n\n다음 데이터가 모두 삭제됩니다:\n- 출퇴근 기록\n- 급여 정보\n- 급여 명세서\n- 직원 상세정보\n${ownerRole === 'owner' ? '- 소유한 사업장 및 모든 직원 데이터\n' : ''}\n⚠️ 이 작업은 되돌릴 수 없습니다!`)) {
+      return;
+    }
+
+    // 추가 확인
+    if (!window.confirm(`정말로 "${ownerName}" 계정을 삭제하시겠습니까?\n마지막 확인입니다.`)) {
       return;
     }
 
     try {
-      const response = await authAPI.deleteOwner(ownerId);
-      setMessage({ type: 'success', text: response.data.message });
+      const response = await authAPI.deleteUser(ownerId);
+      setMessage({ type: 'success', text: response.data.message || '계정이 완전히 삭제되었습니다.' });
       loadOwners();
       loadWorkplaces();
     } catch (error) {
-      console.error('사업주 삭제 오류:', error);
-      setMessage({ type: 'error', text: error.response?.data?.message || '사업주 삭제 중 오류가 발생했습니다.' });
+      console.error('계정 삭제 오류:', error);
+      setMessage({ type: 'error', text: error.response?.data?.message || '계정 삭제 중 오류가 발생했습니다.' });
     }
   };
 
@@ -781,9 +789,9 @@ const AdminDashboard = () => {
                               border: '1px solid #fecdd3',
                               marginLeft: '8px'
                             }}
-                            onClick={() => handleDeleteOwner(owner.id, owner.name)}
+                            onClick={() => handleDeleteOwner(owner.id, owner.name, owner.role)}
                           >
-                            🗑️ 삭제
+                            🗑️ 완전 삭제
                           </button>
                         </td>
                       </tr>

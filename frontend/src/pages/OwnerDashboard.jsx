@@ -447,6 +447,14 @@ const OwnerDashboard = () => {
       }
       if (activeTab === 'salary' || activeTab === 'severance') {
         loadSalary();
+        // 급여 탭에서 사업장의 모든 급여명세서 로드
+        salaryAPI.getWorkplaceSlips(selectedWorkplace, { month: selectedMonth })
+          .then(response => {
+            if (response && response.data) {
+              setEmployeeSlips(response.data);
+            }
+          })
+          .catch(error => console.error('급여명세서 로드 오류:', error));
       }
       if (activeTab === 'past-employees') {
         loadPastEmployees();
@@ -538,7 +546,19 @@ const OwnerDashboard = () => {
   useEffect(() => {
     const loadCurrentMonthLedger = async () => {
       if (activeTab === 'salary-slips' && selectedWorkplace && payrollLedgerMonth) {
-        setQrCollapsed(false); // 탭 진입 시 항상 펼치기
+        console.log('급여대장 자동 로드:', { workplaceId: selectedWorkplace, payrollMonth: payrollLedgerMonth });
+        setPayrollLedgerCollapsed(false); // 탭 진입 시 항상 펼치기
+        
+        // payrollMonth 형식 검증
+        if (!/^\d{4}-\d{2}$/.test(payrollLedgerMonth)) {
+          console.error('잘못된 급여월 형식:', payrollLedgerMonth);
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          setPayrollLedgerMonth(`${year}-${month}`);
+          return;
+        }
+        
         try {
           setLoading(true);
           const response = await salaryAPI.getPayrollLedger(selectedWorkplace, payrollLedgerMonth);
@@ -4043,12 +4063,17 @@ const OwnerDashboard = () => {
                 {salaryData && (() => {
                   const totalSalary = salaryData.totalSalary || 0;
                   const employees = salaryData.employees || [];
-                  const confirmed = employees.filter(emp => {
-                    // 확정된 직원: 자동계산 결과가 있거나 수정된 급여가 있음
-                    return salaryDeductions[emp.employeeId] || editedSalaries[emp.employeeId];
-                  });
+                  
+                  // 미확정 직원: salary_slips에 데이터가 없는 직원
                   const notConfirmed = employees.filter(emp => {
-                    return !salaryDeductions[emp.employeeId] && !editedSalaries[emp.employeeId];
+                    // salary_slips에 해당 월 급여명세서가 있는지 확인
+                    const hasSlip = employeeSlips.some(slip => 
+                      slip.user_id === emp.employeeId && 
+                      slip.payroll_month === selectedMonth
+                    );
+                    
+                    // 급여명세서가 없으면 미확정
+                    return !hasSlip;
                   });
                   // 실제 DB에 급여명세서가 발송된 직원 수 (employeeSlips 사용)
                   const published = employeeSlips.filter(slip => 
@@ -5269,10 +5294,33 @@ const OwnerDashboard = () => {
                                   setSalaryFlowStep(4);
                                   setShowConfirmWarning(false);
                                   setToast({ 
-                                    message: `✓ 급여가 확정되었습니다.`, 
+                                    message: `✓ 급여가 확정되었습니다. (${employees.length}명)`, 
                                     type: 'success' 
                                   });
-                                  loadSalary();
+                                  
+                                  // 급여 데이터 리로드
+                                  await loadSalary();
+                                  
+                                  // 사업장의 모든 급여명세서 리로드 (미확정 숫자 업데이트용)
+                                  try {
+                                    const slipsResponse = await salaryAPI.getWorkplaceSlips(selectedWorkplace, { month: selectedMonth });
+                                    if (slipsResponse && slipsResponse.data) {
+                                      setEmployeeSlips(slipsResponse.data);
+                                      console.log(`✅ 급여명세서 ${slipsResponse.data.length}개 로드됨`);
+                                    }
+                                  } catch (slipError) {
+                                    console.error('급여명세서 리로드 오류:', slipError);
+                                  }
+                                  
+                                  // 급여대장도 리로드
+                                  if (payrollLedgerMonth === selectedMonth) {
+                                    try {
+                                      const ledgerResponse = await salaryAPI.getPayrollLedger(selectedWorkplace, payrollLedgerMonth);
+                                      setPayrollLedgerData(ledgerResponse.data);
+                                    } catch (ledgerError) {
+                                      console.error('급여대장 리로드 오류:', ledgerError);
+                                    }
+                                  }
                                 } catch (error) {
                                   console.error('급여 확정 오류:', error);
                                   setToast({ 

@@ -739,6 +739,39 @@ router.get('/slips/my', authenticate, async (req, res) => {
   }
 });
 
+// 사업주: 사업장의 모든 급여명세서 조회
+router.get('/slips/workplace/:workplaceId', authenticate, async (req, res) => {
+  try {
+    const { workplaceId } = req.params;
+    const { month } = req.query;
+
+    // 사업주 권한 확인
+    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    // 사업주의 사업장 확인
+    const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, req.user.id]);
+    if (!workplace) {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const params = [workplaceId];
+    let sql = 'SELECT * FROM salary_slips WHERE workplace_id = ?';
+    if (month) {
+      sql += ' AND payroll_month = ?';
+      params.push(month);
+    }
+    sql += ' ORDER BY payroll_month DESC, pay_date DESC';
+
+    const slips = await query(sql, params);
+    res.json(slips);
+  } catch (error) {
+    console.error('사업장 급여명세서 조회 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 // 사업주: 특정 직원의 급여명세서 조회
 router.get('/slips/employee/:userId', authenticate, async (req, res) => {
   try {

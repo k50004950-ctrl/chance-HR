@@ -132,6 +132,7 @@ export const salaryAPI = {
   calculateTax: (basePay, dependentsCount) => api.post('/salary/calculate-tax', { basePay, dependentsCount }),
   importLedger: (data) => api.post('/salary/ledger/import', data),
   getMySlips: (params) => api.get('/salary/slips/my', { params }),
+  getWorkplaceSlips: (workplaceId, params) => api.get(`/salary/slips/workplace/${workplaceId}`, { params }),
   getEmployeeSlips: (userId, params) => api.get(`/salary/slips/employee/${userId}`, { params }),
   createSlip: (data) => api.post('/salary/slips', data),
   updateSlip: (id, data) => api.put(`/salary/slips/${id}`, data),

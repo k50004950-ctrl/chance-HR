@@ -199,17 +199,75 @@ function LoginV2() {
           </button>
         </form>
 
-        {/* 회원가입 링크 */}
-        <div style={{ marginTop: '24px', textAlign: 'center' }}>
-          <p style={{ color: '#666', fontSize: '14px' }}>
-            아직 계정이 없으신가요?{' '}
-            <span
-              onClick={() => navigate('/signup-v2')}
-              style={{ color: '#667eea', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}
-            >
-              회원가입
-            </span>
+        {/* 회원가입 구분 */}
+        <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e0e0e0' }}>
+          <p style={{ textAlign: 'center', marginBottom: '12px', color: '#666', fontSize: '14px', fontWeight: '600' }}>
+            아직 계정이 없으신가요?
           </p>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            <button
+              onClick={() => navigate('/signup-v2', { state: { defaultRole: 'owner' } })}
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '15px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 10px 20px rgba(102, 126, 234, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = 'none';
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>💼</span>
+              <span>사업주 회원가입</span>
+            </button>
+            <button
+              onClick={() => navigate('/signup-v2', { state: { defaultRole: 'employee' } })}
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: 'white',
+                color: '#667eea',
+                border: '2px solid #667eea',
+                borderRadius: '8px',
+                fontSize: '15px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#f0f4ff';
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 10px 20px rgba(102, 126, 234, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'white';
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = 'none';
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>👷</span>
+              <span>근로자 회원가입</span>
+            </button>
+          </div>
         </div>
 
         {/* 기존 시스템 링크 */}

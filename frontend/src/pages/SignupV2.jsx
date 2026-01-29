@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '../services/api';
 import Toast from '../components/Toast';
 
 function SignupV2() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [loading, setLoading] = useState(false);
+
+  // 로그인 페이지에서 전달받은 역할 또는 기본값
+  const defaultRole = location.state?.defaultRole || 'employee';
 
   const [formData, setFormData] = useState({
     username: '',
@@ -14,7 +18,7 @@ function SignupV2() {
     confirmPassword: '',
     name: '',
     phone: '',
-    role: 'employee',  // 기본값: 근로자
+    role: defaultRole,  // 로그인 페이지에서 선택한 역할 또는 기본값
     business_number: ''
   });
 

@@ -99,19 +99,76 @@ const Login = () => {
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: '20px', color: '#6b7280', fontSize: '14px' }}>
-          사업장을 운영하시나요?{' '}
-          <a 
-            href="/signup" 
-            style={{ color: '#667eea', textDecoration: 'none', fontWeight: '600' }}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/signup');
-            }}
-          >
-            회원가입
-          </a>
-        </p>
+        {/* 회원가입 구분 */}
+        <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e5e7eb' }}>
+          <p style={{ textAlign: 'center', marginBottom: '12px', color: '#6b7280', fontSize: '14px', fontWeight: '600' }}>
+            아직 계정이 없으신가요?
+          </p>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            <button
+              onClick={() => navigate('/signup-v2')}
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '15px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 10px 20px rgba(102, 126, 234, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = 'none';
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>💼</span>
+              <span>사업주 회원가입</span>
+            </button>
+            <button
+              onClick={() => navigate('/signup-v2')}
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: 'white',
+                color: '#667eea',
+                border: '2px solid #667eea',
+                borderRadius: '8px',
+                fontSize: '15px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#f0f4ff';
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 10px 20px rgba(102, 126, 234, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'white';
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = 'none';
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>👷</span>
+              <span>근로자 회원가입</span>
+            </button>
+          </div>
+        </div>
 
         <div style={{
           marginTop: '24px',

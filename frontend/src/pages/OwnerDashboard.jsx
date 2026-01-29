@@ -5296,13 +5296,13 @@ const OwnerDashboard = () => {
                                   console.log(`✅ ${employees.length}명의 급여 확정 준비 완료`);
                                   
                                   console.log('📤 급여 확정 요청:', {
-                                    workplaceId: selectedWorkplace?.workplaceId,
+                                    workplaceId: selectedWorkplace,
                                     payrollMonth: selectedMonth,
                                     employeesCount: employees.length
                                   });
                                   
                                   const response = await salaryAPI.finalize({
-                                    workplaceId: selectedWorkplace?.workplaceId,
+                                    workplaceId: selectedWorkplace,
                                     payrollMonth: selectedMonth,
                                     employees: employees,
                                     appliedEffectiveYyyymm: selectedMonth?.replace('-', ''),

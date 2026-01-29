@@ -106,7 +106,7 @@ const Login = () => {
           </p>
           <div style={{ display: 'grid', gap: '12px' }}>
             <button
-              onClick={() => navigate('/signup-v2')}
+              onClick={() => navigate('/signup-v2?role=owner')}
               style={{
                 width: '100%',
                 padding: '14px',
@@ -136,7 +136,7 @@ const Login = () => {
               <span>사업주 회원가입</span>
             </button>
             <button
-              onClick={() => navigate('/signup-v2')}
+              onClick={() => navigate('/signup-v2?role=employee')}
               style={{
                 width: '100%',
                 padding: '14px',

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
-import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI, pushAPI, announcementsAPI, communityAPI } from '../services/api';
+import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI, pushAPI, announcementsAPI, communityAPI, apiClient } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
 import ConsentInfo from '../components/ConsentInfo';
@@ -13,6 +13,7 @@ import DashboardSummaryCards from '../components/DashboardSummaryCards';
 import MainActionButtons from '../components/MainActionButtons';
 import Toast from '../components/Toast';
 import NotificationCenter from '../components/NotificationCenter';
+import OwnerMatchingApproval from '../components/OwnerMatchingApproval';
 import MobileLayout from '../components/MobileLayout';
 import MobileDashboard from '../components/MobileDashboard';
 import MobileActionCard from '../components/MobileActionCard';
@@ -51,6 +52,7 @@ const OwnerDashboard = () => {
   const [notifications, setNotifications] = useState([]); // 알림 목록
   const [workplaces, setWorkplaces] = useState([]);
   const [selectedWorkplace, setSelectedWorkplace] = useState(null);
+  const [ownerCompanyId, setOwnerCompanyId] = useState(null); // V2: 사업주의 company_id
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [salaryData, setSalaryData] = useState(null);
@@ -209,6 +211,7 @@ const OwnerDashboard = () => {
 
   useEffect(() => {
     loadWorkplaces();
+    loadOwnerCompany(); // V2: 사업주 회사 로드
     checkAnnouncements();
   }, []);
 
@@ -614,6 +617,20 @@ const OwnerDashboard = () => {
       }
     } catch (error) {
       console.error('사업장 조회 오류:', error);
+    }
+  };
+
+  // V2: 사업주의 회사 정보 로드
+  const loadOwnerCompany = async () => {
+    try {
+      const response = await apiClient.get(`/v2/auth/owner/my-companies/${user.id}`);
+      if (response.data.success && response.data.companies.length > 0) {
+        setOwnerCompanyId(response.data.companies[0].id);
+        console.log('✅ 사업주 회사 로드:', response.data.companies[0]);
+      }
+    } catch (error) {
+      console.error('사업주 회사 조회 오류:', error);
+      // V2 시스템이 아직 완전히 마이그레이션되지 않은 경우 무시
     }
   };
 
@@ -2299,6 +2316,17 @@ const OwnerDashboard = () => {
               >
                 🧮 퇴직금 계산
               </button>
+
+              {/* V2: 매칭 요청 메뉴 */}
+              {ownerCompanyId && (
+                <button
+                  className={`nav-tab ${activeTab === 'matching' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('matching')}
+                  style={{ fontSize: '16px', fontWeight: '700' }}
+                >
+                  🔔 매칭 요청
+                </button>
+              )}
             </div>}
 
             {activeTab === 'calendar' && (
@@ -6098,6 +6126,21 @@ const OwnerDashboard = () => {
                     </>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* V2: 매칭 요청 승인 */}
+            {activeTab === 'matching' && ownerCompanyId && (
+              <div className="card">
+                <div style={{ marginBottom: '20px' }}>
+                  <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>
+                    🔔 매칭 요청 관리
+                  </h2>
+                  <p style={{ color: '#666', fontSize: '14px' }}>
+                    근로자가 보낸 매칭 요청을 승인하거나 거부할 수 있습니다.
+                  </p>
+                </div>
+                <OwnerMatchingApproval companyId={ownerCompanyId} />
               </div>
             )}
 

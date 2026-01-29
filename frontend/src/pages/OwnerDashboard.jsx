@@ -2212,6 +2212,13 @@ const OwnerDashboard = () => {
               >
                 💸 급여 보내기
               </button>
+              <button
+                className={`nav-tab ${activeTab === 'roster' ? 'active' : ''}`}
+                onClick={() => setActiveTab('roster')}
+                style={{ fontSize: '16px', fontWeight: '700' }}
+              >
+                👥 직원 관리
+              </button>
               
               {/* 설정 메뉴 */}
               <div style={{ position: 'relative', display: 'inline-block' }}>

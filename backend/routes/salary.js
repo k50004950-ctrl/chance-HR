@@ -1223,7 +1223,7 @@ router.get('/payroll-ledger/:workplaceId/:payrollMonth', authenticate, async (re
       return res.status(403).json({ message: '권한이 없습니다.' });
     }
 
-    // 해당 월의 급여명세서 조회 (salary_slips만, 퇴사자 필터링)
+    // 해당 월의 급여명세서 조회 (간단히 조회만)
     const slips = await query(
       `SELECT 
         ss.*,
@@ -1231,53 +1231,57 @@ router.get('/payroll-ledger/:workplaceId/:payrollMonth', authenticate, async (re
         u.username as employee_username
       FROM salary_slips ss
       JOIN users u ON ss.user_id = u.id
-      LEFT JOIN employee_details ed ON u.id = ed.user_id
       WHERE ss.workplace_id = ? 
         AND ss.payroll_month = ?
-        AND (ed.resignation_date IS NULL OR ed.resignation_date >= ss.payroll_month || '-01')
       ORDER BY u.name`,
       [workplaceId, payrollMonth]
     );
 
+    console.log(`급여대장 조회 결과: ${slips.length}개 명세서`);
+
     // 합계 계산
     const totals = {
-      basePay: 0,
-      nationalPension: 0,
-      healthInsurance: 0,
-      employmentInsurance: 0,
-      longTermCare: 0,
-      incomeTax: 0,
-      localIncomeTax: 0,
-      totalDeductions: 0,
-      netPay: 0,
-      employerNationalPension: 0,
-      employerHealthInsurance: 0,
-      employerEmploymentInsurance: 0,
-      employerLongTermCare: 0,
-      totalEmployerBurden: 0
+      total_base_pay: 0,
+      total_national_pension: 0,
+      total_health_insurance: 0,
+      total_employment_insurance: 0,
+      total_long_term_care: 0,
+      total_income_tax: 0,
+      total_local_income_tax: 0,
+      total_deductions: 0,
+      total_net_pay: 0,
+      total_employer_national_pension: 0,
+      total_employer_health_insurance: 0,
+      total_employer_employment_insurance: 0,
+      total_employer_long_term_care: 0,
+      total_employer_burden: 0
     };
 
     slips.forEach(slip => {
-      totals.basePay += parseFloat(slip.base_pay) || 0;
-      totals.nationalPension += parseFloat(slip.national_pension) || 0;
-      totals.healthInsurance += parseFloat(slip.health_insurance) || 0;
-      totals.employmentInsurance += parseFloat(slip.employment_insurance) || 0;
-      totals.longTermCare += parseFloat(slip.long_term_care) || 0;
-      totals.incomeTax += parseFloat(slip.income_tax) || 0;
-      totals.localIncomeTax += parseFloat(slip.local_income_tax) || 0;
-      totals.totalDeductions += parseFloat(slip.total_deductions) || 0;
-      totals.netPay += parseFloat(slip.net_pay) || 0;
-      totals.employerNationalPension += parseFloat(slip.employer_national_pension) || 0;
-      totals.employerHealthInsurance += parseFloat(slip.employer_health_insurance) || 0;
-      totals.employerEmploymentInsurance += parseFloat(slip.employer_employment_insurance) || 0;
-      totals.employerLongTermCare += parseFloat(slip.employer_long_term_care) || 0;
-      totals.totalEmployerBurden += parseFloat(slip.total_employer_burden) || 0;
+      totals.total_base_pay += parseFloat(slip.base_pay) || 0;
+      totals.total_national_pension += parseFloat(slip.national_pension) || 0;
+      totals.total_health_insurance += parseFloat(slip.health_insurance) || 0;
+      totals.total_employment_insurance += parseFloat(slip.employment_insurance) || 0;
+      totals.total_long_term_care += parseFloat(slip.long_term_care) || 0;
+      totals.total_income_tax += parseFloat(slip.income_tax) || 0;
+      totals.total_local_income_tax += parseFloat(slip.local_income_tax) || 0;
+      totals.total_deductions += parseFloat(slip.total_deductions) || 0;
+      totals.total_net_pay += parseFloat(slip.net_pay) || 0;
+      totals.total_employer_national_pension += parseFloat(slip.employer_national_pension) || 0;
+      totals.total_employer_health_insurance += parseFloat(slip.employer_health_insurance) || 0;
+      totals.total_employer_employment_insurance += parseFloat(slip.employer_employment_insurance) || 0;
+      totals.total_employer_long_term_care += parseFloat(slip.employer_long_term_care) || 0;
+      totals.total_employer_burden += parseFloat(slip.total_employer_burden) || 0;
     });
 
     res.json({ slips, totals });
   } catch (error) {
     console.error('급여대장 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    console.error('오류 상세:', error.message, error.stack);
+    res.status(500).json({ 
+      message: '서버 오류가 발생했습니다.',
+      error: error.message 
+    });
   }
 });
 

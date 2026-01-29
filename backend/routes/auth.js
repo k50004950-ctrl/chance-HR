@@ -606,11 +606,15 @@ router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin', 'sup
     await run('DELETE FROM user_announcements WHERE user_id = ?', [userId]);
     console.log('  ✅ 공지사항 읽음 상태 삭제 완료');
 
-    // 7. 작성한 공지사항 삭제 (사업주/관리자인 경우)
+    // 7. Push 알림 구독 삭제
+    await run('DELETE FROM push_subscriptions WHERE user_id = ?', [userId]);
+    console.log('  ✅ Push 알림 구독 삭제 완료');
+
+    // 8. 작성한 공지사항 삭제 (사업주/관리자인 경우)
     await run('DELETE FROM announcements WHERE created_by = ?', [userId]);
     console.log('  ✅ 작성한 공지사항 삭제 완료');
 
-    // 8. 소유한 사업장 삭제 (사업주인 경우)
+    // 9. 소유한 사업장 삭제 (사업주인 경우)
     if (userToDelete.role === 'owner' || userToDelete.role === 'super_admin') {
       try {
         const workplaces = await query('SELECT id FROM workplaces WHERE owner_id = ?', [userId]);
@@ -649,7 +653,7 @@ router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin', 'sup
       }
     }
 
-    // 9. 사용자 계정 삭제
+    // 10. 사용자 계정 삭제
     await run('DELETE FROM users WHERE id = ?', [userId]);
     console.log('  ✅ 사용자 계정 삭제 완료');
 

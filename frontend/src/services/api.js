@@ -209,4 +209,7 @@ export const communityAPI = {
   deletePost: (id) => api.delete(`/community/posts/${id}`)
 };
 
+// V2 API를 위한 직접 axios 인스턴스 export
+export const apiClient = api;
+
 export default api;

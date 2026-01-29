@@ -216,17 +216,20 @@ const OwnerDashboard = () => {
     }
   }, [employees, attendance, employeeSlips]);
 
-  // Step2 진입 시 자동으로 4대보험 계산
+  // Step2 진입 시 자동으로 4대보험 계산 (누락된 직원만)
   useEffect(() => {
     const autoCalculateDeductions = async () => {
       if (salaryFlowStep === 2 && salaryData && salaryData.employees && salaryData.employees.length > 0) {
-        // 이미 계산된 데이터가 있으면 스킵
-        if (Object.keys(salaryDeductions).length > 0) return;
-        
         try {
-          const newDeductions = {};
+          const newDeductions = { ...salaryDeductions };
+          let calculatedCount = 0;
           
           for (const emp of salaryData.employees) {
+            // 이미 계산된 직원은 스킵
+            if (salaryDeductions[emp.id] && Object.keys(salaryDeductions[emp.id].deductions || {}).length > 0) {
+              continue;
+            }
+            
             const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
             const taxType = emp.taxType || '4대보험';
             
@@ -244,14 +247,15 @@ const OwnerDashboard = () => {
                 totalDeductions: response.data.totalDeductions,
                 netPay: response.data.netPay
               };
+              calculatedCount++;
             } catch (error) {
               console.error(`${emp.employeeName} 자동계산 오류:`, error);
             }
           }
           
-          if (Object.keys(newDeductions).length > 0) {
+          if (calculatedCount > 0) {
             setSalaryDeductions(newDeductions);
-            console.log(`✓ Step2 진입: ${Object.keys(newDeductions).length}명의 공제액 자동계산 완료`);
+            console.log(`✓ Step2 진입: ${calculatedCount}명의 공제액 자동계산 완료`);
           }
         } catch (error) {
           console.error('Step2 자동계산 오류:', error);
@@ -5177,18 +5181,59 @@ const OwnerDashboard = () => {
                               if (!loading) {
                                 setLoading(true);
                                 try {
+                                  // 누락된 직원의 공제액 즉시 계산
+                                  const updatedDeductions = { ...salaryDeductions };
+                                  
+                                  for (const emp of salaryData.employees.filter(e => e.attendance > 0)) {
+                                    if (!updatedDeductions[emp.id] || !updatedDeductions[emp.id].deductions || Object.keys(updatedDeductions[emp.id].deductions).length === 0) {
+                                      const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
+                                      const taxType = emp.taxType || '4대보험';
+                                      
+                                      try {
+                                        const response = await salaryAPI.calculateInsurance({
+                                          basePay: totalPay,
+                                          payrollMonth: selectedMonth,
+                                          taxType: taxType
+                                        });
+                                        
+                                        updatedDeductions[emp.id] = {
+                                          basePay: totalPay,
+                                          taxType: taxType,
+                                          deductions: response.data.deductions,
+                                          totalDeductions: response.data.totalDeductions,
+                                          netPay: response.data.netPay
+                                        };
+                                        console.log(`✓ ${emp.employeeName} 공제액 자동계산 완료`);
+                                      } catch (calcError) {
+                                        console.error(`${emp.employeeName} 계산 오류:`, calcError);
+                                        setToast({ 
+                                          message: `${emp.employeeName}의 공제액 계산에 실패했습니다. 수정 버튼을 눌러주세요.`, 
+                                          type: 'error' 
+                                        });
+                                        setLoading(false);
+                                        return;
+                                      }
+                                    }
+                                  }
+                                  
+                                  // 모든 직원 데이터 준비
                                   const employees = salaryData.employees
                                     .filter(emp => emp.attendance > 0)
                                     .map(emp => {
-                                      const empDeductions = salaryDeductions[emp.id];
+                                      const empDeductions = updatedDeductions[emp.id];
+                                      
+                                      if (!empDeductions || !empDeductions.deductions || Object.keys(empDeductions.deductions).length === 0) {
+                                        throw new Error(`${emp.employeeName}의 공제액 데이터가 누락되었습니다.`);
+                                      }
+                                      
                                       return {
                                         employeeId: emp.id,
-                                        basePay: empDeductions?.basePay || emp.basePay || 0,
-                                        deductions: empDeductions?.deductions || {},
-                                        totalPay: empDeductions?.basePay || emp.basePay || 0,
-                                        totalDeductions: empDeductions?.totalDeductions || 0,
-                                        netPay: empDeductions?.netPay || emp.basePay || 0,
-                                        taxType: empDeductions?.taxType || '4대보험'
+                                        basePay: empDeductions.basePay,
+                                        deductions: empDeductions.deductions,
+                                        totalPay: empDeductions.basePay,
+                                        totalDeductions: empDeductions.totalDeductions,
+                                        netPay: empDeductions.netPay,
+                                        taxType: empDeductions.taxType
                                       };
                                     });
                                   
@@ -5200,6 +5245,7 @@ const OwnerDashboard = () => {
                                     appliedRatesJson: JSON.stringify({ rates_applied: true, month: selectedMonth })
                                   });
                                   
+                                  setSalaryDeductions(updatedDeductions);
                                   setSalaryConfirmed(true);
                                   setSalaryFlowStep(4);
                                   setShowConfirmWarning(false);
@@ -5211,7 +5257,7 @@ const OwnerDashboard = () => {
                                 } catch (error) {
                                   console.error('급여 확정 오류:', error);
                                   setToast({ 
-                                    message: error.response?.data?.message || '급여 확정에 실패했습니다.', 
+                                    message: error.response?.data?.message || error.message || '급여 확정에 실패했습니다.', 
                                     type: 'error' 
                                   });
                                 } finally {

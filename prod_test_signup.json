@@ -1,0 +1,7 @@
+{
+  "username": "prod_test_owner",
+  "password": "ProdTest!2026",
+  "name": "Production Test Owner",
+  "role": "owner",
+  "consent_service": true
+}

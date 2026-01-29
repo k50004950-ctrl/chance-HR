@@ -1,0 +1,9 @@
+{
+  "effective_yyyymm": "202601",
+  "nps_employee_rate_percent": 4.7,
+  "nhis_employee_rate_percent": 3.545,
+  "ltci_rate_of_nhis_percent": 12.95,
+  "ei_employee_rate_percent": 0.9,
+  "freelancer_withholding_rate_percent": 3.3,
+  "memo": "Updated rate for testing"
+}

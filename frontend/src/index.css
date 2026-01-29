@@ -307,6 +307,39 @@ h4 {
   transition: background 0.2s;
 }
 
+/* 급여대장 전용 스타일 - 컴팩트하게 */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  font-size: 12px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.data-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+  font-size: 11px;
+  color: #374151;
+  padding: 10px 8px;
+}
+
+.data-table td {
+  color: #1f2937;
+  font-size: 12px;
+}
+
+.data-table tbody tr:hover {
+  background: #f9fafb;
+}
+
 /* 모바일 카드형 테이블 */
 @media (max-width: 900px) {
   .table-mobile-cards thead {

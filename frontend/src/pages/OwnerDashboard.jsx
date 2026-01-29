@@ -5247,15 +5247,30 @@ const OwnerDashboard = () => {
                                     }
                                   }
                                   
-                                  // 모든 직원 데이터 준비
+                                  // 모든 직원 데이터 준비 (급여액이 있고 공제액이 계산된 직원만)
                                   const employees = salaryData.employees
-                                    .filter(emp => emp.attendance > 0)
+                                    .filter(emp => {
+                                      // 근태 기록이 있는 직원
+                                      if (emp.attendance <= 0) return false;
+                                      
+                                      // 급여액이 있는 직원
+                                      const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
+                                      if (!totalPay || totalPay <= 0) {
+                                        console.warn(`⚠️ ${emp.employeeName}: 급여액 없음 (${totalPay}), 확정에서 제외`);
+                                        return false;
+                                      }
+                                      
+                                      // 공제액이 계산된 직원
+                                      const empDeductions = updatedDeductions[emp.id];
+                                      if (!empDeductions || !empDeductions.deductions || Object.keys(empDeductions.deductions).length === 0) {
+                                        console.error(`❌ ${emp.employeeName}: 공제액 데이터 누락`);
+                                        return false;
+                                      }
+                                      
+                                      return true;
+                                    })
                                     .map(emp => {
                                       const empDeductions = updatedDeductions[emp.id];
-                                      
-                                      if (!empDeductions || !empDeductions.deductions || Object.keys(empDeductions.deductions).length === 0) {
-                                        throw new Error(`${emp.employeeName}의 공제액 데이터가 누락되었습니다.`);
-                                      }
                                       
                                       return {
                                         employeeId: emp.id,
@@ -5267,6 +5282,18 @@ const OwnerDashboard = () => {
                                         taxType: empDeductions.taxType
                                       };
                                     });
+                                  
+                                  // 확정할 직원이 없으면 경고
+                                  if (employees.length === 0) {
+                                    setToast({ 
+                                      message: '확정할 급여 데이터가 없습니다. 급여액을 입력하고 수정 버튼을 눌러주세요.', 
+                                      type: 'error' 
+                                    });
+                                    setLoading(false);
+                                    return;
+                                  }
+                                  
+                                  console.log(`✅ ${employees.length}명의 급여 확정 준비 완료`);
                                   
                                   const response = await salaryAPI.finalize({
                                     workplaceId: selectedWorkplace?.workplaceId,

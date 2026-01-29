@@ -399,6 +399,56 @@ router.post('/owner/match-approve', async (req, res) => {
         [relationId]
       );
 
+      // 🔗 기존 시스템 호환성: users 테이블도 업데이트
+      try {
+        const relation = await get(
+          `SELECT user_id, company_id, workplace_id, start_date, position, monthly_salary, hourly_rate, tax_type
+           FROM company_employee_relations 
+           WHERE id = ?`,
+          [relationId]
+        );
+
+        if (relation) {
+          // workplace_id가 있으면 users 테이블 업데이트
+          if (relation.workplace_id) {
+            await run(
+              `UPDATE users 
+               SET workplace_id = ?, employment_status = 'active' 
+               WHERE id = ?`,
+              [relation.workplace_id, relation.user_id]
+            );
+            console.log(`✅ users 테이블 업데이트: user ${relation.user_id} -> workplace ${relation.workplace_id}`);
+          }
+
+          // employee_details가 없으면 생성
+          const existing = await get(
+            'SELECT id FROM employee_details WHERE user_id = ?',
+            [relation.user_id]
+          );
+
+          if (!existing && relation.workplace_id) {
+            await run(
+              `INSERT INTO employee_details (
+                user_id, workplace_id, hire_date, position, monthly_salary, hourly_rate, tax_type
+              ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [
+                relation.user_id,
+                relation.workplace_id,
+                relation.start_date,
+                relation.position || '',
+                relation.monthly_salary || 0,
+                relation.hourly_rate || 0,
+                relation.tax_type || '4대보험'
+              ]
+            );
+            console.log(`✅ employee_details 생성: user ${relation.user_id}`);
+          }
+        }
+      } catch (compatError) {
+        console.error('⚠️  기존 시스템 호환성 업데이트 오류:', compatError);
+        // 호환성 오류는 무시하고 V2 승인은 계속 진행
+      }
+
       console.log(`✅ 매칭 승인: relation ${relationId}`);
       res.json({
         success: true,
@@ -447,10 +497,40 @@ router.post('/employee/resign', async (req, res) => {
     // 퇴사 처리: end_date 설정, status를 'resigned'로 변경
     await run(
       `UPDATE company_employee_relations 
-       SET end_date = ?, status = 'resigned', updated_at = CURRENT_TIMESTAMP 
+       SET end_date = ?, status = 'resigned', resignation_date = ?, updated_at = CURRENT_TIMESTAMP 
        WHERE id = ?`,
-      [endDate, relationId]
+      [endDate, endDate, relationId]
     );
+
+    // 🔗 기존 시스템 호환성: users 테이블도 업데이트
+    try {
+      const relation = await get(
+        'SELECT user_id FROM company_employee_relations WHERE id = ?',
+        [relationId]
+      );
+
+      if (relation) {
+        await run(
+          `UPDATE users 
+           SET employment_status = 'resigned', resignation_date = ? 
+           WHERE id = ?`,
+          [endDate, relation.user_id]
+        );
+        console.log(`✅ users 테이블 업데이트 (퇴사): user ${relation.user_id}`);
+
+        // employee_details도 업데이트
+        await run(
+          `UPDATE employee_details 
+           SET resignation_date = ? 
+           WHERE user_id = ?`,
+          [endDate, relation.user_id]
+        );
+        console.log(`✅ employee_details 업데이트 (퇴사): user ${relation.user_id}`);
+      }
+    } catch (compatError) {
+      console.error('⚠️  기존 시스템 호환성 업데이트 오류:', compatError);
+      // 호환성 오류는 무시하고 V2 퇴사는 계속 진행
+    }
 
     console.log(`✅ 퇴사 처리: relation ${relationId}, end_date: ${endDate}`);
 

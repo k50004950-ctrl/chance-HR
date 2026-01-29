@@ -5399,16 +5399,15 @@ const OwnerDashboard = () => {
                         </button>
                       </div>
 
-                      {(() => {
-                        console.log('📊 급여대장 렌더링 체크:', {
-                          hasData: !!payrollLedgerData,
-                          hasSlips: !!payrollLedgerData?.slips,
-                          slipsLength: payrollLedgerData?.slips?.length || 0,
-                          slipsType: typeof payrollLedgerData?.slips,
-                          isArray: Array.isArray(payrollLedgerData?.slips)
-                        });
-                        return payrollLedgerData && payrollLedgerData.slips && payrollLedgerData.slips.length > 0;
-                      })() ? (
+                      {console.log('📊 급여대장 렌더링 체크:', {
+                        hasData: !!payrollLedgerData,
+                        hasSlips: !!payrollLedgerData?.slips,
+                        slipsLength: payrollLedgerData?.slips?.length || 0,
+                        slipsType: typeof payrollLedgerData?.slips,
+                        isArray: Array.isArray(payrollLedgerData?.slips),
+                        actualSlips: payrollLedgerData?.slips
+                      })}
+                      {(payrollLedgerData?.slips && Array.isArray(payrollLedgerData.slips) && payrollLedgerData.slips.length > 0) ? (
                         <div style={{ overflowX: 'auto' }}>
                           <table className="data-table" style={{ fontSize: '12px' }}>
                             <thead>

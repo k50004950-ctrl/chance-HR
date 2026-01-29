@@ -83,39 +83,57 @@ router.post('/signup', async (req, res) => {
     // 사용자 생성
     const result = await run(
       `INSERT INTO users (
-        username, password, name, phone, role, created_at
-      ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [username, hashedPassword, name, phone, role]
+        username, password, name, phone, role, business_number, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [username, hashedPassword, name, phone, role, business_number || null]
     );
 
     const userId = result.lastID;
 
     // 사업주인 경우: companies 테이블에도 등록 (기본 회사 정보)
-    // TODO: companies 테이블 마이그레이션 후 활성화
-    // if (role === 'owner' && business_number) {
-    //   const companyResult = await run(
-    //     `INSERT INTO companies (
-    //       business_number, company_name, phone, verified, created_at
-    //     ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-    //     [business_number, name + '의 사업장', phone, 0]
-    //   );
+    if (role === 'owner' && business_number) {
+      try {
+        // 이미 존재하는 사업자등록번호인지 확인
+        const existingCompany = await get(
+          'SELECT id FROM companies WHERE business_number = ?',
+          [business_number]
+        );
 
-    //   const companyId = companyResult.lastID;
+        let companyId;
 
-    //   // company_admins에 등록
-    //   await run(
-    //     `INSERT INTO company_admins (
-    //       company_id, user_id, role, granted_at
-    //     ) VALUES (?, ?, 'owner', CURRENT_TIMESTAMP)`,
-    //     [companyId, userId]
-    //   );
+        if (existingCompany) {
+          // 이미 존재하는 회사에 관리자로 추가
+          companyId = existingCompany.id;
+          console.log(`📌 기존 회사에 관리자 추가: company_id ${companyId}`);
+        } else {
+          // 새 회사 생성
+          const companyResult = await run(
+            `INSERT INTO companies (
+              business_number, company_name, phone, verified, created_at
+            ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+            [business_number, name + '의 사업장', phone, false]
+          );
+          companyId = companyResult.lastID;
+          console.log(`✅ 새 회사 생성: company_id ${companyId}`);
+        }
 
-    //   console.log(`✅ 사업주 회원가입 완료: ${username} (company_id: ${companyId})`);
-    // } else {
-    //   console.log(`✅ 근로자 회원가입 완료: ${username}`);
-    // }
-    
-    console.log(`✅ 회원가입 완료: ${username} (role: ${role})`);
+        // company_admins에 등록
+        await run(
+          `INSERT INTO company_admins (
+            company_id, user_id, role, granted_at
+          ) VALUES (?, ?, 'owner', CURRENT_TIMESTAMP)`,
+          [companyId, userId]
+        );
+
+        console.log(`✅ 사업주 회원가입 완료: ${username} (company_id: ${companyId})`);
+      } catch (companyError) {
+        console.error('회사 등록 오류:', companyError);
+        // 회사 등록 실패해도 사용자 계정은 생성되었으므로 계속 진행
+        console.log(`⚠️  사용자는 생성되었으나 회사 등록 실패: ${username}`);
+      }
+    } else {
+      console.log(`✅ 근로자 회원가입 완료: ${username}`);
+    }
 
     res.json({
       success: true,
@@ -549,7 +567,6 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
         c.business_number,
         c.company_name,
         c.representative_name,
-        c.business_type,
         c.address,
         c.phone,
         c.verified,
@@ -568,6 +585,51 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
 
   } catch (error) {
     console.error('회사 정보 조회 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
+
+// ============================================
+// 11. 사업주 -> 회사 직원 목록 조회
+// ============================================
+router.get('/owner/employees/:companyId', async (req, res) => {
+  const { companyId } = req.params;
+
+  try {
+    const employees = await all(
+      `SELECT 
+        cer.id as relation_id,
+        cer.user_id,
+        cer.start_date,
+        cer.end_date,
+        cer.position,
+        cer.employment_type,
+        cer.tax_type,
+        cer.status,
+        cer.monthly_salary,
+        cer.hourly_rate,
+        u.name,
+        u.username,
+        u.phone,
+        u.email
+      FROM company_employee_relations cer
+      JOIN users u ON cer.user_id = u.id
+      WHERE cer.company_id = ? AND cer.status IN ('active', 'pending')
+      ORDER BY cer.status ASC, cer.start_date DESC`,
+      [companyId]
+    );
+
+    res.json({
+      success: true,
+      employees: employees
+    });
+
+  } catch (error) {
+    console.error('직원 목록 조회 오류:', error);
     res.status(500).json({ 
       success: false, 
       message: '서버 오류가 발생했습니다.' 

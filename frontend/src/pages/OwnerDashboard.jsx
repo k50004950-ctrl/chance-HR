@@ -5397,6 +5397,86 @@ const OwnerDashboard = () => {
                         >
                           조회
                         </button>
+                        {payrollLedgerData && payrollLedgerData.slips && payrollLedgerData.slips.length > 0 && (
+                          <button
+                            className="btn btn-success"
+                            style={{ background: '#10b981', borderColor: '#10b981' }}
+                            onClick={() => {
+                              try {
+                                // CSV 데이터 생성
+                                const headers = [
+                                  '직원명', '구분', '기본급',
+                                  '국민연금(근로자)', '건강보험(근로자)', '고용보험(근로자)', '장기요양(근로자)',
+                                  '소득세', '지방세', '공제합계', '실수령액',
+                                  '국민연금(사업주)', '건강보험(사업주)', '고용보험(사업주)', '장기요양(사업주)', '사업주부담합계'
+                                ];
+                                
+                                const rows = payrollLedgerData.slips.map(slip => [
+                                  slip.employee_name,
+                                  slip.tax_type,
+                                  Number(slip.base_pay || 0),
+                                  Number(slip.national_pension || 0),
+                                  Number(slip.health_insurance || 0),
+                                  Number(slip.employment_insurance || 0),
+                                  Number(slip.long_term_care || 0),
+                                  Number(slip.income_tax || 0),
+                                  Number(slip.local_income_tax || 0),
+                                  Number(slip.total_deductions || 0),
+                                  Number(slip.net_pay || 0),
+                                  Number(slip.employer_national_pension || 0),
+                                  Number(slip.employer_health_insurance || 0),
+                                  Number(slip.employer_employment_insurance || 0),
+                                  Number(slip.employer_long_term_care || 0),
+                                  Number(slip.total_employer_burden || 0)
+                                ]);
+                                
+                                // 합계 행 추가
+                                const totals = payrollLedgerData.totals;
+                                rows.push([
+                                  '합계', '',
+                                  Number(totals.total_base_pay || 0),
+                                  Number(totals.total_national_pension || 0),
+                                  Number(totals.total_health_insurance || 0),
+                                  Number(totals.total_employment_insurance || 0),
+                                  Number(totals.total_long_term_care || 0),
+                                  Number(totals.total_income_tax || 0),
+                                  Number(totals.total_local_income_tax || 0),
+                                  Number(totals.total_deductions || 0),
+                                  Number(totals.total_net_pay || 0),
+                                  Number(totals.total_employer_national_pension || 0),
+                                  Number(totals.total_employer_health_insurance || 0),
+                                  Number(totals.total_employer_employment_insurance || 0),
+                                  Number(totals.total_employer_long_term_care || 0),
+                                  Number(totals.total_employer_burden || 0)
+                                ]);
+                                
+                                // CSV 문자열 생성 (UTF-8 BOM 추가)
+                                const csvContent = '\uFEFF' + [
+                                  headers.join(','),
+                                  ...rows.map(row => row.join(','))
+                                ].join('\n');
+                                
+                                // 다운로드
+                                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                                const link = document.createElement('a');
+                                const url = URL.createObjectURL(blob);
+                                link.setAttribute('href', url);
+                                link.setAttribute('download', `급여대장_${payrollLedgerMonth}.csv`);
+                                link.style.visibility = 'hidden';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                
+                                setMessage({ type: 'success', text: '급여대장을 다운로드했습니다.' });
+                              } catch (error) {
+                                console.error('다운로드 오류:', error);
+                                setMessage({ type: 'error', text: '다운로드에 실패했습니다.' });
+                              }
+                            }}
+                          >
+                            📥 엑셀 다운로드
+                          </button>
+                        )}
                       </div>
 
                       {payrollLedgerData && payrollLedgerData.slips && payrollLedgerData.slips.length > 0 ? (
@@ -5404,27 +5484,27 @@ const OwnerDashboard = () => {
                             <table className="data-table" style={{ width: '100%', fontSize: '13px' }}>
                               <thead>
                                 <tr style={{ background: '#f3f4f6' }}>
-                                  <th rowSpan={2}>직원명</th>
-                                  <th rowSpan={2}>구분</th>
-                                  <th rowSpan={2}>기본급</th>
-                                  <th colSpan={4}>근로자 공제</th>
-                                  <th colSpan={2}>세금</th>
-                                  <th rowSpan={2}>공제 합계</th>
-                                  <th rowSpan={2}>실수령액</th>
-                                  <th colSpan={4}>사업주 부담</th>
-                                  <th rowSpan={2}>사업주 합계</th>
+                                  <th rowSpan={2} style={{ borderRight: '2px solid #d1d5db' }}>직원명</th>
+                                  <th rowSpan={2} style={{ borderRight: '2px solid #d1d5db' }}>구분</th>
+                                  <th rowSpan={2} style={{ borderRight: '2px solid #d1d5db' }}>기본급</th>
+                                  <th colSpan={4} style={{ borderRight: '2px solid #d1d5db' }}>근로자 공제</th>
+                                  <th colSpan={2} style={{ borderRight: '2px solid #d1d5db' }}>세금</th>
+                                  <th rowSpan={2} style={{ borderRight: '2px solid #d1d5db' }}>공제 합계</th>
+                                  <th rowSpan={2} style={{ borderRight: '3px solid #059669', background: '#d1fae5' }}>실수령액</th>
+                                  <th colSpan={4} style={{ background: '#fef3c7', borderRight: '2px solid #f59e0b' }}>🏢 사업주 부담</th>
+                                  <th rowSpan={2} style={{ background: '#fef3c7', fontWeight: 'bold' }}>사업주 합계</th>
                                 </tr>
                                 <tr style={{ background: '#f3f4f6' }}>
                                   <th>국민연금</th>
                                   <th>건강보험</th>
                                   <th>고용보험</th>
-                                  <th>장기요양</th>
+                                  <th style={{ borderRight: '2px solid #d1d5db' }}>장기요양</th>
                                   <th>소득세</th>
-                                  <th>지방세</th>
-                                  <th>국민연금</th>
-                                  <th>건강보험</th>
-                                  <th>고용보험</th>
-                                  <th>장기요양</th>
+                                  <th style={{ borderRight: '2px solid #d1d5db' }}>지방세</th>
+                                  <th style={{ background: '#fef3c7' }}>국민연금</th>
+                                  <th style={{ background: '#fef3c7' }}>건강보험</th>
+                                  <th style={{ background: '#fef3c7' }}>고용보험</th>
+                                  <th style={{ background: '#fef3c7', borderRight: '2px solid #f59e0b' }}>장기요양</th>
                                 </tr>
                               </thead>
                               <tbody>

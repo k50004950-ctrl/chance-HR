@@ -5400,10 +5400,15 @@ const OwnerDashboard = () => {
                       </div>
 
                       <div style={{ background: '#dcfce7', padding: '8px', marginBottom: '12px', fontSize: '12px', borderRadius: '4px', color: '#166534' }}>
-                        ✅ 코드 버전: v4 (2026-01-29 18:00) - 새 코드 로드됨
+                        ✅ 코드 버전: v5 (2026-01-29 18:10) - 테이블 테스트
                       </div>
 
-                      {payrollLedgerData && payrollLedgerData.slips && payrollLedgerData.slips.length > 0 && (
+                      {payrollLedgerData && payrollLedgerData.slips && payrollLedgerData.slips.length > 0 ? (
+                        <>
+                          <div style={{ background: '#e0f2fe', padding: '16px', marginBottom: '16px', borderRadius: '8px' }}>
+                            <h4 style={{ margin: '0 0 12px 0', color: '#0369a1' }}>🎉 데이터 로드 성공!</h4>
+                            <p style={{ margin: 0 }}>총 {payrollLedgerData.slips.length}개의 급여명세서가 있습니다.</p>
+                          </div>
                           <div style={{ overflowX: 'auto' }}>
                             <table className="data-table" style={{ fontSize: '12px' }}>
                             <thead>
@@ -5475,9 +5480,8 @@ const OwnerDashboard = () => {
                               </tbody>
                             </table>
                           </div>
-                      )}
-
-                      {(!payrollLedgerData || !payrollLedgerData.slips || payrollLedgerData.slips.length === 0) && (
+                        </>
+                      ) : (
                         <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
                           {!payrollLedgerData ? '월을 선택하고 조회 버튼을 클릭하세요.' : '해당 월에 배포된 급여명세서가 없습니다.'}
                         </p>

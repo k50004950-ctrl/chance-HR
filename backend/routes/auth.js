@@ -618,13 +618,26 @@ router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin', 'sup
         
         for (const workplace of workplaces) {
           console.log(`  🏢 사업장 ${workplace.id} 삭제 중...`);
+          // 사업장 관련 데이터 삭제 (순서 중요: 외래키 제약조건 고려)
+          await run('DELETE FROM employee_details WHERE workplace_id = ?', [workplace.id]);
+          console.log(`    ✅ 직원 상세정보 삭제`);
+          
+          await run('DELETE FROM attendance WHERE user_id IN (SELECT id FROM users WHERE workplace_id = ?)', [workplace.id]);
+          console.log(`    ✅ 출퇴근 기록 삭제`);
+          
+          await run('DELETE FROM salary_info WHERE workplace_id = ?', [workplace.id]);
+          console.log(`    ✅ 급여 정보 삭제`);
+          
+          await run('DELETE FROM salary_slips WHERE workplace_id = ?', [workplace.id]);
+          console.log(`    ✅ 급여 명세서 삭제`);
+          
+          await run('DELETE FROM payroll_finalized WHERE workplace_id = ?', [workplace.id]);
+          console.log(`    ✅ 확정 급여 삭제`);
+          
           // 사업장 소속 직원들의 workplace_id를 NULL로 설정
           await run('UPDATE users SET workplace_id = NULL WHERE workplace_id = ?', [workplace.id]);
-          // 사업장 관련 데이터 삭제
-          await run('DELETE FROM attendance WHERE user_id IN (SELECT id FROM users WHERE workplace_id = ?)', [workplace.id]);
-          await run('DELETE FROM salary_info WHERE workplace_id = ?', [workplace.id]);
-          await run('DELETE FROM salary_slips WHERE workplace_id = ?', [workplace.id]);
-          await run('DELETE FROM payroll_finalized WHERE workplace_id = ?', [workplace.id]);
+          console.log(`    ✅ 직원 연결 해제`);
+          
           // 사업장 삭제
           await run('DELETE FROM workplaces WHERE id = ?', [workplace.id]);
           console.log(`  ✅ 사업장 ${workplace.id} 삭제 완료`);

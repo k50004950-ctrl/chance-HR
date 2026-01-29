@@ -5411,32 +5411,18 @@ const OwnerDashboard = () => {
                           </div>
 
                           <div style={{ background: '#fff3cd', padding: '12px', marginBottom: '16px', borderRadius: '8px' }}>
-                            <strong>⚠️ 테스트 모드:</strong> 간단한 테이블로 테스트 중입니다.
+                            <strong>⚠️ 테스트:</strong> 텍스트만 표시 테스트
                           </div>
 
-                          <div style={{ overflowX: 'auto' }}>
-                            <table className="data-table">
-                              <thead>
-                                <tr>
-                                  <th>직원명</th>
-                                  <th>구분</th>
-                                  <th>기본급</th>
-                                  <th>실수령액</th>
-                                  <th>지급일</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {payrollLedgerData.slips.map((slip, index) => (
-                                  <tr key={index}>
-                                    <td>{slip.employee_name || '이름없음'}</td>
-                                    <td>{slip.tax_type || '-'}</td>
-                                    <td style={{ textAlign: 'right' }}>{Number(slip.base_pay || 0).toLocaleString()}원</td>
-                                    <td style={{ textAlign: 'right' }}>{Number(slip.net_pay || 0).toLocaleString()}원</td>
-                                    <td>{slip.pay_date || '-'}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                          <div style={{ background: 'white', padding: '20px', borderRadius: '8px', border: '2px solid #3b82f6' }}>
+                            <h3>📋 급여명세서 목록 (텍스트 형식)</h3>
+                            {payrollLedgerData.slips.map((slip, idx) => (
+                              <div key={idx} style={{ padding: '12px', marginBottom: '12px', background: '#f9fafb', borderRadius: '4px' }}>
+                                <strong>#{idx + 1}. {slip.employee_name}</strong><br/>
+                                구분: {slip.tax_type} | 기본급: {Number(slip.base_pay || 0).toLocaleString()}원 | 
+                                실수령: {Number(slip.net_pay || 0).toLocaleString()}원
+                              </div>
+                            ))}
                           </div>
                         </>
                       ) : (

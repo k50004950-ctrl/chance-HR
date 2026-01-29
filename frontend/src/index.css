@@ -34,15 +34,22 @@ body {
 
 /* 컨테이너 */
 .container {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 24px;
 }
 
 @media (min-width: 1280px) {
   .container {
-    max-width: 1280px;
+    max-width: 1800px;
     padding: 32px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .container {
+    max-width: 90%;
+    padding: 40px;
   }
 }
 
@@ -456,7 +463,7 @@ h4 {
 }
 
 .header-content {
-  max-width: 1200px;
+  max-width: 1800px;
   margin: 0 auto;
   padding: 20px 24px;
   display: flex;

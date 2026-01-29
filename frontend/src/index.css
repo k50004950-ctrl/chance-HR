@@ -34,22 +34,22 @@ body {
 
 /* 컨테이너 */
 .container {
-  max-width: 1600px;
+  max-width: 95%;
   margin: 0 auto;
   padding: 24px;
 }
 
 @media (min-width: 1280px) {
   .container {
-    max-width: 1800px;
-    padding: 32px;
+    max-width: 96%;
+    padding: 32px 48px;
   }
 }
 
 @media (min-width: 1920px) {
   .container {
-    max-width: 90%;
-    padding: 40px;
+    max-width: 97%;
+    padding: 40px 60px;
   }
 }
 
@@ -463,9 +463,9 @@ h4 {
 }
 
 .header-content {
-  max-width: 1800px;
+  max-width: 97%;
   margin: 0 auto;
-  padding: 20px 24px;
+  padding: 20px 48px;
   display: flex;
   justify-content: space-between;
   align-items: center;

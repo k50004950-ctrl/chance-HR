@@ -5378,11 +5378,17 @@ const OwnerDashboard = () => {
                           onClick={async () => {
                             try {
                               setLoading(true);
+                              console.log('🔍 급여대장 조회 시작:', { workplaceId: selectedWorkplace, month: payrollLedgerMonth });
                               const response = await salaryAPI.getPayrollLedger(selectedWorkplace, payrollLedgerMonth);
+                              console.log('✅ 급여대장 응답:', response.data);
+                              console.log('   - slips 개수:', response.data?.slips?.length || 0);
+                              console.log('   - totals:', response.data?.totals);
                               setPayrollLedgerData(response.data);
-                              setMessage({ type: 'success', text: `${payrollLedgerMonth} 급여대장을 조회했습니다.` });
+                              setMessage({ type: 'success', text: `${payrollLedgerMonth} 급여대장을 조회했습니다. (${response.data?.slips?.length || 0}개)` });
                             } catch (error) {
-                              console.error('급여대장 조회 오류:', error);
+                              console.error('❌ 급여대장 조회 오류:', error);
+                              console.error('   - 상태 코드:', error.response?.status);
+                              console.error('   - 에러 메시지:', error.response?.data?.message);
                               setMessage({ type: 'error', text: error.response?.data?.message || '조회에 실패했습니다.' });
                             } finally {
                               setLoading(false);
@@ -5393,7 +5399,16 @@ const OwnerDashboard = () => {
                         </button>
                       </div>
 
-                      {payrollLedgerData && payrollLedgerData.slips && payrollLedgerData.slips.length > 0 ? (
+                      {(() => {
+                        console.log('📊 급여대장 렌더링 체크:', {
+                          hasData: !!payrollLedgerData,
+                          hasSlips: !!payrollLedgerData?.slips,
+                          slipsLength: payrollLedgerData?.slips?.length || 0,
+                          slipsType: typeof payrollLedgerData?.slips,
+                          isArray: Array.isArray(payrollLedgerData?.slips)
+                        });
+                        return payrollLedgerData && payrollLedgerData.slips && payrollLedgerData.slips.length > 0;
+                      })() ? (
                         <div style={{ overflowX: 'auto' }}>
                           <table className="data-table" style={{ fontSize: '12px' }}>
                             <thead>

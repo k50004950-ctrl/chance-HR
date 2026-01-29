@@ -83,36 +83,39 @@ router.post('/signup', async (req, res) => {
     // 사용자 생성
     const result = await run(
       `INSERT INTO users (
-        username, password, name, phone, role, business_number, phone_verified, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [username, hashedPassword, name, phone, role, business_number || null, 0]
+        username, password, name, phone, role, created_at
+      ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [username, hashedPassword, name, phone, role]
     );
 
     const userId = result.lastID;
 
     // 사업주인 경우: companies 테이블에도 등록 (기본 회사 정보)
-    if (role === 'owner' && business_number) {
-      const companyResult = await run(
-        `INSERT INTO companies (
-          business_number, company_name, phone, verified, created_at
-        ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-        [business_number, name + '의 사업장', phone, 0]
-      );
+    // TODO: companies 테이블 마이그레이션 후 활성화
+    // if (role === 'owner' && business_number) {
+    //   const companyResult = await run(
+    //     `INSERT INTO companies (
+    //       business_number, company_name, phone, verified, created_at
+    //     ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+    //     [business_number, name + '의 사업장', phone, 0]
+    //   );
 
-      const companyId = companyResult.lastID;
+    //   const companyId = companyResult.lastID;
 
-      // company_admins에 등록
-      await run(
-        `INSERT INTO company_admins (
-          company_id, user_id, role, granted_at
-        ) VALUES (?, ?, 'owner', CURRENT_TIMESTAMP)`,
-        [companyId, userId]
-      );
+    //   // company_admins에 등록
+    //   await run(
+    //     `INSERT INTO company_admins (
+    //       company_id, user_id, role, granted_at
+    //     ) VALUES (?, ?, 'owner', CURRENT_TIMESTAMP)`,
+    //     [companyId, userId]
+    //   );
 
-      console.log(`✅ 사업주 회원가입 완료: ${username} (company_id: ${companyId})`);
-    } else {
-      console.log(`✅ 근로자 회원가입 완료: ${username}`);
-    }
+    //   console.log(`✅ 사업주 회원가입 완료: ${username} (company_id: ${companyId})`);
+    // } else {
+    //   console.log(`✅ 근로자 회원가입 완료: ${username}`);
+    // }
+    
+    console.log(`✅ 회원가입 완료: ${username} (role: ${role})`);
 
     res.json({
       success: true,
@@ -175,9 +178,8 @@ router.post('/login', async (req, res) => {
         id: user.id,
         username: user.username,
         name: user.name,
-        role: user.role,
-        businessNumber: user.business_number,
-        phoneVerified: user.phone_verified
+        phone: user.phone,
+        role: user.role
       }
     });
 

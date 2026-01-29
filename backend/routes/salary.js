@@ -680,8 +680,10 @@ router.post('/ledger/import', authenticate, async (req, res) => {
           workplace_id, user_id, payroll_month, pay_date,
           base_pay, national_pension, health_insurance, employment_insurance,
           long_term_care, income_tax, local_income_tax, total_deductions,
-          net_pay, source_text
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          net_pay, source_text,
+          employer_national_pension, employer_health_insurance, 
+          employer_employment_insurance, employer_long_term_care, total_employer_burden
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           workplaceId,
           matchedUser.id,
@@ -696,7 +698,15 @@ router.post('/ledger/import', authenticate, async (req, res) => {
           employee.localIncomeTax,
           employee.totalDeductions,
           employee.netPay,
-          text
+          text,
+          employee.employerNationalPension || employee.nationalPension, // 사업주 부담금 (동일 요율)
+          employee.employerHealthInsurance || employee.healthInsurance,
+          employee.employerEmploymentInsurance || employee.employmentInsurance,
+          employee.employerLongTermCare || employee.longTermCare,
+          (employee.employerNationalPension || employee.nationalPension) + 
+          (employee.employerHealthInsurance || employee.healthInsurance) + 
+          (employee.employerEmploymentInsurance || employee.employmentInsurance) + 
+          (employee.employerLongTermCare || employee.longTermCare)
         ]
       );
       imported += 1;
@@ -1649,6 +1659,13 @@ router.post('/finalize', authenticate, async (req, res) => {
         `, [workplaceId, payrollMonth, emp.employeeId]);
         
         if (!existingSlip) {
+          // 사업주 부담금 계산 (근로자와 동일 요율 가정)
+          const employerNPS = parseFloat(deductions.employer_nps) || parseFloat(deductions.nps) || 0;
+          const employerNHIS = parseFloat(deductions.employer_nhis) || parseFloat(deductions.nhis) || 0;
+          const employerEI = parseFloat(deductions.employer_ei) || parseFloat(deductions.ei) || 0;
+          const employerLTCI = parseFloat(deductions.employer_ltci) || parseFloat(deductions.ltci) || 0;
+          const totalEmployerBurden = employerNPS + employerNHIS + employerEI + employerLTCI;
+          
           // 급여명세서 자동 생성
           await run(`
             INSERT INTO salary_slips (
@@ -1678,11 +1695,11 @@ router.post('/finalize', authenticate, async (req, res) => {
             parseFloat(deductions.local_tax) || 0,
             totalDeductions,
             netPay,
-            parseFloat(deductions.employer_nps) || 0,
-            parseFloat(deductions.employer_nhis) || 0,
-            parseFloat(deductions.employer_ei) || 0,
-            parseFloat(deductions.employer_ltci) || 0,
-            parseFloat(deductions.total_employer) || 0,
+            employerNPS,
+            employerNHIS,
+            employerEI,
+            employerLTCI,
+            totalEmployerBurden,
             0 // published = false (아직 발송 안됨)
           ]);
         }

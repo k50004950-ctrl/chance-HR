@@ -5272,8 +5272,14 @@ const OwnerDashboard = () => {
                                     .map(emp => {
                                       const empDeductions = updatedDeductions[emp.id];
                                       
+                                      console.log(`✅ ${emp.employeeName} 확정 데이터:`, {
+                                        employeeId: emp.employeeId,
+                                        id: emp.id,
+                                        basePay: empDeductions.basePay
+                                      });
+                                      
                                       return {
-                                        employeeId: emp.id,
+                                        employeeId: emp.employeeId,
                                         basePay: empDeductions.basePay,
                                         deductions: empDeductions.deductions,
                                         totalPay: empDeductions.basePay,

@@ -4931,7 +4931,7 @@ const OwnerDashboard = () => {
                                 <th>기본 급여</th>
                               <th>주휴수당</th>
                                 <th>총 지급액 (세전)</th>
-                                {salaryFlowStep === 2 && (
+                                {(salaryFlowStep === 2 || salaryFlowStep === 4) && (
                                   <>
                                     <th>공제 합계</th>
                                     <th>실수령액 (세후)</th>
@@ -5022,7 +5022,7 @@ const OwnerDashboard = () => {
                                         formatCurrency(totalPay)
                                       )}
                                     </td>
-                                    {salaryFlowStep === 2 && (
+                                    {(salaryFlowStep === 2 || salaryFlowStep === 4) && (
                                       <>
                                         <td style={{ fontWeight: '600', color: '#ef4444' }}>
                                           {salaryDeductions[emp.id] ? 

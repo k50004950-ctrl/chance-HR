@@ -1181,17 +1181,56 @@ router.get('/payroll-ledger/:workplaceId/:payrollMonth', authenticate, async (re
       return res.status(403).json({ message: '권한이 없습니다.' });
     }
 
-    // 해당 월의 모든 급여명세서 조회
+    // 해당 월의 모든 급여명세서 조회 (확정된 급여 포함)
     const slips = await query(
       `SELECT 
         ss.*,
         u.name as employee_name,
-        u.username as employee_username
+        u.username as employee_username,
+        'slip' as source
       FROM salary_slips ss
       JOIN users u ON ss.user_id = u.id
       WHERE ss.workplace_id = ? AND ss.payroll_month = ?
-      ORDER BY u.name`,
-      [workplaceId, payrollMonth]
+      
+      UNION ALL
+      
+      SELECT 
+        pf.id,
+        pf.workplace_id,
+        pf.payroll_month,
+        pf.employee_id as user_id,
+        NULL as pay_date,
+        pf.tax_type,
+        pf.base_pay,
+        1 as dependents_count,
+        CAST((pf.deductions_json::json->>'nps') AS NUMERIC) as national_pension,
+        CAST((pf.deductions_json::json->>'nhis') AS NUMERIC) as health_insurance,
+        CAST((pf.deductions_json::json->>'ei') AS NUMERIC) as employment_insurance,
+        CAST((pf.deductions_json::json->>'ltci') AS NUMERIC) as long_term_care,
+        CAST((pf.deductions_json::json->>'income_tax') AS NUMERIC) as income_tax,
+        CAST((pf.deductions_json::json->>'local_tax') AS NUMERIC) as local_tax,
+        CAST((pf.totals_json::json->>'totalDeductions') AS NUMERIC) as total_deductions,
+        CAST((pf.totals_json::json->>'netPay') AS NUMERIC) as net_pay,
+        NULL as bonus,
+        NULL as deductions,
+        NULL as notes,
+        NULL as published,
+        pf.created_at,
+        u.name as employee_name,
+        u.username as employee_username,
+        'finalized' as source
+      FROM payroll_finalized pf
+      JOIN users u ON pf.employee_id = u.id
+      WHERE pf.workplace_id = ? AND pf.payroll_month = ?
+      AND NOT EXISTS (
+        SELECT 1 FROM salary_slips ss2 
+        WHERE ss2.workplace_id = pf.workplace_id 
+        AND ss2.payroll_month = pf.payroll_month 
+        AND ss2.user_id = pf.employee_id
+      )
+      
+      ORDER BY employee_name`,
+      [workplaceId, payrollMonth, workplaceId, payrollMonth]
     );
 
     // 합계 계산

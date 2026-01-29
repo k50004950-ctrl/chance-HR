@@ -561,9 +561,11 @@ router.post('/create-test-workers', authenticate, async (req, res) => {
 });
 
 // 총관리자 전용: 계정 완전 삭제
-router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin']), async (req, res) => {
+router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const { userId } = req.params;
+    
+    console.log(`🔐 삭제 요청 - 요청자: ${req.user?.username} (role: ${req.user?.role}), 대상 ID: ${userId}`);
 
     // 자기 자신은 삭제 불가
     if (parseInt(userId) === req.user.id) {

@@ -1552,6 +1552,9 @@ export const getConnection = async () => {
   }
 };
 
+// all은 query와 동일 (여러 행 반환)
+export const all = query;
+
 // pool은 이미 Line 24에서 export됨
 
-export default { query, run, get, initDatabase, pool, getConnection };
+export default { query, run, get, all, initDatabase, pool, getConnection };

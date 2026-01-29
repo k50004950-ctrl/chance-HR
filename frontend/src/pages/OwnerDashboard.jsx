@@ -5399,6 +5399,16 @@ const OwnerDashboard = () => {
                         </button>
                       </div>
 
+                      {/* 디버그 정보 */}
+                      <div style={{ background: '#fef3c7', padding: '12px', marginBottom: '12px', fontSize: '12px', borderRadius: '8px' }}>
+                        <strong>🔍 디버그:</strong><br/>
+                        데이터 존재: {payrollLedgerData ? 'O' : 'X'}<br/>
+                        slips 존재: {payrollLedgerData?.slips ? 'O' : 'X'}<br/>
+                        slips 배열: {Array.isArray(payrollLedgerData?.slips) ? 'O' : 'X'}<br/>
+                        slips 개수: {payrollLedgerData?.slips?.length || 0}<br/>
+                        조건 결과: {payrollLedgerData?.slips?.length > 0 ? '테이블 표시해야 함' : '메시지 표시해야 함'}
+                      </div>
+
                       {payrollLedgerData?.slips?.length > 0 ? (
                         <div style={{ overflowX: 'auto' }}>
                           <table className="data-table" style={{ fontSize: '12px' }}>

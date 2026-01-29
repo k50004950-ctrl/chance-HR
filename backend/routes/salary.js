@@ -1174,6 +1174,15 @@ router.get('/payroll-ledger/:workplaceId/:payrollMonth', authenticate, async (re
     }
 
     const { workplaceId, payrollMonth } = req.params;
+    
+    // payrollMonth 형식 검증 (YYYY-MM)
+    if (!payrollMonth || !/^\d{4}-\d{2}$/.test(payrollMonth)) {
+      return res.status(400).json({ 
+        message: '급여 월 형식이 올바르지 않습니다. (예: 2026-01)' 
+      });
+    }
+    
+    console.log('급여대장 조회:', { workplaceId, payrollMonth, userId: req.user.id });
 
     // 사업장 권한 확인
     const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, req.user.id]);
@@ -1181,68 +1190,20 @@ router.get('/payroll-ledger/:workplaceId/:payrollMonth', authenticate, async (re
       return res.status(403).json({ message: '권한이 없습니다.' });
     }
 
-    // 해당 월의 모든 급여명세서 조회 (확정된 급여 포함, 퇴사자 필터링)
+    // 해당 월의 급여명세서 조회 (salary_slips만, 퇴사자 필터링)
     const slips = await query(
       `SELECT 
         ss.*,
         u.name as employee_name,
-        u.username as employee_username,
-        ed.resignation_date,
-        'slip' as source
+        u.username as employee_username
       FROM salary_slips ss
       JOIN users u ON ss.user_id = u.id
       LEFT JOIN employee_details ed ON u.id = ed.user_id
-      WHERE ss.workplace_id = ? AND ss.payroll_month = ?
-      AND (
-        ed.resignation_date IS NULL 
-        OR ed.resignation_date >= (ss.payroll_month || '-01')::date
-      )
-      
-      UNION ALL
-      
-      SELECT 
-        pf.id,
-        pf.workplace_id,
-        pf.payroll_month,
-        pf.employee_id as user_id,
-        NULL as pay_date,
-        pf.tax_type,
-        pf.base_pay,
-        1 as dependents_count,
-        CAST((pf.deductions_json::json->>'nps') AS NUMERIC) as national_pension,
-        CAST((pf.deductions_json::json->>'nhis') AS NUMERIC) as health_insurance,
-        CAST((pf.deductions_json::json->>'ei') AS NUMERIC) as employment_insurance,
-        CAST((pf.deductions_json::json->>'ltci') AS NUMERIC) as long_term_care,
-        CAST((pf.deductions_json::json->>'income_tax') AS NUMERIC) as income_tax,
-        CAST((pf.deductions_json::json->>'local_tax') AS NUMERIC) as local_tax,
-        CAST((pf.totals_json::json->>'totalDeductions') AS NUMERIC) as total_deductions,
-        CAST((pf.totals_json::json->>'netPay') AS NUMERIC) as net_pay,
-        NULL as bonus,
-        NULL as deductions,
-        NULL as notes,
-        NULL as published,
-        pf.created_at,
-        u.name as employee_name,
-        u.username as employee_username,
-        ed.resignation_date,
-        'finalized' as source
-      FROM payroll_finalized pf
-      JOIN users u ON pf.employee_id = u.id
-      LEFT JOIN employee_details ed ON u.id = ed.user_id
-      WHERE pf.workplace_id = ? AND pf.payroll_month = ?
-      AND (
-        ed.resignation_date IS NULL 
-        OR ed.resignation_date >= (pf.payroll_month || '-01')::date
-      )
-      AND NOT EXISTS (
-        SELECT 1 FROM salary_slips ss2 
-        WHERE ss2.workplace_id = pf.workplace_id 
-        AND ss2.payroll_month = pf.payroll_month 
-        AND ss2.user_id = pf.employee_id
-      )
-      
-      ORDER BY employee_name`,
-      [workplaceId, payrollMonth, workplaceId, payrollMonth]
+      WHERE ss.workplace_id = ? 
+        AND ss.payroll_month = ?
+        AND (ed.resignation_date IS NULL OR ed.resignation_date >= ss.payroll_month || '-01')
+      ORDER BY u.name`,
+      [workplaceId, payrollMonth]
     );
 
     // 합계 계산
@@ -1602,6 +1563,11 @@ router.post('/finalize', authenticate, async (req, res) => {
     // 모든 직원의 급여 확정 스냅샷 저장
     try {
       for (const emp of employees) {
+        const deductions = emp.deductions || {};
+        const basePay = parseFloat(emp.basePay) || 0;
+        const totalDeductions = parseFloat(emp.totalDeductions) || 0;
+        const netPay = basePay - totalDeductions;
+        
         // 기존 확정 데이터가 있으면 삭제 (재확정)
         await run(`
           DELETE FROM payroll_finalized 
@@ -1628,16 +1594,61 @@ router.post('/finalize', authenticate, async (req, res) => {
             ei_employee_rate_percent: rates.ei_employee_rate_percent,
             freelancer_withholding_rate_percent: rates.freelancer_withholding_rate_percent
           }),
-          emp.basePay || 0,
-          JSON.stringify(emp.deductions || {}),
+          basePay,
+          JSON.stringify(deductions),
           JSON.stringify({
-            totalPay: emp.totalPay || emp.basePay || 0,
-            totalDeductions: emp.totalDeductions || 0,
-            netPay: emp.netPay || emp.basePay || 0
+            totalPay: emp.totalPay || basePay,
+            totalDeductions: totalDeductions,
+            netPay: netPay
           }),
           emp.taxType || '4대보험',
           req.user.id
         ]);
+        
+        // salary_slips에도 생성 (기존 급여명세서가 없을 경우에만)
+        const existingSlip = await get(`
+          SELECT id FROM salary_slips 
+          WHERE workplace_id = ? AND payroll_month = ? AND user_id = ?
+        `, [workplaceId, payrollMonth, emp.employeeId]);
+        
+        if (!existingSlip) {
+          // 급여명세서 자동 생성
+          await run(`
+            INSERT INTO salary_slips (
+              workplace_id, user_id, payroll_month, pay_date, tax_type,
+              base_pay, dependents_count,
+              national_pension, health_insurance, employment_insurance, long_term_care,
+              income_tax, local_income_tax,
+              total_deductions, net_pay,
+              employer_national_pension, employer_health_insurance, 
+              employer_employment_insurance, employer_long_term_care,
+              total_employer_burden,
+              published
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            workplaceId,
+            emp.employeeId,
+            payrollMonth,
+            null, // pay_date는 나중에 설정
+            emp.taxType || '4대보험',
+            basePay,
+            1, // dependents_count
+            parseFloat(deductions.nps) || 0,
+            parseFloat(deductions.nhis) || 0,
+            parseFloat(deductions.ei) || 0,
+            parseFloat(deductions.ltci) || 0,
+            parseFloat(deductions.income_tax) || 0,
+            parseFloat(deductions.local_tax) || 0,
+            totalDeductions,
+            netPay,
+            parseFloat(deductions.employer_nps) || 0,
+            parseFloat(deductions.employer_nhis) || 0,
+            parseFloat(deductions.employer_ei) || 0,
+            parseFloat(deductions.employer_ltci) || 0,
+            parseFloat(deductions.total_employer) || 0,
+            0 // published = false (아직 발송 안됨)
+          ]);
+        }
       }
       
       res.json({ 

@@ -5295,10 +5295,16 @@ const OwnerDashboard = () => {
                                   
                                   console.log(`✅ ${employees.length}명의 급여 확정 준비 완료`);
                                   
+                                  console.log('📤 급여 확정 요청:', {
+                                    workplaceId: selectedWorkplace?.workplaceId,
+                                    payrollMonth: selectedMonth,
+                                    employeesCount: employees.length
+                                  });
+                                  
                                   const response = await salaryAPI.finalize({
                                     workplaceId: selectedWorkplace?.workplaceId,
                                     payrollMonth: selectedMonth,
-                                    employeeSalaries: employees,
+                                    employees: employees,
                                     appliedEffectiveYyyymm: selectedMonth?.replace('-', ''),
                                     appliedRatesJson: JSON.stringify({ rates_applied: true, month: selectedMonth })
                                   });

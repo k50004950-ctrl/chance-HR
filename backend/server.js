@@ -11,6 +11,7 @@ dotenv.config();
 
 // 라우트 임포트
 import { initDatabase } from './config/database.js';
+import { runAutoMigration } from './config/autoMigrate.js';  // V2 자동 마이그레이션
 import authRoutes from './routes/auth.js';
 import authV2Routes from './routes/authV2.js';  // 새 인증 시스템
 import workplaceRoutes from './routes/workplaces.js';
@@ -192,6 +193,9 @@ const startServer = async () => {
   try {
     // 데이터베이스 초기화
     await initDatabase();
+    
+    // V2 시스템 자동 마이그레이션 (있으면 스킵)
+    await runAutoMigration();
     
     app.listen(PORT, () => {
       console.log(`\n===========================================`);

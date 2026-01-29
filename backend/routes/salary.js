@@ -854,7 +854,18 @@ router.post('/calculate-insurance', authenticate, async (req, res) => {
         taxType: '3.3%',
         withholdingRate: parseFloat(rates.freelancer_withholding_rate_percent),
         withholding,
-        netPay
+        netPay,
+        // 프론트엔드 호환성을 위한 deductions 형식
+        deductions: {
+          freelancer_tax: withholding,
+          nps: 0,
+          nhis: 0,
+          ltci: 0,
+          ei: 0,
+          income_tax: 0,
+          local_tax: 0
+        },
+        totalDeductions: withholding
       });
     }
     
@@ -889,7 +900,12 @@ router.post('/calculate-insurance', authenticate, async (req, res) => {
     
     const totalEmployerBurden = employerNationalPension + employerHealthInsurance + employerLongTermCare + employerEmploymentInsurance;
     
-    const netPay = basePay - totalInsurance;
+    // 소득세 및 지방소득세 계산 (간이세액 기준)
+    const incomeTax = Math.floor(basePay * 0.023); // 간이세액 예시 (실제로는 tax_table 사용 권장)
+    const localTax = Math.floor(incomeTax * 0.1);
+    
+    const totalDeductions = totalInsurance + incomeTax + localTax;
+    const netPay = basePay - totalDeductions;
     
     res.json({
       basePay,
@@ -901,6 +917,18 @@ router.post('/calculate-insurance', authenticate, async (req, res) => {
         longTermCare: parseFloat(rates.ltci_rate_of_nhis_percent),
         employmentInsurance: parseFloat(rates.ei_employee_rate_percent)
       },
+      // 프론트엔드 호환성을 위한 deductions 형식
+      deductions: {
+        nps: nationalPension,
+        nhis: healthInsurance,
+        ltci: longTermCare,
+        ei: employmentInsurance,
+        income_tax: incomeTax,
+        local_tax: localTax
+      },
+      totalDeductions,
+      netPay,
+      // 기존 형식도 유지 (호환성)
       insurance: {
         nationalPension,
         healthInsurance,
@@ -914,8 +942,7 @@ router.post('/calculate-insurance', authenticate, async (req, res) => {
         longTermCare: employerLongTermCare,
         employmentInsurance: employerEmploymentInsurance,
         total: totalEmployerBurden
-      },
-      netPay
+      }
     });
   } catch (error) {
     console.error('4대보험료 계산 오류:', error);

@@ -611,15 +611,29 @@ router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin', 'sup
     console.log('  ✅ 작성한 공지사항 삭제 완료');
 
     // 8. 소유한 사업장 삭제 (사업주인 경우)
-    if (userToDelete.role === 'owner') {
-      const workplaces = await query('SELECT id FROM workplaces WHERE owner_id = ?', [userId]);
-      for (const workplace of workplaces) {
-        // 사업장 소속 직원들의 workplace_id를 NULL로 설정
-        await run('UPDATE users SET workplace_id = NULL WHERE workplace_id = ?', [workplace.id]);
-        // 사업장 삭제
-        await run('DELETE FROM workplaces WHERE id = ?', [workplace.id]);
+    if (userToDelete.role === 'owner' || userToDelete.role === 'super_admin') {
+      try {
+        const workplaces = await query('SELECT id FROM workplaces WHERE owner_id = ?', [userId]);
+        console.log(`  📍 ${workplaces.length}개 사업장 발견`);
+        
+        for (const workplace of workplaces) {
+          console.log(`  🏢 사업장 ${workplace.id} 삭제 중...`);
+          // 사업장 소속 직원들의 workplace_id를 NULL로 설정
+          await run('UPDATE users SET workplace_id = NULL WHERE workplace_id = ?', [workplace.id]);
+          // 사업장 관련 데이터 삭제
+          await run('DELETE FROM attendance WHERE user_id IN (SELECT id FROM users WHERE workplace_id = ?)', [workplace.id]);
+          await run('DELETE FROM salary_info WHERE workplace_id = ?', [workplace.id]);
+          await run('DELETE FROM salary_slips WHERE workplace_id = ?', [workplace.id]);
+          await run('DELETE FROM payroll_finalized WHERE workplace_id = ?', [workplace.id]);
+          // 사업장 삭제
+          await run('DELETE FROM workplaces WHERE id = ?', [workplace.id]);
+          console.log(`  ✅ 사업장 ${workplace.id} 삭제 완료`);
+        }
+        console.log('  ✅ 소유 사업장 삭제 완료');
+      } catch (error) {
+        console.error('  ❌ 사업장 삭제 중 오류:', error.message);
+        throw error;
       }
-      console.log('  ✅ 소유 사업장 삭제 완료');
     }
 
     // 9. 사용자 계정 삭제

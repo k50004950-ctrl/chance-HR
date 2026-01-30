@@ -58,8 +58,9 @@ function LoginV2() {
       const response = await apiClient.post('/v2/auth/login', formData);
 
       if (response.data.success) {
-        // AuthContext의 login 함수 호출
-        login(response.data.token, response.data.user);
+        // 토큰과 사용자 정보 저장
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
 
         setToast({
           show: true,

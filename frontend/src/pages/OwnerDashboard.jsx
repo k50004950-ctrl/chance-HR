@@ -58,7 +58,10 @@ const OwnerDashboard = () => {
     name: '',
     business_number: user?.business_number || '',
     address: '',
-    phone: user?.phone || ''
+    phone: user?.phone || '',
+    latitude: '',
+    longitude: '',
+    radius: 100
   });
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState([]);
@@ -644,6 +647,16 @@ const OwnerDashboard = () => {
   // 사업장 수동 등록
   const handleCreateWorkplace = async (e) => {
     e.preventDefault();
+    
+    if (!workplaceForm.address) {
+      setToast({ show: true, message: '주소를 입력해주세요.', type: 'error' });
+      return;
+    }
+    if (!workplaceForm.latitude || !workplaceForm.longitude) {
+      setToast({ show: true, message: '위도와 경도를 입력해주세요.', type: 'error' });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -651,6 +664,9 @@ const OwnerDashboard = () => {
         name: workplaceForm.name,
         business_number: workplaceForm.business_number,
         address: workplaceForm.address,
+        latitude: Number(workplaceForm.latitude),
+        longitude: Number(workplaceForm.longitude),
+        radius: Number(workplaceForm.radius) || 100,
         phone: workplaceForm.phone,
         company_id: ownerCompanyId || null
       };
@@ -658,8 +674,9 @@ const OwnerDashboard = () => {
       const response = await workplaceAPI.create(workplaceData);
       
       if (response.data) {
-        setMessage({ 
-          text: '✅ 사업장이 등록되었습니다!', 
+        setToast({ 
+          show: true,
+          message: '✅ 사업장이 등록되었습니다!', 
           type: 'success' 
         });
         setShowWorkplaceForm(false);
@@ -667,7 +684,10 @@ const OwnerDashboard = () => {
           name: '',
           business_number: user?.business_number || '',
           address: '',
-          phone: user?.phone || ''
+          phone: user?.phone || '',
+          latitude: '',
+          longitude: '',
+          radius: 100
         });
         // 사업장 목록 새로고침
         await loadWorkplaces();
@@ -2318,14 +2338,154 @@ const OwnerDashboard = () => {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">주소</label>
+                    <label className="form-label">주소 <span style={{ color: 'red' }}>*</span></label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={workplaceForm.address}
+                        onClick={async () => {
+                          try {
+                            setWorkplaceSearchLoading(true);
+                            const result = await searchAddress();
+                            const address = result.address || '';
+                            setWorkplaceForm(prev => ({ ...prev, address }));
+                            if (address) {
+                              try {
+                                const coords = await getCoordinatesFromAddress(address);
+                                setWorkplaceForm(prev => ({
+                                  ...prev,
+                                  latitude: coords.latitude?.toFixed ? coords.latitude.toFixed(6) : coords.latitude,
+                                  longitude: coords.longitude?.toFixed ? coords.longitude.toFixed(6) : coords.longitude
+                                }));
+                              } catch (error) {
+                                setToast({ show: true, message: '주소 좌표 변환에 실패했습니다. 수동으로 입력해주세요.', type: 'error' });
+                              }
+                            }
+                          } catch (error) {
+                            if (error?.message) {
+                              setToast({ show: true, message: error.message, type: 'error' });
+                            }
+                          } finally {
+                            setWorkplaceSearchLoading(false);
+                          }
+                        }}
+                        placeholder="클릭하여 주소 검색"
+                        readOnly
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={async () => {
+                          try {
+                            setWorkplaceSearchLoading(true);
+                            const result = await searchAddress();
+                            const address = result.address || '';
+                            setWorkplaceForm(prev => ({ ...prev, address }));
+                            if (address) {
+                              try {
+                                const coords = await getCoordinatesFromAddress(address);
+                                setWorkplaceForm(prev => ({
+                                  ...prev,
+                                  latitude: coords.latitude?.toFixed ? coords.latitude.toFixed(6) : coords.latitude,
+                                  longitude: coords.longitude?.toFixed ? coords.longitude.toFixed(6) : coords.longitude
+                                }));
+                              } catch (error) {
+                                setToast({ show: true, message: '주소 좌표 변환에 실패했습니다. 수동으로 입력해주세요.', type: 'error' });
+                              }
+                            }
+                          } catch (error) {
+                            if (error?.message) {
+                              setToast({ show: true, message: error.message, type: 'error' });
+                            }
+                          } finally {
+                            setWorkplaceSearchLoading(false);
+                          }
+                        }}
+                        disabled={workplaceSearchLoading}
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        {workplaceSearchLoading ? '검색 중...' : '주소 검색'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="form-group">
+                      <label className="form-label">위도 <span style={{ color: 'red' }}>*</span></label>
+                      <input
+                        type="number"
+                        step="0.000001"
+                        className="form-input"
+                        value={workplaceForm.latitude}
+                        onChange={(e) => setWorkplaceForm(prev => ({ ...prev, latitude: e.target.value }))}
+                        placeholder="37.123456"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">경도 <span style={{ color: 'red' }}>*</span></label>
+                      <input
+                        type="number"
+                        step="0.000001"
+                        className="form-input"
+                        value={workplaceForm.longitude}
+                        onChange={(e) => setWorkplaceForm(prev => ({ ...prev, longitude: e.target.value }))}
+                        placeholder="127.123456"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">출퇴근 인정 반경 (미터) <span style={{ color: 'red' }}>*</span></label>
                     <input
-                      type="text"
+                      type="number"
                       className="form-input"
-                      value={workplaceForm.address}
-                      onChange={(e) => setWorkplaceForm(prev => ({ ...prev, address: e.target.value }))}
-                      placeholder="서울시 강남구..."
+                      value={workplaceForm.radius}
+                      onChange={(e) => setWorkplaceForm(prev => ({ ...prev, radius: e.target.value }))}
+                      placeholder="100"
+                      min="10"
+                      required
                     />
+                    <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
+                      이 거리 안에서 출퇴근 체크가 가능합니다
+                    </small>
+                  </div>
+
+                  <div className="form-group">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={async () => {
+                        if (!navigator.geolocation) {
+                          setToast({ show: true, message: '현재 브라우저는 위치 정보를 지원하지 않습니다.', type: 'error' });
+                          return;
+                        }
+                        setWorkplaceLocationLoading(true);
+                        navigator.geolocation.getCurrentPosition(
+                          (position) => {
+                            setWorkplaceForm(prev => ({
+                              ...prev,
+                              latitude: position.coords.latitude.toFixed(6),
+                              longitude: position.coords.longitude.toFixed(6)
+                            }));
+                            setWorkplaceLocationLoading(false);
+                            setToast({ show: true, message: '현재 위치가 설정되었습니다.', type: 'success' });
+                          },
+                          () => {
+                            setToast({ show: true, message: '위치 정보를 가져오지 못했습니다. 위치 권한을 확인해주세요.', type: 'error' });
+                            setWorkplaceLocationLoading(false);
+                          },
+                          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                        );
+                      }}
+                      disabled={workplaceLocationLoading}
+                      style={{ width: '100%' }}
+                    >
+                      {workplaceLocationLoading ? '위치 확인 중...' : '📍 현재 위치로 설정'}
+                    </button>
                   </div>
 
                   <div className="form-group">

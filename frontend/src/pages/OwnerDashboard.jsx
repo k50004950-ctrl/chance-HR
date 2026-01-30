@@ -2581,7 +2581,7 @@ const OwnerDashboard = () => {
                 onClick={() => setActiveTab('salary')}
                 style={{ fontSize: '16px', fontWeight: '700' }}
               >
-                📋 급여명세서 관리
+                📋 급여명세서 배포
               </button>
               <button
                 className={`nav-tab ${activeTab === 'roster' ? 'active' : ''}`}
@@ -4581,8 +4581,7 @@ const OwnerDashboard = () => {
                     }}>
                       {salaryFlowStep === 1 && '📋 근무 내역 확인'}
                       {salaryFlowStep === 2 && '💰 급여 미리보기'}
-                      {salaryFlowStep === 3 && '✅ 급여 확정'}
-                      {salaryFlowStep === 4 && '📤 급여명세서 발송'}
+                      {salaryFlowStep === 3 && '✅ 급여 확정 및 배포'}
                     </h3>
 
                     {/* Step별 컨텐츠 */}
@@ -4897,6 +4896,92 @@ const OwnerDashboard = () => {
                                           </span>
                                         </div>
                                       </div>
+
+                                      {/* Step3: 배포 버튼 */}
+                                      {salaryFlowStep === 3 && salaryDeductions[emp.employeeId] && !isPublished && (
+                                        <div style={{ marginTop: '12px' }}>
+                                          <button
+                                            className="btn btn-success"
+                                            onClick={async () => {
+                                              try {
+                                                // 1. 급여명세서 생성 (이미 있다면 건너뜀)
+                                                const existingSlip = employeeSlips.find(slip => 
+                                                  slip.user_id === emp.employeeId && 
+                                                  slip.payroll_month === selectedMonth
+                                                );
+                                                
+                                                let slipId = existingSlip?.id;
+
+                                                if (!existingSlip) {
+                                                  const createResponse = await salaryAPI.createSlip({
+                                                    workplaceId: selectedWorkplace,
+                                                    userId: emp.employeeId,
+                                                    payrollMonth: selectedMonth,
+                                                    taxType: emp.taxType || '4대보험',
+                                                    basePay: totalPay,
+                                                    dependentsCount: 1,
+                                                    nationalPension: salaryDeductions[emp.employeeId].deductions.nationalPension,
+                                                    healthInsurance: salaryDeductions[emp.employeeId].deductions.healthInsurance,
+                                                    employmentInsurance: salaryDeductions[emp.employeeId].deductions.employmentInsurance,
+                                                    longTermCare: salaryDeductions[emp.employeeId].deductions.longTermCare,
+                                                    incomeTax: salaryDeductions[emp.employeeId].deductions.incomeTax,
+                                                    localIncomeTax: salaryDeductions[emp.employeeId].deductions.localIncomeTax,
+                                                    totalDeductions: salaryDeductions[emp.employeeId].totalDeductions,
+                                                    netPay: salaryDeductions[emp.employeeId].netPay,
+                                                    employerNationalPension: salaryDeductions[emp.employeeId].employerBurden?.nationalPension || 0,
+                                                    employerHealthInsurance: salaryDeductions[emp.employeeId].employerBurden?.healthInsurance || 0,
+                                                    employerEmploymentInsurance: salaryDeductions[emp.employeeId].employerBurden?.employmentInsurance || 0,
+                                                    employerLongTermCare: salaryDeductions[emp.employeeId].employerBurden?.longTermCare || 0,
+                                                    totalEmployerBurden: (salaryDeductions[emp.employeeId].employerBurden?.nationalPension || 0) + 
+                                                      (salaryDeductions[emp.employeeId].employerBurden?.healthInsurance || 0) + 
+                                                      (salaryDeductions[emp.employeeId].employerBurden?.employmentInsurance || 0) + 
+                                                      (salaryDeductions[emp.employeeId].employerBurden?.longTermCare || 0)
+                                                  });
+                                                  slipId = createResponse.data.slipId;
+                                                }
+
+                                                // 2. 배포
+                                                await salaryAPI.publishSlip(slipId);
+                                                setMessage({ type: 'success', text: `${emp.employeeName}님의 급여명세서가 배포되었습니다.` });
+                                                
+                                                // 3. 목록 새로고침
+                                                await loadEmployeeSlips();
+                                              } catch (error) {
+                                                console.error('배포 오류:', error);
+                                                setMessage({ type: 'error', text: '배포에 실패했습니다.' });
+                                              }
+                                            }}
+                                            style={{
+                                              width: '100%',
+                                              fontSize: '14px',
+                                              fontWeight: '700',
+                                              padding: '10px',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              gap: '6px'
+                                            }}
+                                          >
+                                            📤 급여명세서 배포
+                                          </button>
+                                        </div>
+                                      )}
+
+                                      {/* 배포 완료 상태 */}
+                                      {salaryFlowStep === 3 && isPublished && (
+                                        <div style={{
+                                          marginTop: '12px',
+                                          padding: '10px',
+                                          background: '#10b981',
+                                          color: 'white',
+                                          borderRadius: '8px',
+                                          textAlign: 'center',
+                                          fontSize: '14px',
+                                          fontWeight: '600'
+                                        }}>
+                                          ✅ 배포 완료
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -4976,28 +5061,16 @@ const OwnerDashboard = () => {
                           )}
                           
                           {salaryFlowStep === 3 && (
-                            <>
-                              <button
-                                className="btn btn-secondary"
-                                style={{ flex: 1, fontSize: '16px', minHeight: '48px' }}
-                                onClick={() => {
-                                  setSalaryFlowStep(2);
-                                  setSalaryConfirmed(false);
-                                }}
-                              >
-                                ← 이전
-                              </button>
-                              <button
-                                className="btn btn-success"
-                                style={{ flex: 1, fontSize: '16px', fontWeight: '700', minHeight: '48px' }}
-                                onClick={() => {
-                                  setSalaryFlowStep(4);
-                                  setActiveTab('salary-slips');
-                                }}
-                              >
-                                명세서 발송 →
-                              </button>
-                            </>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ flex: 1, fontSize: '16px', minHeight: '48px' }}
+                              onClick={() => {
+                                setSalaryFlowStep(2);
+                                setSalaryConfirmed(false);
+                              }}
+                            >
+                              ← 이전 단계
+                            </button>
                           )}
                         </div>
                       </div>
@@ -5031,8 +5104,7 @@ const OwnerDashboard = () => {
                     {[
                       { num: 1, label: '근무 내역 확인' },
                       { num: 2, label: '급여 미리보기' },
-                      { num: 3, label: '급여 확정' },
-                      { num: 4, label: '급여명세서 발송' }
+                      { num: 3, label: '급여 확정 및 배포' }
                     ].map((step, idx) => (
                       <div key={step.num} style={{ flex: 1, textAlign: 'center', position: 'relative', zIndex: 1 }}>
                         <div style={{
@@ -5061,7 +5133,7 @@ const OwnerDashboard = () => {
                         }}>
                           {step.label}
                         </div>
-                        {idx < 3 && (
+                        {idx < 2 && (
                           <div style={{
                             position: 'absolute',
                             top: '24px',
@@ -5084,8 +5156,7 @@ const OwnerDashboard = () => {
                   <h3 style={{ color: '#374151', margin: 0 }}>
                     {salaryFlowStep === 1 && 'Step 1. 이번 달 근무 내역 확인'}
                     {salaryFlowStep === 2 && 'Step 2. 급여 미리보기'}
-                    {salaryFlowStep === 3 && 'Step 3. 급여 확정'}
-                    {salaryFlowStep === 4 && 'Step 4. 급여명세서 발송'}
+                    {salaryFlowStep === 3 && 'Step 3. 급여 확정 및 배포'}
                   </h3>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', gap: '6px' }}>
@@ -5428,28 +5499,16 @@ const OwnerDashboard = () => {
                             )}
                             
                             {salaryFlowStep === 3 && (
-                              <>
-                                <button
-                                  className="btn btn-secondary"
-                                  style={{ fontSize: '16px', padding: '16px 32px' }}
-                                  onClick={() => {
-                                    setSalaryFlowStep(2);
-                                    setSalaryConfirmed(false);
-                                  }}
-                                >
-                                  ← 이전
-                                </button>
-                                <button
-                                  className="btn btn-success"
-                                  style={{ fontSize: '16px', padding: '16px 48px', fontWeight: '700' }}
-                                  onClick={() => {
-                                    setSalaryFlowStep(4);
-                                    setActiveTab('salary-slips');
-                                  }}
-                                >
-                                  급여명세서 발송 →
-                                </button>
-                              </>
+                              <button
+                                className="btn btn-secondary"
+                                style={{ fontSize: '16px', padding: '16px 32px' }}
+                                onClick={() => {
+                                  setSalaryFlowStep(2);
+                                  setSalaryConfirmed(false);
+                                }}
+                              >
+                                ← 이전 단계
+                              </button>
                             )}
                           </div>
                         )}
@@ -5660,10 +5719,10 @@ const OwnerDashboard = () => {
                                   
                                   setSalaryDeductions(updatedDeductions);
                                   setSalaryConfirmed(true);
-                                  setSalaryFlowStep(4);
+                                  setSalaryFlowStep(3);
                                   setShowConfirmWarning(false);
                                   setToast({ 
-                                    message: `✓ 급여가 확정되었습니다. (${employees.length}명)`, 
+                                    message: `✓ 급여가 확정되었습니다. 이제 각 직원별로 배포해주세요. (${employees.length}명)`, 
                                     type: 'success' 
                                   });
                                   
@@ -5926,10 +5985,10 @@ const OwnerDashboard = () => {
                   )}
                 </div>
 
-                {/* 급여명세서 관리 */}
+                {/* 급여명세서 배포 */}
                 <div className="card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-                    <h3 style={{ color: '#374151', margin: 0 }}>📝 급여명세서 관리</h3>
+                    <h3 style={{ color: '#374151', margin: 0 }}>📝 급여명세서 배포</h3>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                       <button
                         className="btn btn-success"

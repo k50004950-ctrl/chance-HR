@@ -663,19 +663,21 @@ const OwnerDashboard = () => {
 
     try {
       const workplaceData = {
+        companyId: ownerCompanyId, // V2 시스템용
+        ownerId: user.id, // V2 시스템용
         name: workplaceForm.name,
         business_number: workplaceForm.business_number,
         address: workplaceForm.address,
         latitude: Number(workplaceForm.latitude),
         longitude: Number(workplaceForm.longitude),
         radius: Number(workplaceForm.radius) || 100,
-        phone: workplaceForm.phone,
-        company_id: ownerCompanyId || null
+        phone: workplaceForm.phone
       };
 
-      const response = await workplaceAPI.create(workplaceData);
+      // V2 시스템 API 호출 (초대 시스템 호환)
+      const response = await apiClient.post('/v2/auth/owner/create-workplace', workplaceData);
       
-      if (response.data) {
+      if (response.data.success) {
         setToast({ 
           show: true,
           message: '✅ 사업장이 등록되었습니다!', 

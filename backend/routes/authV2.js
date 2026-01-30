@@ -88,7 +88,7 @@ router.post('/signup', async (req, res) => {
       [username, hashedPassword, name, phone, role, business_number || null]
     );
 
-    const userId = result.lastID;
+    const userId = result.id || result.lastID; // PostgreSQL은 id, SQLite는 lastID
 
     // 사업주인 경우: companies 테이블에도 등록 (기본 회사 정보)
     if (role === 'owner' && business_number) {
@@ -113,7 +113,7 @@ router.post('/signup', async (req, res) => {
             ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
             [business_number, name + '의 사업장', phone, false]
           );
-          companyId = companyResult.lastID;
+          companyId = companyResult.id || companyResult.lastID; // PostgreSQL은 id, SQLite는 lastID
           console.log(`✅ 새 회사 생성: company_id ${companyId}`);
         }
 
@@ -133,7 +133,7 @@ router.post('/signup', async (req, res) => {
           [userId, companyId, name + '의 사업장', business_number, '', phone]
         );
         
-        const workplaceId = workplaceResult.lastID;
+        const workplaceId = workplaceResult.id || workplaceResult.lastID; // PostgreSQL은 id, SQLite는 lastID
         console.log(`🏢 기본 사업장 생성: workplace_id ${workplaceId}`);
 
         // users 테이블에 workplace_id 연결
@@ -757,6 +757,47 @@ router.get('/owner/employees/:companyId', async (req, res) => {
 
 
 // ============================================
+// 사업장 수동 생성 (사업주 전용)
+// ============================================
+router.post('/owner/create-workplace', async (req, res) => {
+  const { companyId, ownerId, name, address, phone, latitude, longitude, radius, business_number } = req.body;
+
+  try {
+    if (!companyId || !ownerId || !name || !business_number || !address || !latitude || !longitude || !radius) {
+      return res.status(400).json({ success: false, message: '필수 항목을 모두 입력해주세요.' });
+    }
+
+    // 사업장 생성
+    const result = await run(
+      `INSERT INTO workplaces (
+        company_id, owner_id, name, address, phone, latitude, longitude, radius, business_number, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [companyId, ownerId, name, address, phone || '미정', latitude, longitude, radius, business_number]
+    );
+    const workplaceId = result.id || result.lastID; // PostgreSQL은 id, SQLite는 lastID
+
+    // 사용자의 workplace_id 업데이트 (기본 사업장으로 설정)
+    await run(
+      `UPDATE users SET workplace_id = ? WHERE id = ?`,
+      [workplaceId, ownerId]
+    );
+
+    console.log(`🏢 수동 사업장 생성 완료: ${name} (workplace_id: ${workplaceId}) for owner ${ownerId}`);
+
+    res.json({
+      success: true,
+      message: '사업장이 성공적으로 등록되었습니다.',
+      workplaceId: workplaceId
+    });
+
+  } catch (error) {
+    console.error('수동 사업장 생성 오류:', error);
+    res.status(500).json({ success: false, message: '사업장 생성 중 서버 오류가 발생했습니다.' });
+  }
+});
+
+
+// ============================================
 // 초대 링크 시스템
 // ============================================
 
@@ -794,7 +835,7 @@ router.post('/owner/create-invite', async (req, res) => {
       success: true,
       message: '초대 링크가 생성되었습니다.',
       invitation: {
-        id: result.lastID,
+        id: result.id || result.lastID, // PostgreSQL은 id, SQLite는 lastID
         token,
         expiresAt,
         maxUses,
@@ -1021,7 +1062,7 @@ router.post('/employee/signup-with-invite', async (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, 'employee', ?, CURRENT_TIMESTAMP)`,
       [username, hashedPassword, name, phone, ssn, address, invitation.workplace_id]
     );
-    const userId = userResult.lastID || userResult.id;
+    const userId = userResult.id || userResult.lastID; // PostgreSQL은 id, SQLite는 lastID
 
     // 직원 상세 정보 생성 (급여통장 정보 포함)
     await run(

@@ -479,7 +479,8 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
         }
       }
 
-      const totalPay = roundedSalary;
+      // totalPay = 기본급여 + 주휴수당
+      const totalPay = Math.round(baseSalaryAmount + weeklyHolidayPayAmount);
 
       // 퇴직금/수기 과거 급여는 별도 표시 (총 급여에 포함하지 않음)
       totalSalary += totalPay;

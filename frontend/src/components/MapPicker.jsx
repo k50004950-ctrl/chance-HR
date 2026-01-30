@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { ensureKakaoMapsLoaded } from '../utils/addressSearch';
 
 /**
  * 지도에서 위치를 선택할 수 있는 컴포넌트
@@ -14,58 +15,17 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
 
   // Kakao Maps 스크립트 로드
   useEffect(() => {
-    const loadKakaoMap = () => {
-      // 이미 로드되어 있는 경우
-      if (window.kakao && window.kakao.maps && window.kakao.maps.Map) {
-        console.log('✅ Kakao Maps 이미 로드됨');
+    const loadKakaoMap = async () => {
+      try {
+        console.log('🗺️ Kakao Maps API 로드 시작...');
+        await ensureKakaoMapsLoaded();
+        console.log('✅ Kakao Maps API 로드 완료');
         setIsLoading(false);
-        return;
-      }
-
-      // 이미 스크립트가 추가되어 있는지 확인
-      const existingScript = document.querySelector('script[src*="dapi.kakao.com/v2/maps/sdk.js"]');
-      if (existingScript) {
-        console.log('⏳ Kakao Maps 스크립트 로드 대기 중...');
-        // 스크립트는 있지만 아직 로드 안 된 경우, 대기
-        let attempts = 0;
-        const maxAttempts = 100; // 10초 (100ms * 100)
-        const checkInterval = setInterval(() => {
-          attempts++;
-          if (window.kakao && window.kakao.maps && window.kakao.maps.Map) {
-            console.log('✅ Kakao Maps 로드 완료');
-            clearInterval(checkInterval);
-            setIsLoading(false);
-          } else if (attempts >= maxAttempts) {
-            console.error('❌ Kakao Maps 로드 타임아웃');
-            clearInterval(checkInterval);
-            setIsLoading(false);
-          }
-        }, 100);
-        return;
-      }
-
-      // 새로 스크립트 추가
-      console.log('📦 Kakao Maps 스크립트 추가 중...');
-      const script = document.createElement('script');
-      const apiKey = import.meta.env.VITE_KAKAO_MAPS_KEY || 'f08c77bfb5eb0bcf42a30ed4982c94f2';
-      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}`;
-      script.async = true;
-      script.onload = () => {
-        console.log('✅ Kakao Maps 스크립트 로드 완료');
-        // autoload=false를 사용하지 않으므로 바로 사용 가능
-        if (window.kakao && window.kakao.maps) {
-          setIsLoading(false);
-        } else {
-          console.error('❌ Kakao Maps API 초기화 실패');
-          setIsLoading(false);
-        }
-      };
-      script.onerror = (err) => {
-        console.error('❌ Kakao Maps 스크립트 로드 실패:', err);
-        setError('지도 API 로드에 실패했습니다.');
+      } catch (err) {
+        console.error('❌ Kakao Maps API 로드 실패:', err);
+        setError(err.message || '지도 API 로드에 실패했습니다.');
         setIsLoading(false);
-      };
-      document.head.appendChild(script);
+      }
     };
 
     loadKakaoMap();

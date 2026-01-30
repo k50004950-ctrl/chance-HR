@@ -24,14 +24,14 @@ const ensureDaumPostcodeLoaded = () => {
   return daumScriptPromise;
 };
 
-const ensureKakaoMapsLoaded = () => {
+export const ensureKakaoMapsLoaded = () => {
   if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
     return Promise.resolve();
   }
 
-  const appKey = import.meta.env.VITE_KAKAO_MAPS_KEY;
+  const appKey = import.meta.env.VITE_KAKAO_MAPS_KEY || 'f08c77bfb5eb0bcf42a30ed4982c94f2';
   if (!appKey) {
-    return Promise.resolve();
+    return Promise.reject(new Error('Kakao Maps API 키가 설정되지 않았습니다.'));
   }
 
   if (kakaoScriptPromise) {

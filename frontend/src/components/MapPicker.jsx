@@ -10,23 +10,60 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
   const [map, setMap] = useState(null);
   const [marker, setMarker] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Kakao Maps 스크립트 로드
   useEffect(() => {
     const loadKakaoMap = () => {
-      if (window.kakao && window.kakao.maps) {
+      // 이미 로드되어 있는 경우
+      if (window.kakao && window.kakao.maps && window.kakao.maps.Map) {
+        console.log('✅ Kakao Maps 이미 로드됨');
         setIsLoading(false);
         return;
       }
 
+      // 이미 스크립트가 추가되어 있는지 확인
+      const existingScript = document.querySelector('script[src*="dapi.kakao.com/v2/maps/sdk.js"]');
+      if (existingScript) {
+        console.log('⏳ Kakao Maps 스크립트 로드 대기 중...');
+        // 스크립트는 있지만 아직 로드 안 된 경우, 대기
+        let attempts = 0;
+        const maxAttempts = 100; // 10초 (100ms * 100)
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (window.kakao && window.kakao.maps && window.kakao.maps.Map) {
+            console.log('✅ Kakao Maps 로드 완료');
+            clearInterval(checkInterval);
+            setIsLoading(false);
+          } else if (attempts >= maxAttempts) {
+            console.error('❌ Kakao Maps 로드 타임아웃');
+            clearInterval(checkInterval);
+            setIsLoading(false);
+          }
+        }, 100);
+        return;
+      }
+
+      // 새로 스크립트 추가
+      console.log('📦 Kakao Maps 스크립트 추가 중...');
       const script = document.createElement('script');
       const apiKey = import.meta.env.VITE_KAKAO_MAPS_KEY || 'f08c77bfb5eb0bcf42a30ed4982c94f2';
-      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&autoload=false`;
+      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}`;
       script.async = true;
       script.onload = () => {
-        window.kakao.maps.load(() => {
+        console.log('✅ Kakao Maps 스크립트 로드 완료');
+        // autoload=false를 사용하지 않으므로 바로 사용 가능
+        if (window.kakao && window.kakao.maps) {
           setIsLoading(false);
-        });
+        } else {
+          console.error('❌ Kakao Maps API 초기화 실패');
+          setIsLoading(false);
+        }
+      };
+      script.onerror = (err) => {
+        console.error('❌ Kakao Maps 스크립트 로드 실패:', err);
+        setError('지도 API 로드에 실패했습니다.');
+        setIsLoading(false);
       };
       document.head.appendChild(script);
     };
@@ -36,48 +73,64 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
 
   // 지도 초기화 및 마커 설정
   useEffect(() => {
-    if (isLoading || !mapRef.current || !window.kakao || !window.kakao.maps) return;
-    if (!latitude || !longitude) return;
+    if (isLoading || !mapRef.current || !window.kakao || !window.kakao.maps) {
+      console.log('⏳ 지도 초기화 대기 중...', { isLoading, hasRef: !!mapRef.current, hasKakao: !!(window.kakao && window.kakao.maps) });
+      return;
+    }
+    if (!latitude || !longitude) {
+      console.log('⏳ 좌표 대기 중...', { latitude, longitude });
+      return;
+    }
 
-    const kakao = window.kakao;
-    const lat = parseFloat(latitude);
-    const lng = parseFloat(longitude);
+    try {
+      console.log('🗺️ 지도 초기화 시작...', { latitude, longitude });
+      const kakao = window.kakao;
+      const lat = parseFloat(latitude);
+      const lng = parseFloat(longitude);
 
-    // 지도 생성
-    const mapOption = {
-      center: new kakao.maps.LatLng(lat, lng),
-      level: 3 // 확대 레벨
-    };
-    const newMap = new kakao.maps.Map(mapRef.current, mapOption);
+      // 지도 생성
+      const mapOption = {
+        center: new kakao.maps.LatLng(lat, lng),
+        level: 3 // 확대 레벨
+      };
+      const newMap = new kakao.maps.Map(mapRef.current, mapOption);
+      console.log('✅ 지도 생성 완료');
 
-    // 마커 생성 (드래그 가능)
-    const newMarker = new kakao.maps.Marker({
-      position: new kakao.maps.LatLng(lat, lng),
-      draggable: true // 마커를 드래그 가능하게 설정
-    });
-    newMarker.setMap(newMap);
-
-    // 마커 드래그 종료 이벤트
-    kakao.maps.event.addListener(newMarker, 'dragend', function() {
-      const position = newMarker.getPosition();
-      onLocationChange({
-        latitude: position.getLat(),
-        longitude: position.getLng()
+      // 마커 생성 (드래그 가능)
+      const newMarker = new kakao.maps.Marker({
+        position: new kakao.maps.LatLng(lat, lng),
+        draggable: true // 마커를 드래그 가능하게 설정
       });
-    });
+      newMarker.setMap(newMap);
+      console.log('✅ 마커 생성 완료');
 
-    // 지도 클릭 이벤트
-    kakao.maps.event.addListener(newMap, 'click', function(mouseEvent) {
-      const latlng = mouseEvent.latLng;
-      newMarker.setPosition(latlng);
-      onLocationChange({
-        latitude: latlng.getLat(),
-        longitude: latlng.getLng()
+      // 마커 드래그 종료 이벤트
+      kakao.maps.event.addListener(newMarker, 'dragend', function() {
+        const position = newMarker.getPosition();
+        console.log('📍 마커 드래그 완료:', position.getLat(), position.getLng());
+        onLocationChange({
+          latitude: position.getLat(),
+          longitude: position.getLng()
+        });
       });
-    });
 
-    setMap(newMap);
-    setMarker(newMarker);
+      // 지도 클릭 이벤트
+      kakao.maps.event.addListener(newMap, 'click', function(mouseEvent) {
+        const latlng = mouseEvent.latLng;
+        console.log('📍 지도 클릭:', latlng.getLat(), latlng.getLng());
+        newMarker.setPosition(latlng);
+        onLocationChange({
+          latitude: latlng.getLat(),
+          longitude: latlng.getLng()
+        });
+      });
+
+      setMap(newMap);
+      setMarker(newMarker);
+      console.log('✅ 지도 초기화 완료');
+    } catch (error) {
+      console.error('❌ 지도 초기화 오류:', error);
+    }
   }, [isLoading, latitude, longitude]);
 
   // 좌표 변경 시 마커 이동
@@ -92,6 +145,27 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
     map.setCenter(newPosition);
   }, [latitude, longitude, map, marker]);
 
+  if (error) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '400px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#fff3cd',
+        borderRadius: '8px',
+        border: '2px solid #ffc107'
+      }}>
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <div style={{ marginBottom: '10px', fontSize: '36px' }}>⚠️</div>
+          <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>{error}</div>
+          <div style={{ fontSize: '14px', color: '#666' }}>위도/경도를 직접 입력하거나 "현재 위치로 설정" 버튼을 사용하세요.</div>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div style={{
@@ -105,8 +179,9 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
         border: '1px solid #ddd'
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ marginBottom: '10px', fontSize: '18px' }}>🗺️</div>
-          <div>지도 로딩 중...</div>
+          <div style={{ marginBottom: '10px', fontSize: '36px' }}>🗺️</div>
+          <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>지도 로딩 중...</div>
+          <div style={{ fontSize: '14px', color: '#666' }}>잠시만 기다려주세요</div>
         </div>
       </div>
     );

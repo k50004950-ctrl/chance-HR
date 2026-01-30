@@ -443,58 +443,82 @@ router.post('/owner/match-approve', async (req, res) => {
     }
 
     if (approve) {
-      // 승인: status를 'active'로 변경
-      await run(
-        `UPDATE company_employee_relations 
-         SET status = 'active', updated_at = CURRENT_TIMESTAMP 
+      // 먼저 relation 정보 가져오기
+      const relation = await get(
+        `SELECT user_id, company_id, workplace_id, start_date, position, monthly_salary, hourly_rate, tax_type
+         FROM company_employee_relations 
          WHERE id = ?`,
         [relationId]
       );
 
-      // 🔗 기존 시스템 호환성: users 테이블도 업데이트
-      try {
-        const relation = await get(
-          `SELECT user_id, company_id, workplace_id, start_date, position, monthly_salary, hourly_rate, tax_type
-           FROM company_employee_relations 
-           WHERE id = ?`,
-          [relationId]
+      if (!relation) {
+        return res.status(404).json({ 
+          success: false, 
+          message: '매칭 요청을 찾을 수 없습니다.' 
+        });
+      }
+
+      // workplace_id가 없으면 회사의 workplace 찾기
+      let workplaceId = relation.workplace_id;
+      if (!workplaceId) {
+        const workplace = await get(
+          `SELECT w.id FROM workplaces w
+           JOIN companies c ON w.company_id = c.id
+           WHERE c.id = ?
+           LIMIT 1`,
+          [relation.company_id]
         );
 
-        if (relation) {
-          // workplace_id가 있으면 users 테이블 업데이트
-          if (relation.workplace_id) {
-            await run(
-              `UPDATE users 
-               SET workplace_id = ?, employment_status = 'active' 
-               WHERE id = ?`,
-              [relation.workplace_id, relation.user_id]
-            );
-            console.log(`✅ users 테이블 업데이트: user ${relation.user_id} -> workplace ${relation.workplace_id}`);
-          }
+        if (workplace) {
+          workplaceId = workplace.id;
+          console.log(`🔍 workplace 찾음: ${workplaceId} (company: ${relation.company_id})`);
+        }
+      }
 
-          // employee_details가 없으면 생성
-          const existing = await get(
-            'SELECT id FROM employee_details WHERE user_id = ?',
-            [relation.user_id]
+      // 승인: status를 'active'로 변경하고 workplace_id 설정
+      await run(
+        `UPDATE company_employee_relations 
+         SET status = 'active', workplace_id = ?, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = ?`,
+        [workplaceId, relationId]
+      );
+
+      console.log(`✅ 매칭 승인: relation ${relationId}, workplace ${workplaceId}`);
+
+      // 🔗 기존 시스템 호환성: users 테이블도 업데이트
+      try {
+        if (workplaceId) {
+          await run(
+            `UPDATE users 
+             SET workplace_id = ?, employment_status = 'active' 
+             WHERE id = ?`,
+            [workplaceId, relation.user_id]
           );
+          console.log(`✅ users 테이블 업데이트: user ${relation.user_id} -> workplace ${workplaceId}`);
+        }
 
-          if (!existing && relation.workplace_id) {
-            await run(
-              `INSERT INTO employee_details (
-                user_id, workplace_id, hire_date, position, monthly_salary, hourly_rate, tax_type
-              ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-              [
-                relation.user_id,
-                relation.workplace_id,
-                relation.start_date,
-                relation.position || '',
-                relation.monthly_salary || 0,
-                relation.hourly_rate || 0,
-                relation.tax_type || '4대보험'
-              ]
-            );
-            console.log(`✅ employee_details 생성: user ${relation.user_id}`);
-          }
+        // employee_details가 없으면 생성
+        const existing = await get(
+          'SELECT id FROM employee_details WHERE user_id = ?',
+          [relation.user_id]
+        );
+
+        if (!existing && workplaceId) {
+          await run(
+            `INSERT INTO employee_details (
+              user_id, workplace_id, hire_date, position, monthly_salary, hourly_rate, tax_type
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+              relation.user_id,
+              workplaceId,
+              relation.start_date,
+              relation.position || '',
+              relation.monthly_salary || 0,
+              relation.hourly_rate || 0,
+              relation.tax_type || '4대보험'
+            ]
+          );
+          console.log(`✅ employee_details 생성: user ${relation.user_id}`);
         }
       } catch (compatError) {
         console.error('⚠️  기존 시스템 호환성 업데이트 오류:', compatError);

@@ -16,7 +16,12 @@ const InviteSignup = () => {
     password: '',
     confirmPassword: '',
     name: '',
-    phone: ''
+    phone: '',
+    ssn: '',
+    address: '',
+    bank_name: '',
+    account_number: '',
+    account_holder: ''
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -67,6 +72,11 @@ const InviteSignup = () => {
         password: formData.password,
         name: formData.name,
         phone: formData.phone,
+        ssn: formData.ssn,
+        address: formData.address,
+        bank_name: formData.bank_name,
+        account_number: formData.account_number,
+        account_holder: formData.account_holder,
         inviteToken: token
       });
 
@@ -279,7 +289,7 @@ const InviteSignup = () => {
             />
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#374151' }}>
               전화번호 <span style={{ color: 'red' }}>*</span>
             </label>
@@ -298,6 +308,126 @@ const InviteSignup = () => {
                 fontSize: '16px'
               }}
             />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#374151' }}>
+              주민등록번호 <span style={{ color: 'red' }}>*</span>
+            </label>
+            <input
+              type="text"
+              name="ssn"
+              value={formData.ssn}
+              onChange={handleChange}
+              placeholder="000000-0000000"
+              required
+              maxLength="14"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                fontSize: '16px'
+              }}
+            />
+            <small style={{ color: '#6b7280', display: 'block', marginTop: '4px' }}>
+              급여 계산 및 4대보험 가입에 필요합니다
+            </small>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#374151' }}>
+              거주 주소 <span style={{ color: 'red' }}>*</span>
+            </label>
+            <input
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              placeholder="서울시 강남구..."
+              required
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                fontSize: '16px'
+              }}
+            />
+          </div>
+
+          <div style={{
+            background: '#f9fafb',
+            padding: '16px',
+            borderRadius: '8px',
+            marginBottom: '16px'
+          }}>
+            <h4 style={{ marginBottom: '12px', color: '#374151', fontSize: '14px' }}>
+              💳 급여 통장 정보
+            </h4>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px' }}>
+                은행명 <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                type="text"
+                name="bank_name"
+                value={formData.bank_name}
+                onChange={handleChange}
+                placeholder="예: 국민은행, 신한은행"
+                required
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px' }}>
+                계좌번호 <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                type="text"
+                name="account_number"
+                value={formData.account_number}
+                onChange={handleChange}
+                placeholder="'-' 없이 숫자만 입력"
+                required
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '0' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px' }}>
+                예금주 <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                type="text"
+                name="account_holder"
+                value={formData.account_holder}
+                onChange={handleChange}
+                placeholder="본인 이름"
+                required
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
           </div>
 
           <button

@@ -955,12 +955,18 @@ router.post('/employee/signup-with-invite', async (req, res) => {
     password,
     name,
     phone,
+    ssn,
+    address,
+    bank_name,
+    account_number,
+    account_holder,
     inviteToken
   } = req.body;
 
   try {
     // 입력 검증
-    if (!username || !password || !name || !phone || !inviteToken) {
+    if (!username || !password || !name || !phone || !ssn || !address || 
+        !bank_name || !account_number || !account_holder || !inviteToken) {
       return res.status(400).json({ 
         success: false, 
         message: '필수 항목을 모두 입력해주세요.' 
@@ -1008,21 +1014,21 @@ router.post('/employee/signup-with-invite', async (req, res) => {
     // 비밀번호 해시
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 사용자 생성
+    // 사용자 생성 (주민번호, 주소 포함)
     const userResult = await run(
       `INSERT INTO users (
-        username, password, name, phone, role, workplace_id, created_at
-      ) VALUES (?, ?, ?, ?, 'employee', ?, CURRENT_TIMESTAMP)`,
-      [username, hashedPassword, name, phone, invitation.workplace_id]
+        username, password, name, phone, ssn, address, role, workplace_id, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, 'employee', ?, CURRENT_TIMESTAMP)`,
+      [username, hashedPassword, name, phone, ssn, address, invitation.workplace_id]
     );
-    const userId = userResult.lastID;
+    const userId = userResult.lastID || userResult.id;
 
-    // 직원 상세 정보 생성
+    // 직원 상세 정보 생성 (급여통장 정보 포함)
     await run(
       `INSERT INTO employee_details (
-        user_id, workplace_id, employment_status, created_at
-      ) VALUES (?, ?, 'active', CURRENT_TIMESTAMP)`,
-      [userId, invitation.workplace_id]
+        user_id, workplace_id, bank_name, account_number, account_holder, employment_status, created_at
+      ) VALUES (?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP)`,
+      [userId, invitation.workplace_id, bank_name, account_number, account_holder]
     );
 
     // 회사-직원 관계 생성

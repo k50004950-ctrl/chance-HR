@@ -263,7 +263,7 @@ const OwnerDashboard = () => {
           
           for (const emp of salaryData.employees) {
             // 이미 계산된 직원은 스킵
-            if (salaryDeductions[emp.id] && Object.keys(salaryDeductions[emp.id].deductions || {}).length > 0) {
+            if (salaryDeductions[emp.employeeId] && Object.keys(salaryDeductions[emp.employeeId].deductions || {}).length > 0) {
               continue;
             }
             
@@ -281,7 +281,7 @@ const OwnerDashboard = () => {
                 taxType: taxType
               });
               
-              newDeductions[emp.id] = {
+              newDeductions[emp.employeeId] = {
                 basePay: totalPay,
                 taxType: taxType,
                 deductions: response.data.deductions,
@@ -5368,7 +5368,7 @@ const OwnerDashboard = () => {
                 taxType: taxType
               });
                                       
-                                      newDeductions[emp.id] = {
+                                      newDeductions[emp.employeeId] = {
                                         basePay: totalPay,
                                         taxType: taxType,
                                         deductions: response.data.deductions,
@@ -5481,7 +5481,7 @@ const OwnerDashboard = () => {
                                                 
                                                 setSalaryDeductions(prev => ({
                                                   ...prev,
-                                                  [emp.id]: {
+                                                  [emp.employeeId]: {
                                                     basePay: totalPay,
                                                     taxType: taxType,
                                                     deductions: response.data.deductions,
@@ -5513,14 +5513,14 @@ const OwnerDashboard = () => {
                                     {(salaryFlowStep === 2 || salaryFlowStep === 4) && (
                                       <>
                                         <td style={{ fontWeight: '600', color: '#ef4444' }}>
-                                          {salaryDeductions[emp.id] ? 
-                                            formatCurrency(salaryDeductions[emp.id].totalDeductions) : 
+                                          {salaryDeductions[emp.employeeId] ? 
+                                            formatCurrency(salaryDeductions[emp.employeeId].totalDeductions) : 
                                             '-'
                                           }
                                         </td>
                                         <td style={{ fontWeight: '700', color: '#10b981', fontSize: '15px' }}>
-                                          {salaryDeductions[emp.id] ? 
-                                            formatCurrency(salaryDeductions[emp.id].netPay) : 
+                                          {salaryDeductions[emp.employeeId] ? 
+                                            formatCurrency(salaryDeductions[emp.employeeId].netPay) : 
                                             formatCurrency(totalPay)
                                           }
                                         </td>

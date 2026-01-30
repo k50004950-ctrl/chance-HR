@@ -393,11 +393,11 @@ router.post('/employee/match-request', async (req, res) => {
       }
     }
 
-    // 매칭 요청 생성 (status: 'pending', 근무정보는 사업주가 승인 시 입력)
+    // 매칭 요청 생성 (status: 'pending', start_date는 현재 날짜, 근무정보는 사업주가 승인 시 입력)
     const result = await run(
       `INSERT INTO company_employee_relations (
-        company_id, user_id, status, created_at
-      ) VALUES (?, ?, 'pending', CURRENT_TIMESTAMP)`,
+        company_id, user_id, status, start_date, created_at
+      ) VALUES (?, ?, 'pending', CURRENT_DATE, CURRENT_TIMESTAMP)`,
       [companyId, userId]
     );
 

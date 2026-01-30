@@ -53,6 +53,13 @@ const OwnerDashboard = () => {
   const [workplaces, setWorkplaces] = useState([]);
   const [selectedWorkplace, setSelectedWorkplace] = useState(null);
   const [ownerCompanyId, setOwnerCompanyId] = useState(null); // V2: 사업주의 company_id
+  const [showWorkplaceForm, setShowWorkplaceForm] = useState(false); // 사업장 등록 폼 표시 여부
+  const [workplaceForm, setWorkplaceForm] = useState({
+    name: '',
+    business_number: user?.business_number || '',
+    address: '',
+    phone: user?.phone || ''
+  });
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [salaryData, setSalaryData] = useState(null);
@@ -631,6 +638,48 @@ const OwnerDashboard = () => {
     } catch (error) {
       console.error('사업주 회사 조회 오류:', error);
       // V2 시스템이 아직 완전히 마이그레이션되지 않은 경우 무시
+    }
+  };
+
+  // 사업장 수동 등록
+  const handleCreateWorkplace = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const workplaceData = {
+        name: workplaceForm.name,
+        business_number: workplaceForm.business_number,
+        address: workplaceForm.address,
+        phone: workplaceForm.phone,
+        company_id: ownerCompanyId || null
+      };
+
+      const response = await workplaceAPI.create(workplaceData);
+      
+      if (response.data) {
+        setMessage({ 
+          text: '✅ 사업장이 등록되었습니다!', 
+          type: 'success' 
+        });
+        setShowWorkplaceForm(false);
+        setWorkplaceForm({
+          name: '',
+          business_number: user?.business_number || '',
+          address: '',
+          phone: user?.phone || ''
+        });
+        // 사업장 목록 새로고침
+        await loadWorkplaces();
+      }
+    } catch (error) {
+      console.error('사업장 등록 오류:', error);
+      setMessage({ 
+        text: error.response?.data?.message || '사업장 등록 중 오류가 발생했습니다.', 
+        type: 'error' 
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -2225,9 +2274,93 @@ const OwnerDashboard = () => {
 
         {!selectedWorkplace ? (
           <div className="card">
-            <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
-              등록된 사업장이 없습니다. 관리자에게 문의하세요.
-            </p>
+            {!showWorkplaceForm ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏢</div>
+                <h3 style={{ color: '#374151', marginBottom: '8px' }}>등록된 사업장이 없습니다</h3>
+                <p style={{ color: '#6b7280', marginBottom: '24px' }}>
+                  새로운 사업장을 등록하여 시작하세요.
+                </p>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowWorkplaceForm(true)}
+                  style={{ padding: '12px 24px', fontSize: '16px' }}
+                >
+                  🏢 사업장 등록하기
+                </button>
+              </div>
+            ) : (
+              <div style={{ padding: '20px' }}>
+                <h3 style={{ marginBottom: '20px', color: '#374151' }}>🏢 새 사업장 등록</h3>
+                <form onSubmit={handleCreateWorkplace}>
+                  <div className="form-group">
+                    <label className="form-label">사업장 이름 <span style={{ color: 'red' }}>*</span></label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={workplaceForm.name}
+                      onChange={(e) => setWorkplaceForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="예: 본점, 강남점"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">사업자등록번호 <span style={{ color: 'red' }}>*</span></label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={workplaceForm.business_number}
+                      onChange={(e) => setWorkplaceForm(prev => ({ ...prev, business_number: e.target.value }))}
+                      placeholder="123-45-67890"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">주소</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={workplaceForm.address}
+                      onChange={(e) => setWorkplaceForm(prev => ({ ...prev, address: e.target.value }))}
+                      placeholder="서울시 강남구..."
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">전화번호</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={workplaceForm.phone}
+                      onChange={(e) => setWorkplaceForm(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="010-1234-5678"
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={loading}
+                      style={{ flex: 1 }}
+                    >
+                      {loading ? '등록 중...' : '✅ 등록하기'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowWorkplaceForm(false)}
+                      disabled={loading}
+                      style={{ flex: 1 }}
+                    >
+                      취소
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
         ) : (
           <>

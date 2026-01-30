@@ -176,12 +176,23 @@ router.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
   try {
+    // 입력 검증
+    if (!username || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '아이디와 비밀번호를 입력해주세요.' 
+      });
+    }
+
+    console.log(`🔐 로그인 시도: ${username}`);
+
     const user = await get(
       'SELECT * FROM users WHERE username = ?',
       [username]
     );
 
     if (!user) {
+      console.log(`❌ 사용자 없음: ${username}`);
       return res.status(401).json({ 
         success: false, 
         message: '아이디 또는 비밀번호가 일치하지 않습니다.' 
@@ -190,22 +201,27 @@ router.post('/login', async (req, res) => {
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
+      console.log(`❌ 비밀번호 불일치: ${username}`);
       return res.status(401).json({ 
         success: false, 
         message: '아이디 또는 비밀번호가 일치하지 않습니다.' 
       });
     }
 
+    console.log(`✅ 비밀번호 확인 완료: ${username}`);
+
     const token = jwt.sign(
       { 
         userId: user.id, 
         username: user.username, 
         role: user.role,
-        businessNumber: user.business_number
+        businessNumber: user.business_number || null
       },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    console.log(`🎫 JWT 토큰 발급 완료: ${username}`);
 
     res.json({
       success: true,
@@ -215,15 +231,19 @@ router.post('/login', async (req, res) => {
         username: user.username,
         name: user.name,
         phone: user.phone,
-        role: user.role
+        role: user.role,
+        workplace_id: user.workplace_id || null
       }
     });
 
+    console.log(`✅ 로그인 성공: ${username}`);
+
   } catch (error) {
     console.error('로그인 오류:', error);
+    console.error('에러 스택:', error.stack);
     res.status(500).json({ 
       success: false, 
-      message: '서버 오류가 발생했습니다.' 
+      message: '로그인 중 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' 
     });
   }
 });

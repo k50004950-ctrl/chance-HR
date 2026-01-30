@@ -267,7 +267,11 @@ const OwnerDashboard = () => {
               continue;
             }
             
-            const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
+            // 총 지급액 (세전) = 기본급여 + 주휴수당
+            const baseSalary = emp.baseSalaryAmount || emp.baseSalary || emp.calculatedSalary || 0;
+            const weeklyHolidayPay = emp.weeklyHolidayPayAmount || 0;
+            const calculatedTotalPay = baseSalary + weeklyHolidayPay;
+            const totalPay = editedSalaries[emp.employeeId] ?? calculatedTotalPay;
             const taxType = emp.taxType || '4대보험';
             
             try {
@@ -4698,7 +4702,11 @@ const OwnerDashboard = () => {
                               });
 
                               return sortedEmployees.map((emp) => {
-                              const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
+                              // 총 지급액 (세전) = 기본급여 + 주휴수당
+                              const baseSalary = emp.baseSalaryAmount || emp.baseSalary || emp.calculatedSalary || 0;
+                              const weeklyHolidayPay = emp.weeklyHolidayPayAmount || 0;
+                              const calculatedTotalPay = baseSalary + weeklyHolidayPay;
+                              const totalPay = editedSalaries[emp.employeeId] ?? calculatedTotalPay;
                               const isConfirmed = !!(salaryDeductions[emp.employeeId] || editedSalaries[emp.employeeId]);
                               const isPublished = employeeSlips.some(slip => 
                                 slip.published && 
@@ -5334,7 +5342,11 @@ const OwnerDashboard = () => {
                                   const newDeductions = {};
                                   
           for (const emp of salaryData.employees) {
-            const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
+            // 총 지급액 (세전) = 기본급여 + 주휴수당
+            const baseSalary = emp.baseSalaryAmount || emp.baseSalary || emp.calculatedSalary || 0;
+            const weeklyHolidayPay = emp.weeklyHolidayPayAmount || 0;
+            const calculatedTotalPay = baseSalary + weeklyHolidayPay;
+            const totalPay = editedSalaries[emp.employeeId] ?? calculatedTotalPay;
             const taxType = emp.taxType || '4대보험';
             
             console.log(`🔍 Step2 자동계산: ${emp.employeeName}`, {
@@ -5413,7 +5425,11 @@ const OwnerDashboard = () => {
                             </thead>
                             <tbody>
                               {salaryData.employees.map((emp) => {
-                                const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
+                                // 총 지급액 (세전) = 기본급여 + 주휴수당
+                                const baseSalary = emp.baseSalaryAmount || emp.baseSalary || emp.calculatedSalary || 0;
+                                const weeklyHolidayPay = emp.weeklyHolidayPayAmount || 0;
+                                const calculatedTotalPay = baseSalary + weeklyHolidayPay;
+                                const totalPay = editedSalaries[emp.employeeId] ?? calculatedTotalPay;
                                 // 급여일 계산
                                 const getPayDayText = () => {
                                   if (emp.payScheduleType === 'monthly') {
@@ -5441,7 +5457,7 @@ const OwnerDashboard = () => {
                                       {salaryFlowStep === 2 ? (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                           <span style={{ fontSize: '14px', fontWeight: '700' }}>
-                                            {formatCurrency(salaryDeductions[emp.id]?.basePay || totalPay)}
+                                            {formatCurrency(totalPay)}
                                           </span>
                                           <button
                                             className="btn btn-sm"
@@ -5658,7 +5674,11 @@ const OwnerDashboard = () => {
                                   
                                   for (const emp of salaryData.employees.filter(e => e.attendance > 0)) {
                                     if (!updatedDeductions[emp.id] || !updatedDeductions[emp.id].deductions || Object.keys(updatedDeductions[emp.id].deductions).length === 0) {
-                                      const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
+                                      // 총 지급액 (세전) = 기본급여 + 주휴수당
+                                      const baseSalary = emp.baseSalaryAmount || emp.baseSalary || emp.calculatedSalary || 0;
+                                      const weeklyHolidayPay = emp.weeklyHolidayPayAmount || 0;
+                                      const calculatedTotalPay = baseSalary + weeklyHolidayPay;
+                                      const totalPay = editedSalaries[emp.employeeId] ?? calculatedTotalPay;
                                       const taxType = emp.taxType || '4대보험';
                                       
                                       console.log(`🔍 ${emp.employeeName} 계산 시작:`, {
@@ -5714,7 +5734,11 @@ const OwnerDashboard = () => {
                                       if (emp.attendance <= 0) return false;
                                       
                                       // 급여액이 있는 직원
-                                      const totalPay = editedSalaries[emp.employeeId] ?? (emp.totalPay ?? emp.calculatedSalary);
+                                      // 총 지급액 (세전) = 기본급여 + 주휴수당
+                                      const baseSalary = emp.baseSalaryAmount || emp.baseSalary || emp.calculatedSalary || 0;
+                                      const weeklyHolidayPay = emp.weeklyHolidayPayAmount || 0;
+                                      const calculatedTotalPay = baseSalary + weeklyHolidayPay;
+                                      const totalPay = editedSalaries[emp.employeeId] ?? calculatedTotalPay;
                                       if (!totalPay || totalPay <= 0) {
                                         console.warn(`⚠️ ${emp.employeeName}: 급여액 없음 (${totalPay}), 확정에서 제외`);
                                         return false;

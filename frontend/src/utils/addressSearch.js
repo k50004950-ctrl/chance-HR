@@ -119,14 +119,53 @@ export const searchAddress = async () => {
 // 주소를 좌표(위도, 경도)로 변환 - Kakao REST API 사용
 export const getCoordinatesFromAddress = async (address) => {
   try {
+    // 1. Kakao REST API로 직접 주소 검색 (가장 정확)
+    const kakaoRestKey = import.meta.env.VITE_KAKAO_REST_KEY || 'f08c77bfb5eb0bcf42a30ed4982c94f2';
+    
+    try {
+      // 도로명 주소 우선 검색
+      const response = await fetch(
+        `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address)}`,
+        {
+          headers: {
+            'Authorization': `KakaoAK ${kakaoRestKey}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🔍 Kakao REST API 응답:', data);
+        
+        if (data.documents && data.documents.length > 0) {
+          const doc = data.documents[0];
+          // road_address가 있으면 우선 사용, 없으면 address 사용
+          const coords = doc.road_address || doc.address;
+          
+          if (coords && coords.x && coords.y) {
+            const result = {
+              latitude: parseFloat(coords.y),
+              longitude: parseFloat(coords.x),
+              success: true,
+              addressType: doc.road_address ? 'road_address' : 'jibun_address'
+            };
+            console.log('✅ Kakao REST API로 정확한 좌표 찾음:', result);
+            return result;
+          }
+        }
+      }
+    } catch (restError) {
+      console.warn('⚠️ Kakao REST API 호출 실패, fallback 사용:', restError);
+    }
+
+    // 2. Fallback: Kakao Maps SDK 사용
     await ensureKakaoMapsLoaded();
     if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
-      // 1. 먼저 Places API로 장소 검색 시도 (더 정확한 좌표)
+      // Places API로 장소 검색 시도
       const places = new window.kakao.maps.services.Places();
       const placesResult = await new Promise((resolve) => {
         places.keywordSearch(address, (result, status) => {
           if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
-            // 가장 관련성 높은 결과 사용
             resolve({
               latitude: parseFloat(result[0].y),
               longitude: parseFloat(result[0].x),
@@ -146,7 +185,7 @@ export const getCoordinatesFromAddress = async (address) => {
         return placesResult;
       }
 
-      // 2. Places API 실패 시 Geocoder로 주소 검색
+      // Geocoder로 주소 검색
       const geocoder = new window.kakao.maps.services.Geocoder();
       const kakaoResult = await new Promise((resolve) => {
         geocoder.addressSearch(address, (result, status) => {

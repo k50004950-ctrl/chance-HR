@@ -145,65 +145,20 @@ function OwnerMatchingApproval({ companyId }) {
               <p style={{ color: '#666', fontSize: '14px' }}>📞 {request.employee_phone}</p>
             </div>
 
-            {/* 근무 정보 */}
-            <div style={{
-              background: '#f9fafb',
-              padding: '16px',
-              borderRadius: '8px',
-              marginBottom: '16px'
-            }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                <div>
-                  <p style={{ color: '#666', fontSize: '12px', marginBottom: '4px' }}>입사일</p>
-                  <p style={{ color: '#333', fontSize: '14px', fontWeight: '600' }}>
-                    {new Date(request.start_date).toLocaleDateString('ko-KR')}
-                  </p>
-                </div>
-
-                <div>
-                  <p style={{ color: '#666', fontSize: '12px', marginBottom: '4px' }}>고용형태</p>
-                  <p style={{ color: '#333', fontSize: '14px', fontWeight: '600' }}>
-                    {request.employment_type === 'regular' ? '정규직' :
-                     request.employment_type === 'parttime' ? '시간제' :
-                     request.employment_type === 'contract' ? '계약직' : '프리랜서'}
-                  </p>
-                </div>
-
-                {request.position && (
-                  <div>
-                    <p style={{ color: '#666', fontSize: '12px', marginBottom: '4px' }}>직급/직책</p>
-                    <p style={{ color: '#333', fontSize: '14px', fontWeight: '600' }}>
-                      {request.position}
-                    </p>
-                  </div>
-                )}
-
-                <div>
-                  <p style={{ color: '#666', fontSize: '12px', marginBottom: '4px' }}>세금 유형</p>
-                  <p style={{ color: '#333', fontSize: '14px', fontWeight: '600' }}>
-                    {request.tax_type || '4대보험'}
-                  </p>
-                </div>
-
-                {request.monthly_salary > 0 && (
-                  <div>
-                    <p style={{ color: '#666', fontSize: '12px', marginBottom: '4px' }}>월급</p>
-                    <p style={{ color: '#333', fontSize: '14px', fontWeight: '600' }}>
-                      {request.monthly_salary.toLocaleString()}원
-                    </p>
-                  </div>
-                )}
-
-                {request.hourly_rate > 0 && (
-                  <div>
-                    <p style={{ color: '#666', fontSize: '12px', marginBottom: '4px' }}>시급</p>
-                    <p style={{ color: '#333', fontSize: '14px', fontWeight: '600' }}>
-                      {request.hourly_rate.toLocaleString()}원
-                    </p>
-                  </div>
-                )}
+            {/* 요청 정보 */}
+            {request.position && (
+              <div style={{
+                background: '#f9fafb',
+                padding: '16px',
+                borderRadius: '8px',
+                marginBottom: '16px'
+              }}>
+                <p style={{ color: '#666', fontSize: '12px', marginBottom: '4px' }}>직급/직책</p>
+                <p style={{ color: '#333', fontSize: '14px', fontWeight: '600' }}>
+                  {request.position}
+                </p>
               </div>
-            </div>
+            )}
 
             {/* 요청 일시 */}
             <p style={{ color: '#999', fontSize: '12px', marginBottom: '16px' }}>

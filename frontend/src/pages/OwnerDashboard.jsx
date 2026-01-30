@@ -133,7 +133,7 @@ const OwnerDashboard = () => {
   const [payrollLedgerCollapsed, setPayrollLedgerCollapsed] = useState(false); // 급여대장은 초기에 펼쳐져 있음
   const [currentAnnouncement, setCurrentAnnouncement] = useState(null);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
-  const [workplaceForm, setWorkplaceForm] = useState({
+  const [workplaceLocationForm, setWorkplaceLocationForm] = useState({
     name: '',
     address: '',
     latitude: '',
@@ -520,7 +520,7 @@ const OwnerDashboard = () => {
   useEffect(() => {
     const currentWorkplace = workplaces.find((workplace) => workplace.id === selectedWorkplace);
     if (!currentWorkplace) {
-      setWorkplaceForm({
+      setWorkplaceLocationForm({
         name: '',
         address: '',
         latitude: '',
@@ -529,7 +529,7 @@ const OwnerDashboard = () => {
       });
       return;
     }
-    setWorkplaceForm({
+    setWorkplaceLocationForm({
       name: currentWorkplace.name || '',
       address: currentWorkplace.address || '',
       latitude: currentWorkplace.latitude ?? '',
@@ -1023,7 +1023,7 @@ const OwnerDashboard = () => {
 
   const handleWorkplaceFormChange = (e) => {
     const { name, value } = e.target;
-    setWorkplaceForm((prev) => ({
+    setWorkplaceLocationForm((prev) => ({
       ...prev,
       [name]: value
     }));
@@ -1038,7 +1038,7 @@ const OwnerDashboard = () => {
     setMessage({ type: '', text: '' });
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setWorkplaceForm((prev) => ({
+        setWorkplaceLocationForm((prev) => ({
           ...prev,
           latitude: position.coords.latitude.toFixed(6),
           longitude: position.coords.longitude.toFixed(6)
@@ -1062,14 +1062,14 @@ const OwnerDashboard = () => {
       setWorkplaceSearchLoading(true);
       const result = await searchAddress();
       const address = result.address || '';
-      setWorkplaceForm((prev) => ({
+      setWorkplaceLocationForm((prev) => ({
         ...prev,
         address
       }));
       if (address) {
         try {
           const coords = await getCoordinatesFromAddress(address);
-          setWorkplaceForm((prev) => ({
+          setWorkplaceLocationForm((prev) => ({
             ...prev,
             latitude: coords.latitude?.toFixed ? coords.latitude.toFixed(6) : coords.latitude,
             longitude: coords.longitude?.toFixed ? coords.longitude.toFixed(6) : coords.longitude
@@ -1091,13 +1091,13 @@ const OwnerDashboard = () => {
   };
 
   const handleWorkplaceAddressBlur = async () => {
-    if (!workplaceForm.address) return;
+    if (!workplaceLocationForm.address) return;
     if (workplaceGeocodeLoading) return;
     try {
       setWorkplaceGeocodeLoading(true);
-      const coords = await getCoordinatesFromAddress(workplaceForm.address);
+      const coords = await getCoordinatesFromAddress(workplaceLocationForm.address);
       if (coords && coords.latitude && coords.longitude) {
-        setWorkplaceForm((prev) => ({
+        setWorkplaceLocationForm((prev) => ({
           ...prev,
           latitude: coords.latitude?.toFixed ? coords.latitude.toFixed(6) : coords.latitude,
           longitude: coords.longitude?.toFixed ? coords.longitude.toFixed(6) : coords.longitude
@@ -1119,11 +1119,11 @@ const OwnerDashboard = () => {
       setMessage({ type: 'error', text: '사업장을 선택해주세요.' });
       return;
     }
-    if (!workplaceForm.address) {
+    if (!workplaceLocationForm.address) {
       setMessage({ type: 'error', text: '사업장 주소를 입력해주세요.' });
       return;
     }
-    if (workplaceForm.latitude === '' || workplaceForm.longitude === '') {
+    if (workplaceLocationForm.latitude === '' || workplaceLocationForm.longitude === '') {
       setMessage({ type: 'error', text: '사업장 위치(위도/경도)를 입력해주세요.' });
       return;
     }
@@ -1132,11 +1132,11 @@ const OwnerDashboard = () => {
     setMessage({ type: '', text: '' });
     try {
       const payload = {
-        name: workplaceForm.name || currentWorkplace.name,
-        address: workplaceForm.address,
-        latitude: Number(workplaceForm.latitude),
-        longitude: Number(workplaceForm.longitude),
-        radius: workplaceForm.radius !== '' ? Number(workplaceForm.radius) : currentWorkplace.radius,
+        name: workplaceLocationForm.name || currentWorkplace.name,
+        address: workplaceLocationForm.address,
+        latitude: Number(workplaceLocationForm.latitude),
+        longitude: Number(workplaceLocationForm.longitude),
+        radius: workplaceLocationForm.radius !== '' ? Number(workplaceLocationForm.radius) : currentWorkplace.radius,
         default_off_days: currentWorkplace.default_off_days || '',
         qr_print_message: currentWorkplace.qr_print_message || ''
       };
@@ -6439,7 +6439,7 @@ const OwnerDashboard = () => {
                       type="text"
                       name="name"
                       className="form-input"
-                      value={workplaceForm.name}
+                      value={workplaceLocationForm.name}
                       onChange={handleWorkplaceFormChange}
                     />
                   </div>
@@ -6450,7 +6450,7 @@ const OwnerDashboard = () => {
                         type="text"
                         name="address"
                         className="form-input"
-                        value={workplaceForm.address}
+                        value={workplaceLocationForm.address}
                         onClick={handleSearchWorkplaceAddress}
                         readOnly
                       />
@@ -6472,7 +6472,7 @@ const OwnerDashboard = () => {
                       step="0.000001"
                       name="latitude"
                       className="form-input"
-                      value={workplaceForm.latitude}
+                      value={workplaceLocationForm.latitude}
                       onChange={handleWorkplaceFormChange}
                     />
                   </div>
@@ -6483,7 +6483,7 @@ const OwnerDashboard = () => {
                       step="0.000001"
                       name="longitude"
                       className="form-input"
-                      value={workplaceForm.longitude}
+                      value={workplaceLocationForm.longitude}
                       onChange={handleWorkplaceFormChange}
                     />
                   </div>
@@ -6493,7 +6493,7 @@ const OwnerDashboard = () => {
                       type="number"
                       name="radius"
                       className="form-input"
-                      value={workplaceForm.radius}
+                      value={workplaceLocationForm.radius}
                       onChange={handleWorkplaceFormChange}
                       placeholder="예: 100"
                       min="10"

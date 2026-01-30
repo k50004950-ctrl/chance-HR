@@ -702,7 +702,7 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
       
       // 사용자의 workplace와 정보 조회
       const userWorkplaces = await all(
-        `SELECT w.id, w.name, w.address, w.phone, u.name as owner_name, u.phone as owner_phone, u.business_number
+        `SELECT w.id, w.name, w.address, u.name as owner_name, u.phone as owner_phone, u.business_number
          FROM workplaces w
          JOIN users u ON w.owner_id = u.id
          WHERE w.owner_id = ?`,
@@ -736,7 +736,7 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
               `INSERT INTO companies (
                 business_number, company_name, phone, verified, created_at
               ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-              [businessNumber, workplace.name, workplace.phone || workplace.owner_phone, false]
+              [businessNumber, workplace.name, workplace.owner_phone, false]
             );
             companyId = companyResult.id || companyResult.lastID;
             console.log(`✅ 새 회사 생성: company_id ${companyId}`);

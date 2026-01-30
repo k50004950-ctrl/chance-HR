@@ -711,7 +711,8 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
       
       // 사용자의 workplace와 정보 조회
       const userWorkplaces = await all(
-        `SELECT w.id, w.name, w.address, u.name as owner_name, u.phone as owner_phone, u.business_number
+        `SELECT w.id, w.name, w.address, w.business_number as workplace_business_number, 
+                u.name as owner_name, u.phone as owner_phone, u.business_number as user_business_number
          FROM workplaces w
          JOIN users u ON w.owner_id = u.id
          WHERE w.owner_id = ?`,
@@ -720,10 +721,17 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
 
       if (userWorkplaces.length > 0) {
         const workplace = userWorkplaces[0];
-        console.log(`📋 사업장 정보:`, { id: workplace.id, name: workplace.name, user_business_number: workplace.business_number });
+        console.log(`📋 사업장 정보:`, { 
+          id: workplace.id, 
+          name: workplace.name, 
+          workplace_business: workplace.workplace_business_number,
+          user_business: workplace.user_business_number 
+        });
         
-        // 사업자등록번호 확인 (users 테이블에서 가져오거나 임시로 생성)
-        const businessNumber = workplace.business_number || `T${userId}${Date.now()}`.substring(0, 20);
+        // 사업자등록번호 우선순위: workplace > user > 임시생성
+        const businessNumber = workplace.workplace_business_number || 
+                              workplace.user_business_number || 
+                              `T${userId}${Date.now()}`.substring(0, 20);
         console.log(`🔢 사용할 사업자번호: ${businessNumber}`);
         
         // 회사 생성

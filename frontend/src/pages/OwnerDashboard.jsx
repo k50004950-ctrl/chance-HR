@@ -2965,10 +2965,7 @@ const OwnerDashboard = () => {
                         </button>
                         <button
                           className="btn btn-primary"
-                          onClick={() => {
-                            alert('직원 초대 기능은 현재 점검 중입니다.\n\n임시로 다음 방법을 사용해주세요:\n1. 직원이 회원가입\n2. 사업주가 직원 정보를 수동으로 입력\n\n빠른 시일 내에 복구하겠습니다.');
-                          }}
-                          style={{ display: 'none' }}
+                          onClick={() => setShowInviteManager(true)}
                         >
                           ✉️ 직원 초대
                         </button>

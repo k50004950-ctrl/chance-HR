@@ -270,7 +270,10 @@ router.get('/companies/search', async (req, res) => {
       });
     }
 
+    console.log(`🔍 회사 검색 시도:`, { business_number, owner_phone });
+
     // 사업자등록번호와 사업주 핸드폰번호가 모두 일치하는 회사 검색
+    // 하이픈 제거 후 비교
     const company = await get(
       `SELECT 
         c.id,
@@ -285,10 +288,12 @@ router.get('/companies/search', async (req, res) => {
       FROM companies c
       LEFT JOIN company_admins ca ON c.id = ca.company_id AND ca.role = 'owner'
       LEFT JOIN users u ON ca.user_id = u.id
-      WHERE c.business_number = ? AND u.phone = ?
+      WHERE REPLACE(c.business_number, '-', '') = ? AND u.phone = ?
       LIMIT 1`,
       [business_number, owner_phone]
     );
+
+    console.log(`🔍 검색 결과:`, company ? `✅ 찾음 (${company.company_name})` : '❌ 없음');
 
     if (!company) {
       return res.json({

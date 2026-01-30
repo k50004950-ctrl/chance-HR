@@ -20,11 +20,13 @@ export async function runAutoMigration() {
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public' 
-        AND table_name IN ('companies', 'company_admins', 'company_employee_relations')
+        AND table_name IN ('companies', 'company_admins', 'company_employee_relations', 'workplace_invitations')
     `);
     
-    if (tablesCheck && tablesCheck.length >= 3) {
-      console.log('✅ V2 tables already exist, skipping migration.\n');
+    console.log(`📊 Found ${tablesCheck?.length || 0} V2 tables`);
+    
+    if (tablesCheck && tablesCheck.length >= 4) {
+      console.log('✅ All V2 tables exist, skipping migration.\n');
       return;
     }
     
@@ -79,7 +81,7 @@ export async function runAutoMigration() {
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public' 
-        AND table_name IN ('companies', 'company_admins', 'company_employee_relations')
+        AND table_name IN ('companies', 'company_admins', 'company_employee_relations', 'workplace_invitations')
       ORDER BY table_name
     `);
     

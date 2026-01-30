@@ -737,13 +737,23 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
             console.log(`✅ 새 회사 생성: company_id ${companyId}`);
           }
 
-          // company_admins에 추가
-          await run(
-            `INSERT INTO company_admins (
-              company_id, user_id, role, granted_at
-            ) VALUES (?, ?, 'owner', CURRENT_TIMESTAMP)`,
+          // company_admins에 추가 (중복 체크)
+          const existingAdmin = await get(
+            'SELECT id FROM company_admins WHERE company_id = ? AND user_id = ?',
             [companyId, userId]
           );
+          
+          if (!existingAdmin) {
+            await run(
+              `INSERT INTO company_admins (
+                company_id, user_id, role, granted_at
+              ) VALUES (?, ?, 'owner', CURRENT_TIMESTAMP)`,
+              [companyId, userId]
+            );
+            console.log(`✅ company_admins 등록: ${userId} → ${companyId}`);
+          } else {
+            console.log(`ℹ️ 이미 등록된 관리자: ${userId} → ${companyId}`);
+          }
 
           // workplace에 company_id 연결
           await run(
@@ -1038,9 +1048,21 @@ router.get('/owner/invites/:workplaceId', async (req, res) => {
 
   } catch (error) {
     console.error('초대 링크 목록 조회 오류:', error);
+    console.error('에러 상세:', error.message);
+    
+    // 테이블이 없는 경우
+    if (error.message && error.message.includes('workplace_invitations')) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'V2 시스템 마이그레이션이 필요합니다. 관리자에게 문의하세요.',
+        error: error.message
+      });
+    }
+    
     res.status(500).json({ 
       success: false, 
-      message: '초대 링크 목록 조회 중 오류가 발생했습니다.' 
+      message: '초대 링크 목록 조회 중 오류가 발생했습니다.',
+      error: error.message
     });
   }
 });

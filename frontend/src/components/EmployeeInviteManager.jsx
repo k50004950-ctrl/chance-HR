@@ -32,8 +32,15 @@ const EmployeeInviteManager = ({ workplaceId, companyId, ownerId, onClose }) => 
   };
 
   const handleCreateInvite = async () => {
+    if (!workplaceId || !companyId || !ownerId) {
+      alert(`필수 정보가 누락되었습니다.\n- 사업장 ID: ${workplaceId || '없음'}\n- 회사 ID: ${companyId || '없음'}\n- 사업주 ID: ${ownerId || '없음'}\n\n다시 로그인하거나 사업장을 등록해주세요.`);
+      return;
+    }
+
     try {
       setCreating(true);
+      console.log('📨 초대 링크 생성 요청:', { workplaceId, companyId, ownerId });
+      
       const response = await inviteAPI.createInvite({
         workplaceId,
         companyId,
@@ -48,7 +55,10 @@ const EmployeeInviteManager = ({ workplaceId, companyId, ownerId, onClose }) => 
         loadInvitations();
       }
     } catch (error) {
-      alert(error.response?.data?.message || '초대 링크 생성 중 오류가 발생했습니다.');
+      console.error('❌ 초대 링크 생성 오류:', error);
+      const errorMsg = error.response?.data?.message || '초대 링크 생성 중 오류가 발생했습니다.';
+      const debugInfo = error.response?.data?.debug ? `\n\n디버그 정보: ${JSON.stringify(error.response.data.debug)}` : '';
+      alert(errorMsg + debugInfo);
     } finally {
       setCreating(false);
     }

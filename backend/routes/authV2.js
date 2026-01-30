@@ -803,13 +803,35 @@ router.post('/owner/create-workplace', async (req, res) => {
 
 // 1. 초대 링크 생성 (사업주 전용)
 router.post('/owner/create-invite', async (req, res) => {
-  const { workplaceId, companyId, expiresInDays, maxUses } = req.body;
+  const { workplaceId, companyId, expiresInDays, maxUses, ownerId } = req.body;
+
+  console.log('📨 초대 링크 생성 요청:', { workplaceId, companyId, ownerId, expiresInDays, maxUses });
 
   try {
-    if (!workplaceId || !companyId) {
+    if (!workplaceId) {
+      console.error('❌ workplaceId 누락');
       return res.status(400).json({ 
         success: false, 
-        message: '사업장 ID와 회사 ID가 필요합니다.' 
+        message: '사업장 ID가 필요합니다.',
+        debug: { workplaceId, companyId, ownerId }
+      });
+    }
+    
+    if (!companyId) {
+      console.error('❌ companyId 누락');
+      return res.status(400).json({ 
+        success: false, 
+        message: '회사 ID가 필요합니다.',
+        debug: { workplaceId, companyId, ownerId }
+      });
+    }
+    
+    if (!ownerId) {
+      console.error('❌ ownerId 누락');
+      return res.status(400).json({ 
+        success: false, 
+        message: '사업주 ID가 필요합니다.',
+        debug: { workplaceId, companyId, ownerId }
       });
     }
 
@@ -826,7 +848,7 @@ router.post('/owner/create-invite', async (req, res) => {
       `INSERT INTO workplace_invitations (
         workplace_id, company_id, token, created_by, expires_at, max_uses, is_active
       ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [workplaceId, companyId, token, req.body.ownerId || 1, expiresAt, maxUses || null, 1]
+      [workplaceId, companyId, token, ownerId, expiresAt, maxUses || null, 1]
     );
 
     console.log(`✉️ 초대 링크 생성: ${token} (workplace: ${workplaceId})`);

@@ -636,12 +636,17 @@ const OwnerDashboard = () => {
   const loadOwnerCompany = async () => {
     try {
       const response = await apiClient.get(`/v2/auth/owner/my-companies/${user.id}`);
+      console.log('🔍 회사 조회 응답:', response.data);
+      
       if (response.data.success && response.data.companies.length > 0) {
         setOwnerCompanyId(response.data.companies[0].id);
         console.log('✅ 사업주 회사 로드:', response.data.companies[0]);
+      } else {
+        console.warn('⚠️ 등록된 회사가 없습니다. V1 시스템 사용자일 수 있습니다.');
+        // V1 시스템 사용자의 경우 ownerCompanyId가 없어도 기존 기능은 작동
       }
     } catch (error) {
-      console.error('사업주 회사 조회 오류:', error);
+      console.error('❌ 사업주 회사 조회 오류:', error);
       // V2 시스템이 아직 완전히 마이그레이션되지 않은 경우 무시
     }
   };

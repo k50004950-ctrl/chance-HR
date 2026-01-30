@@ -14,6 +14,7 @@ import MainActionButtons from '../components/MainActionButtons';
 import Toast from '../components/Toast';
 import NotificationCenter from '../components/NotificationCenter';
 import OwnerMatchingApproval from '../components/OwnerMatchingApproval';
+import EmployeeInviteManager from '../components/EmployeeInviteManager';
 import MobileLayout from '../components/MobileLayout';
 import MobileDashboard from '../components/MobileDashboard';
 import MobileActionCard from '../components/MobileActionCard';
@@ -54,6 +55,7 @@ const OwnerDashboard = () => {
   const [selectedWorkplace, setSelectedWorkplace] = useState(null);
   const [ownerCompanyId, setOwnerCompanyId] = useState(null); // V2: 사업주의 company_id
   const [showWorkplaceForm, setShowWorkplaceForm] = useState(false); // 사업장 등록 폼 표시 여부
+  const [showInviteManager, setShowInviteManager] = useState(false); // 초대 링크 관리 모달 표시 여부
   const [workplaceForm, setWorkplaceForm] = useState({
     name: '',
     business_number: user?.business_number || '',
@@ -2956,9 +2958,9 @@ const OwnerDashboard = () => {
                         </button>
                         <button
                           className="btn btn-primary"
-                          onClick={() => openModal('employee')}
+                          onClick={() => setShowInviteManager(true)}
                         >
-                          + 직원 등록
+                          ✉️ 직원 초대
                         </button>
                       </div>
                     </div>
@@ -9200,6 +9202,15 @@ const OwnerDashboard = () => {
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* 직원 초대 링크 관리 모달 */}
+      {showInviteManager && selectedWorkplace && (
+        <EmployeeInviteManager
+          workplaceId={selectedWorkplace}
+          companyId={ownerCompanyId}
+          onClose={() => setShowInviteManager(false)}
         />
       )}
     </div>

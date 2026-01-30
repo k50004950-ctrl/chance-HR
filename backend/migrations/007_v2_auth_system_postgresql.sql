@@ -74,19 +74,37 @@ CREATE TABLE IF NOT EXISTS matching_requests (
   UNIQUE(company_id, user_id, status)
 );
 
--- 6. workplaces 테이블에 company_id 추가
+-- 6. workplace_invitations 테이블 생성 (초대 링크 시스템)
+CREATE TABLE IF NOT EXISTS workplace_invitations (
+  id SERIAL PRIMARY KEY,
+  workplace_id INTEGER NOT NULL REFERENCES workplaces(id) ON DELETE CASCADE,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  token VARCHAR(255) NOT NULL UNIQUE,
+  created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TIMESTAMP,
+  max_uses INTEGER DEFAULT NULL,
+  uses_count INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_invitations_token ON workplace_invitations(token);
+CREATE INDEX IF NOT EXISTS idx_invitations_workplace ON workplace_invitations(workplace_id);
+CREATE INDEX IF NOT EXISTS idx_invitations_active ON workplace_invitations(is_active);
+
+-- 7. workplaces 테이블에 company_id 추가
 ALTER TABLE workplaces 
 ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE;
 
--- 7. salary_slips 테이블에 company_id 추가
+-- 8. salary_slips 테이블에 company_id 추가
 ALTER TABLE salary_slips 
 ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id) ON DELETE SET NULL;
 
--- 8. attendance 테이블에 company_id 추가  
+-- 9. attendance 테이블에 company_id 추가  
 ALTER TABLE attendance 
 ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id) ON DELETE SET NULL;
 
--- 9. 인덱스 생성 (성능 최적화)
+-- 10. 인덱스 생성 (성능 최적화)
 CREATE INDEX IF NOT EXISTS idx_companies_business_number ON companies(business_number);
 CREATE INDEX IF NOT EXISTS idx_company_admins_company_id ON company_admins(company_id);
 CREATE INDEX IF NOT EXISTS idx_company_admins_user_id ON company_admins(user_id);
@@ -100,7 +118,7 @@ CREATE INDEX IF NOT EXISTS idx_workplaces_company_id ON workplaces(company_id);
 CREATE INDEX IF NOT EXISTS idx_users_business_number ON users(business_number);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 
--- 10. 기존 데이터 마이그레이션 (소유자의 사업장 → companies 테이블)
+-- 11. 기존 데이터 마이그레이션 (소유자의 사업장 → companies 테이블)
 -- 기존 owner 계정이 있는 경우, 해당 사업장을 companies로 이동
 INSERT INTO companies (business_number, company_name, phone, created_at)
 SELECT DISTINCT 
@@ -115,7 +133,7 @@ WHERE u.role = 'owner'
     SELECT 1 FROM companies c WHERE c.business_number = u.business_number
   );
 
--- 11. company_admins에 기존 소유자 등록
+-- 12. company_admins에 기존 소유자 등록
 INSERT INTO company_admins (company_id, user_id, role, granted_at)
 SELECT 
   c.id as company_id,
@@ -130,7 +148,7 @@ WHERE u.role = 'owner'
     WHERE ca.company_id = c.id AND ca.user_id = u.id
   );
 
--- 12. workplaces에 company_id 연결
+-- 13. workplaces에 company_id 연결
 UPDATE workplaces w
 SET company_id = c.id
 FROM companies c
@@ -138,7 +156,7 @@ JOIN users u ON c.business_number = u.business_number
 WHERE w.owner_id = u.id
   AND w.company_id IS NULL;
 
--- 13. 기존 직원들을 company_employee_relations에 등록
+-- 14. 기존 직원들을 company_employee_relations에 등록
 INSERT INTO company_employee_relations (
   company_id, user_id, workplace_id, hire_date, status, created_at
 )

@@ -756,4 +756,327 @@ router.get('/owner/employees/:companyId', async (req, res) => {
 });
 
 
+// ============================================
+// 초대 링크 시스템
+// ============================================
+
+// 1. 초대 링크 생성 (사업주 전용)
+router.post('/owner/create-invite', async (req, res) => {
+  const { workplaceId, companyId, expiresInDays, maxUses } = req.body;
+
+  try {
+    if (!workplaceId || !companyId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '사업장 ID와 회사 ID가 필요합니다.' 
+      });
+    }
+
+    // 고유 토큰 생성 (UUID 형식)
+    const token = `INV-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    
+    // 만료일 계산 (기본 7일)
+    const expiresAt = expiresInDays 
+      ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString()
+      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    // 초대 링크 저장
+    const result = await run(
+      `INSERT INTO workplace_invitations (
+        workplace_id, company_id, token, created_by, expires_at, max_uses, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [workplaceId, companyId, token, req.body.ownerId || 1, expiresAt, maxUses || null, 1]
+    );
+
+    console.log(`✉️ 초대 링크 생성: ${token} (workplace: ${workplaceId})`);
+
+    res.json({
+      success: true,
+      message: '초대 링크가 생성되었습니다.',
+      invitation: {
+        id: result.lastID,
+        token,
+        expiresAt,
+        maxUses,
+        inviteUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/invite/${token}`
+      }
+    });
+
+  } catch (error) {
+    console.error('초대 링크 생성 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '초대 링크 생성 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 2. 초대 링크 목록 조회 (사업주 전용)
+router.get('/owner/invites/:workplaceId', async (req, res) => {
+  const { workplaceId } = req.params;
+
+  try {
+    const invitations = await all(
+      `SELECT 
+        wi.*,
+        u.name as creator_name,
+        w.name as workplace_name
+      FROM workplace_invitations wi
+      LEFT JOIN users u ON wi.created_by = u.id
+      LEFT JOIN workplaces w ON wi.workplace_id = w.id
+      WHERE wi.workplace_id = ?
+      ORDER BY wi.created_at DESC`,
+      [workplaceId]
+    );
+
+    res.json({
+      success: true,
+      invitations: invitations.map(inv => ({
+        ...inv,
+        inviteUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/invite/${inv.token}`,
+        isExpired: new Date(inv.expires_at) < new Date(),
+        isMaxed: inv.max_uses ? inv.uses_count >= inv.max_uses : false
+      }))
+    });
+
+  } catch (error) {
+    console.error('초대 링크 목록 조회 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '초대 링크 목록 조회 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 3. 초대 링크 비활성화 (사업주 전용)
+router.delete('/owner/invite/:token', async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    await run(
+      `UPDATE workplace_invitations SET is_active = 0 WHERE token = ?`,
+      [token]
+    );
+
+    console.log(`🔒 초대 링크 비활성화: ${token}`);
+
+    res.json({
+      success: true,
+      message: '초대 링크가 비활성화되었습니다.'
+    });
+
+  } catch (error) {
+    console.error('초대 링크 비활성화 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '초대 링크 비활성화 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 4. 초대 링크 유효성 확인 (공개)
+router.get('/invite/:token', async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    const invitation = await get(
+      `SELECT 
+        wi.*,
+        w.name as workplace_name,
+        w.address as workplace_address,
+        c.company_name,
+        u.name as owner_name
+      FROM workplace_invitations wi
+      JOIN workplaces w ON wi.workplace_id = w.id
+      JOIN companies c ON wi.company_id = c.id
+      JOIN users u ON wi.created_by = u.id
+      WHERE wi.token = ?`,
+      [token]
+    );
+
+    if (!invitation) {
+      return res.status(404).json({ 
+        success: false, 
+        message: '유효하지 않은 초대 링크입니다.' 
+      });
+    }
+
+    // 유효성 검사
+    const isExpired = new Date(invitation.expires_at) < new Date();
+    const isMaxed = invitation.max_uses ? invitation.uses_count >= invitation.max_uses : false;
+    const isActive = invitation.is_active === 1 || invitation.is_active === true;
+
+    if (!isActive) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '비활성화된 초대 링크입니다.' 
+      });
+    }
+
+    if (isExpired) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '만료된 초대 링크입니다.' 
+      });
+    }
+
+    if (isMaxed) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '초대 링크 사용 가능 횟수가 초과되었습니다.' 
+      });
+    }
+
+    res.json({
+      success: true,
+      invitation: {
+        workplaceName: invitation.workplace_name,
+        workplaceAddress: invitation.workplace_address,
+        companyName: invitation.company_name,
+        ownerName: invitation.owner_name,
+        workplaceId: invitation.workplace_id,
+        companyId: invitation.company_id
+      }
+    });
+
+  } catch (error) {
+    console.error('초대 링크 확인 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '초대 링크 확인 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 5. 초대 링크로 회원가입 (직원 전용)
+router.post('/employee/signup-with-invite', async (req, res) => {
+  const {
+    username,
+    password,
+    name,
+    phone,
+    inviteToken
+  } = req.body;
+
+  try {
+    // 입력 검증
+    if (!username || !password || !name || !phone || !inviteToken) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '필수 항목을 모두 입력해주세요.' 
+      });
+    }
+
+    // 초대 링크 확인
+    const invitation = await get(
+      `SELECT * FROM workplace_invitations WHERE token = ?`,
+      [inviteToken]
+    );
+
+    if (!invitation) {
+      return res.status(404).json({ 
+        success: false, 
+        message: '유효하지 않은 초대 링크입니다.' 
+      });
+    }
+
+    // 유효성 검사
+    const isExpired = new Date(invitation.expires_at) < new Date();
+    const isMaxed = invitation.max_uses ? invitation.uses_count >= invitation.max_uses : false;
+    const isActive = invitation.is_active === 1 || invitation.is_active === true;
+
+    if (!isActive || isExpired || isMaxed) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '사용할 수 없는 초대 링크입니다.' 
+      });
+    }
+
+    // 중복 확인
+    const existingUser = await get(
+      `SELECT id FROM users WHERE username = ? OR phone = ?`,
+      [username, phone]
+    );
+
+    if (existingUser) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '이미 사용 중인 아이디 또는 전화번호입니다.' 
+      });
+    }
+
+    // 비밀번호 해시
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 사용자 생성
+    const userResult = await run(
+      `INSERT INTO users (
+        username, password, name, phone, role, workplace_id, created_at
+      ) VALUES (?, ?, ?, ?, 'employee', ?, CURRENT_TIMESTAMP)`,
+      [username, hashedPassword, name, phone, invitation.workplace_id]
+    );
+    const userId = userResult.lastID;
+
+    // 직원 상세 정보 생성
+    await run(
+      `INSERT INTO employee_details (
+        user_id, workplace_id, employment_status, created_at
+      ) VALUES (?, ?, 'active', CURRENT_TIMESTAMP)`,
+      [userId, invitation.workplace_id]
+    );
+
+    // 회사-직원 관계 생성
+    await run(
+      `INSERT INTO company_employee_relations (
+        company_id, user_id, workplace_id, start_date, status, created_at
+      ) VALUES (?, ?, ?, CURRENT_DATE, 'active', CURRENT_TIMESTAMP)`,
+      [invitation.company_id, userId, invitation.workplace_id]
+    );
+
+    // 초대 링크 사용 횟수 증가
+    await run(
+      `UPDATE workplace_invitations 
+       SET uses_count = uses_count + 1 
+       WHERE token = ?`,
+      [inviteToken]
+    );
+
+    console.log(`✅ 초대 링크로 회원가입 완료: ${username} (workplace: ${invitation.workplace_id})`);
+
+    // JWT 토큰 발급
+    const token = jwt.sign(
+      {
+        userId: userId,
+        username: username,
+        role: 'employee',
+        workplaceId: invitation.workplace_id
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      success: true,
+      message: '회원가입이 완료되었습니다!',
+      token,
+      user: {
+        id: userId,
+        username,
+        name,
+        phone,
+        role: 'employee',
+        workplace_id: invitation.workplace_id
+      }
+    });
+
+  } catch (error) {
+    console.error('초대 링크 회원가입 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '회원가입 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+
 export default router;

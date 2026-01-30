@@ -210,6 +210,15 @@ export const communityAPI = {
   deletePost: (id) => api.delete(`/community/posts/${id}`)
 };
 
+// 초대 링크 API
+export const inviteAPI = {
+  createInvite: (data) => api.post('/v2/auth/owner/create-invite', data),
+  getInvites: (workplaceId) => api.get(`/v2/auth/owner/invites/${workplaceId}`),
+  deleteInvite: (token) => api.delete(`/v2/auth/owner/invite/${token}`),
+  checkInvite: (token) => api.get(`/v2/auth/invite/${token}`),
+  signupWithInvite: (data) => api.post('/v2/auth/employee/signup-with-invite', data)
+};
+
 // V2 API를 위한 직접 axios 인스턴스 export
 export const apiClient = api;
 

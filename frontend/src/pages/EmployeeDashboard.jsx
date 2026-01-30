@@ -116,6 +116,10 @@ const EmployeeDashboard = () => {
         location_consent: true,
         location_consent_date: new Date().toISOString()
       });
+      
+      // 동의 완료 후 프로필 다시 로드
+      await checkConsent();
+      
       setShowConsentModal(false);
       setMessage({ type: 'success', text: '동의가 완료되었습니다.' });
     } catch (error) {

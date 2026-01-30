@@ -679,7 +679,7 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const companies = await all(
+    let companies = await all(
       `SELECT 
         c.id,
         c.business_number,
@@ -695,6 +695,84 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
       ORDER BY c.created_at DESC`,
       [userId]
     );
+
+    // V1 시스템 사용자: 회사가 없지만 workplace가 있는 경우 자동 마이그레이션
+    if (companies.length === 0) {
+      console.log(`🔄 V1 사용자 자동 마이그레이션 시도: userId ${userId}`);
+      
+      // 사용자의 workplace와 정보 조회
+      const userWorkplaces = await all(
+        `SELECT w.id, w.name, w.business_number, w.address, w.phone, u.name as owner_name, u.phone as owner_phone
+         FROM workplaces w
+         JOIN users u ON w.owner_id = u.id
+         WHERE w.owner_id = ?`,
+        [userId]
+      );
+
+      if (userWorkplaces.length > 0) {
+        const workplace = userWorkplaces[0];
+        
+        // 회사 생성 (사업자등록번호가 있는 경우)
+        if (workplace.business_number) {
+          // 이미 존재하는 회사인지 확인
+          const existingCompany = await get(
+            'SELECT id FROM companies WHERE business_number = ?',
+            [workplace.business_number]
+          );
+
+          let companyId;
+
+          if (existingCompany) {
+            companyId = existingCompany.id;
+            console.log(`✅ 기존 회사 발견: company_id ${companyId}`);
+          } else {
+            // 새 회사 생성
+            const companyResult = await run(
+              `INSERT INTO companies (
+                business_number, company_name, phone, verified, created_at
+              ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+              [workplace.business_number, workplace.name, workplace.phone || workplace.owner_phone, false]
+            );
+            companyId = companyResult.id || companyResult.lastID;
+            console.log(`✅ 새 회사 생성: company_id ${companyId}`);
+          }
+
+          // company_admins에 추가
+          await run(
+            `INSERT INTO company_admins (
+              company_id, user_id, role, granted_at
+            ) VALUES (?, ?, 'owner', CURRENT_TIMESTAMP)`,
+            [companyId, userId]
+          );
+
+          // workplace에 company_id 연결
+          await run(
+            `UPDATE workplaces SET company_id = ? WHERE id = ?`,
+            [companyId, workplace.id]
+          );
+
+          console.log(`🎉 V1 사용자 마이그레이션 완료: userId ${userId} → companyId ${companyId}`);
+
+          // 다시 조회
+          companies = await all(
+            `SELECT 
+              c.id,
+              c.business_number,
+              c.company_name,
+              c.representative_name,
+              c.address,
+              c.phone,
+              c.verified,
+              ca.role
+            FROM companies c
+            JOIN company_admins ca ON c.id = ca.company_id
+            WHERE ca.user_id = ?
+            ORDER BY c.created_at DESC`,
+            [userId]
+          );
+        }
+      }
+    }
 
     res.json({
       success: true,

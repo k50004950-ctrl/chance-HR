@@ -723,7 +723,7 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
         console.log(`📋 사업장 정보:`, { id: workplace.id, name: workplace.name, user_business_number: workplace.business_number });
         
         // 사업자등록번호 확인 (users 테이블에서 가져오거나 임시로 생성)
-        const businessNumber = workplace.business_number || `TEMP-${userId}-${Date.now()}`;
+        const businessNumber = workplace.business_number || `T${userId}${Date.now()}`.substring(0, 20);
         console.log(`🔢 사용할 사업자번호: ${businessNumber}`);
         
         // 회사 생성

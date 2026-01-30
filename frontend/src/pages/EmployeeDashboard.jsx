@@ -98,7 +98,14 @@ const EmployeeDashboard = () => {
         setShowConsentModal(true);
       }
     } catch (error) {
-      console.error('동의 여부 확인 오류:', error);
+      // V2 근로자는 아직 employees 테이블에 없을 수 있음 (매칭 전)
+      if (error.response?.status === 404) {
+        console.log('아직 회사와 매칭되지 않은 근로자입니다.');
+        // 매칭되지 않은 근로자는 동의 모달을 표시하지 않음
+        setShowConsentModal(false);
+      } else {
+        console.error('동의 여부 확인 오류:', error);
+      }
     }
   };
 
@@ -117,14 +124,20 @@ const EmployeeDashboard = () => {
         location_consent_date: new Date().toISOString()
       });
       
-      // 동의 완료 후 프로필 다시 로드
-      await checkConsent();
-      
       setShowConsentModal(false);
       setMessage({ type: 'success', text: '동의가 완료되었습니다.' });
+      
+      // 동의 완료 후 프로필 다시 로드
+      await checkConsent();
     } catch (error) {
       console.error('동의 처리 오류:', error);
-      setMessage({ type: 'error', text: '동의 처리에 실패했습니다.' });
+      // V2 근로자는 아직 employees 테이블에 없을 수 있음
+      if (error.response?.status === 404) {
+        console.log('V2 근로자: 회사 매칭 후 동의 처리됩니다.');
+        setShowConsentModal(false);
+      } else {
+        setMessage({ type: 'error', text: '동의 처리에 실패했습니다.' });
+      }
     } finally {
       setLoading(false);
     }

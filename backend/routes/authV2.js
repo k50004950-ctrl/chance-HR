@@ -881,36 +881,92 @@ router.post('/owner/create-workplace', async (req, res) => {
 
 // 1. 초대 링크 생성 (사업주 전용)
 router.post('/owner/create-invite', async (req, res) => {
-  const { workplaceId, companyId, expiresInDays, maxUses, ownerId } = req.body;
+  let { workplaceId, companyId, expiresInDays, maxUses, ownerId } = req.body;
 
   console.log('📨 초대 링크 생성 요청:', { workplaceId, companyId, ownerId, expiresInDays, maxUses });
 
   try {
-    if (!workplaceId) {
-      console.error('❌ workplaceId 누락');
+    if (!workplaceId || !ownerId) {
+      console.error('❌ 필수 파라미터 누락');
       return res.status(400).json({ 
         success: false, 
-        message: '사업장 ID가 필요합니다.',
+        message: '사업장 ID와 사업주 ID가 필요합니다.',
         debug: { workplaceId, companyId, ownerId }
       });
     }
     
+    // companyId가 없으면 자동 생성 (V1 사용자 지원)
     if (!companyId) {
-      console.error('❌ companyId 누락');
-      return res.status(400).json({ 
-        success: false, 
-        message: '회사 ID가 필요합니다.',
-        debug: { workplaceId, companyId, ownerId }
-      });
-    }
-    
-    if (!ownerId) {
-      console.error('❌ ownerId 누락');
-      return res.status(400).json({ 
-        success: false, 
-        message: '사업주 ID가 필요합니다.',
-        debug: { workplaceId, companyId, ownerId }
-      });
+      console.log('🔄 companyId 없음. 자동 생성 시작...');
+      
+      const workplace = await get(
+        `SELECT w.*, u.name as owner_name, u.phone as owner_phone, u.business_number as owner_business_number
+         FROM workplaces w
+         JOIN users u ON w.owner_id = u.id
+         WHERE w.id = ? AND w.owner_id = ?`,
+        [workplaceId, ownerId]
+      );
+
+      if (!workplace) {
+        return res.status(404).json({ 
+          success: false, 
+          message: '사업장을 찾을 수 없습니다.' 
+        });
+      }
+
+      const businessNumber = workplace.business_number || workplace.owner_business_number;
+      
+      if (!businessNumber) {
+        return res.status(400).json({ 
+          success: false, 
+          message: '사업자등록번호가 필요합니다. 사업장 정보를 확인해주세요.' 
+        });
+      }
+
+      // 기존 회사 확인
+      let company = await get(
+        'SELECT id FROM companies WHERE business_number = ?',
+        [businessNumber]
+      );
+
+      if (company) {
+        companyId = company.id;
+        console.log(`✅ 기존 회사 사용: ${companyId}`);
+      } else {
+        // 새 회사 생성
+        const companyResult = await run(
+          `INSERT INTO companies (
+            business_number, company_name, phone, verified, created_at
+          ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+          [businessNumber, workplace.name, workplace.phone || workplace.owner_phone, false]
+        );
+        companyId = companyResult.id || companyResult.lastID;
+        console.log(`✅ 새 회사 생성: ${companyId}`);
+      }
+
+      // company_admins에 추가
+      const existingAdmin = await get(
+        'SELECT id FROM company_admins WHERE company_id = ? AND user_id = ?',
+        [companyId, ownerId]
+      );
+
+      if (!existingAdmin) {
+        await run(
+          `INSERT INTO company_admins (
+            company_id, user_id, role, granted_at
+          ) VALUES (?, ?, 'owner', CURRENT_TIMESTAMP)`,
+          [companyId, ownerId]
+        );
+        console.log(`✅ company_admins 등록: ${ownerId} → ${companyId}`);
+      }
+
+      // workplace에 company_id 연결
+      await run(
+        `UPDATE workplaces SET company_id = ? WHERE id = ?`,
+        [companyId, workplaceId]
+      );
+      
+      console.log(`🎉 자동 회사 생성 완료: companyId ${companyId}`);
     }
 
     // 고유 토큰 생성 (UUID 형식)

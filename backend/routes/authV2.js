@@ -711,13 +711,18 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
 
       if (userWorkplaces.length > 0) {
         const workplace = userWorkplaces[0];
+        console.log(`📋 사업장 정보:`, { id: workplace.id, name: workplace.name, business_number: workplace.business_number });
         
-        // 회사 생성 (사업자등록번호가 있는 경우)
-        if (workplace.business_number) {
+        // 사업자등록번호 확인 (없으면 임시로 생성)
+        const businessNumber = workplace.business_number || `TEMP-${userId}-${Date.now()}`;
+        console.log(`🔢 사용할 사업자번호: ${businessNumber}`);
+        
+        // 회사 생성
+        if (true) { // 항상 실행
           // 이미 존재하는 회사인지 확인
           const existingCompany = await get(
             'SELECT id FROM companies WHERE business_number = ?',
-            [workplace.business_number]
+            [businessNumber]
           );
 
           let companyId;
@@ -731,7 +736,7 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
               `INSERT INTO companies (
                 business_number, company_name, phone, verified, created_at
               ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-              [workplace.business_number, workplace.name, workplace.phone || workplace.owner_phone, false]
+              [businessNumber, workplace.name, workplace.phone || workplace.owner_phone, false]
             );
             companyId = companyResult.id || companyResult.lastID;
             console.log(`✅ 새 회사 생성: company_id ${companyId}`);
@@ -790,10 +795,13 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('회사 정보 조회 오류:', error);
+    console.error('❌ 회사 정보 조회 오류:', error);
+    console.error('❌ 에러 상세:', error.message);
+    console.error('❌ 스택:', error.stack);
     res.status(500).json({ 
       success: false, 
-      message: '서버 오류가 발생했습니다.' 
+      message: '서버 오류가 발생했습니다.',
+      error: error.message 
     });
   }
 });

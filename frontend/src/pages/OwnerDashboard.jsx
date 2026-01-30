@@ -223,7 +223,7 @@ const OwnerDashboard = () => {
 
   useEffect(() => {
     loadWorkplaces();
-    loadOwnerCompany(); // V2: 사업주 회사 로드
+    // loadOwnerCompany(); // V2: 임시 비활성화
     checkAnnouncements();
   }, []);
 
@@ -2965,9 +2965,9 @@ const OwnerDashboard = () => {
                         </button>
                         <button
                           className="btn btn-primary"
-                          onClick={() => setShowInviteManager(true)}
+                          onClick={() => setShowEmployeeForm(true)}
                         >
-                          ✉️ 직원 초대
+                          ➕ 직원 등록
                         </button>
                       </div>
                     </div>

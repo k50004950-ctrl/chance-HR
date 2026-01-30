@@ -121,6 +121,32 @@ export const getCoordinatesFromAddress = async (address) => {
   try {
     await ensureKakaoMapsLoaded();
     if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
+      // 1. 먼저 Places API로 장소 검색 시도 (더 정확한 좌표)
+      const places = new window.kakao.maps.services.Places();
+      const placesResult = await new Promise((resolve) => {
+        places.keywordSearch(address, (result, status) => {
+          if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
+            // 가장 관련성 높은 결과 사용
+            resolve({
+              latitude: parseFloat(result[0].y),
+              longitude: parseFloat(result[0].x),
+              success: true,
+              placeName: result[0].place_name,
+              addressName: result[0].address_name,
+              roadAddressName: result[0].road_address_name
+            });
+          } else {
+            resolve(null);
+          }
+        });
+      });
+
+      if (placesResult) {
+        console.log('✅ Kakao Places API로 좌표 찾음:', placesResult);
+        return placesResult;
+      }
+
+      // 2. Places API 실패 시 Geocoder로 주소 검색
       const geocoder = new window.kakao.maps.services.Geocoder();
       const kakaoResult = await new Promise((resolve) => {
         geocoder.addressSearch(address, (result, status) => {
@@ -137,6 +163,7 @@ export const getCoordinatesFromAddress = async (address) => {
       });
 
       if (kakaoResult) {
+        console.log('✅ Kakao Geocoder로 좌표 찾음:', kakaoResult);
         return kakaoResult;
       }
     }

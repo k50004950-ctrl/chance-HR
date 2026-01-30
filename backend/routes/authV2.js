@@ -702,7 +702,7 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
       
       // 사용자의 workplace와 정보 조회
       const userWorkplaces = await all(
-        `SELECT w.id, w.name, w.business_number, w.address, w.phone, u.name as owner_name, u.phone as owner_phone
+        `SELECT w.id, w.name, w.address, w.phone, u.name as owner_name, u.phone as owner_phone, u.business_number
          FROM workplaces w
          JOIN users u ON w.owner_id = u.id
          WHERE w.owner_id = ?`,
@@ -711,9 +711,9 @@ router.get('/owner/my-companies/:userId', async (req, res) => {
 
       if (userWorkplaces.length > 0) {
         const workplace = userWorkplaces[0];
-        console.log(`📋 사업장 정보:`, { id: workplace.id, name: workplace.name, business_number: workplace.business_number });
+        console.log(`📋 사업장 정보:`, { id: workplace.id, name: workplace.name, user_business_number: workplace.business_number });
         
-        // 사업자등록번호 확인 (없으면 임시로 생성)
+        // 사업자등록번호 확인 (users 테이블에서 가져오거나 임시로 생성)
         const businessNumber = workplace.business_number || `TEMP-${userId}-${Date.now()}`;
         console.log(`🔢 사용할 사업자번호: ${businessNumber}`);
         

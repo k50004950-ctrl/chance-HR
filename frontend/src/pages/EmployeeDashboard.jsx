@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
-import { attendanceAPI, salaryAPI, employeeAPI, announcementsAPI, communityAPI } from '../services/api';
+import { attendanceAPI, salaryAPI, employeeAPI, announcementsAPI, communityAPI, apiClient } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import AnnouncementModal from '../components/AnnouncementModal';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -37,9 +37,11 @@ const EmployeeDashboard = () => {
   const [employeeProfile, setEmployeeProfile] = useState(null);
   const [currentAnnouncement, setCurrentAnnouncement] = useState(null);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [employments, setEmployments] = useState([]); // V2: 고용 이력 (현재 + 과거)
+  const [currentEmployer, setCurrentEmployer] = useState(null); // 현재 사업주 정보
   
   // 커뮤니티 관련 state
-  const [activeTab, setActiveTab] = useState('attendance'); // attendance, slips, community
+  const [activeTab, setActiveTab] = useState('attendance'); // attendance, slips, community, employer
   const [communityPosts, setCommunityPosts] = useState([]);
   const [communityLoading, setCommunityLoading] = useState(false);
   const [showCommunityModal, setShowCommunityModal] = useState(false);
@@ -54,6 +56,7 @@ const EmployeeDashboard = () => {
     loadTodayStatus();
     loadAttendanceRecords();
     checkAnnouncements();
+    loadEmployerInfo(); // V2: 사업주 정보 로드
   }, []);
 
   useEffect(() => {
@@ -138,6 +141,25 @@ const EmployeeDashboard = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // V2: 사업주 정보 로드 (현재 + 과거)
+  const loadEmployerInfo = async () => {
+    try {
+      const response = await apiClient.get(`/v2/auth/employee/my-employment/${user.id}`);
+      if (response.data.success && response.data.employments) {
+        setEmployments(response.data.employments);
+        
+        // 현재 활성화된 사업주 찾기 (status = 'approved', end_date = null)
+        const current = response.data.employments.find(emp => 
+          emp.status === 'approved' && !emp.end_date
+        );
+        setCurrentEmployer(current || null);
+      }
+    } catch (error) {
+      console.error('사업주 정보 조회 오류:', error);
+      // V1 시스템 사용자는 이 API가 없을 수 있으므로 무시
     }
   };
 
@@ -738,6 +760,12 @@ const EmployeeDashboard = () => {
             onClick={() => setActiveTab('slips')}
           >
             📝 급여명세서
+          </button>
+          <button
+            className={`nav-tab ${activeTab === 'employer' ? 'active' : ''}`}
+            onClick={() => setActiveTab('employer')}
+          >
+            🏢 사업주
           </button>
           <button
             className={`nav-tab ${activeTab === 'community' ? 'active' : ''}`}
@@ -1400,6 +1428,119 @@ const EmployeeDashboard = () => {
               </div>
             )}
           </>
+        )}
+
+        {/* 사업주 정보 탭 */}
+        {activeTab === 'employer' && (
+          <div className="card">
+            <h3 style={{ margin: '0 0 20px 0', color: '#374151' }}>🏢 사업주 정보</h3>
+
+            {currentEmployer ? (
+              <div>
+                {/* 현재 사업주 */}
+                <div style={{
+                  padding: '20px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '12px',
+                  color: 'white',
+                  marginBottom: '24px'
+                }}>
+                  <div style={{ fontSize: '12px', opacity: '0.9', marginBottom: '8px' }}>현재 근무 중</div>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '700' }}>
+                    {currentEmployer.company_name}
+                  </h4>
+                  <div style={{ display: 'grid', gap: '12px', fontSize: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ opacity: '0.9' }}>사업자등록번호</span>
+                      <span style={{ fontWeight: '600' }}>{currentEmployer.business_number}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ opacity: '0.9' }}>주소</span>
+                      <span style={{ fontWeight: '600', textAlign: 'right' }}>{currentEmployer.address}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ opacity: '0.9' }}>입사일</span>
+                      <span style={{ fontWeight: '600' }}>{new Date(currentEmployer.start_date).toLocaleDateString('ko-KR')}</span>
+                    </div>
+                    {currentEmployer.position && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ opacity: '0.9' }}>직책</span>
+                        <span style={{ fontWeight: '600' }}>{currentEmployer.position}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 과거 이력 */}
+                {employments.filter(emp => emp.id !== currentEmployer.id).length > 0 && (
+                  <div>
+                    <h4 style={{ margin: '0 0 16px 0', color: '#6b7280', fontSize: '16px' }}>
+                      📜 과거 근무 이력
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {employments
+                        .filter(emp => emp.id !== currentEmployer.id)
+                        .map((emp) => (
+                          <div
+                            key={emp.id}
+                            style={{
+                              padding: '16px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              background: '#f9fafb'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                              <h5 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#374151' }}>
+                                {emp.company_name}
+                              </h5>
+                              <span style={{
+                                padding: '2px 8px',
+                                background: '#6b7280',
+                                color: 'white',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: '600'
+                              }}>
+                                퇴사
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '8px' }}>
+                              {emp.business_number}
+                            </div>
+                            <div style={{ fontSize: '13px', color: '#9ca3af' }}>
+                              {new Date(emp.start_date).toLocaleDateString('ko-KR')} ~ 
+                              {emp.end_date ? new Date(emp.end_date).toLocaleDateString('ko-KR') : '현재'}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{
+                padding: '60px 20px',
+                textAlign: 'center',
+                color: '#9ca3af'
+              }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏢</div>
+                <div style={{ fontSize: '16px', marginBottom: '8px', color: '#6b7280' }}>
+                  아직 매칭된 사업장이 없습니다
+                </div>
+                <div style={{ fontSize: '14px' }}>
+                  사업주와 매칭되면 여기에 정보가 표시됩니다
+                </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => navigate('/employee-match')}
+                  style={{ marginTop: '24px' }}
+                >
+                  🏢 회사 찾기
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         {/* 커뮤니티 탭 */}

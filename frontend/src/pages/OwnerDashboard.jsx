@@ -2963,12 +2963,7 @@ const OwnerDashboard = () => {
                         >
                           📁 서류 보관함
                         </button>
-                        <button
-                          className="btn btn-primary"
-                          onClick={() => setShowInviteManager(true)}
-                        >
-                          ✉️ 직원 초대
-                        </button>
+                        {/* V2: 초대 링크 대신 매칭 승인 사용 */}
                       </div>
                     </div>
                     

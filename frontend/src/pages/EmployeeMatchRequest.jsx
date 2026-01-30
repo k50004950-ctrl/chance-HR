@@ -12,6 +12,7 @@ function EmployeeMatchRequest() {
   const [searching, setSearching] = useState(false);
 
   const [businessNumber, setBusinessNumber] = useState('');
+  const [ownerPhone, setOwnerPhone] = useState('');
   const [company, setCompany] = useState(null);
   const [showMatchForm, setShowMatchForm] = useState(false);
 
@@ -41,11 +42,21 @@ function EmployeeMatchRequest() {
       return;
     }
 
+    if (!ownerPhone.trim()) {
+      setToast({
+        show: true,
+        message: '사업주 핸드폰번호를 입력해주세요.',
+        type: 'error'
+      });
+      return;
+    }
+
     setSearching(true);
 
     try {
-      const cleaned = businessNumber.replace(/-/g, '');
-      const response = await apiClient.get(`/v2/auth/companies/search?business_number=${cleaned}`);
+      const cleanedBusiness = businessNumber.replace(/-/g, '');
+      const cleanedPhone = ownerPhone.replace(/-/g, '');
+      const response = await apiClient.get(`/v2/auth/companies/search?business_number=${cleanedBusiness}&owner_phone=${cleanedPhone}`);
 
       if (response.data.success) {
         setCompany(response.data.company);
@@ -168,17 +179,20 @@ function EmployeeMatchRequest() {
         {/* 검색 카드 */}
         <div style={{ background: 'white', borderRadius: '16px', padding: '30px', marginBottom: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#333', marginBottom: '20px' }}>
-            사업자등록번호 입력
+            사업주 정보 입력
           </h2>
 
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333', fontSize: '14px' }}>
+              사업자등록번호 <span style={{ color: 'red' }}>*</span>
+            </label>
             <input
               type="text"
               value={businessNumber}
               onChange={(e) => setBusinessNumber(formatBusinessNumber(e.target.value))}
               placeholder="123-45-67890"
               style={{
-                flex: 1,
+                width: '100%',
                 padding: '12px 16px',
                 border: '2px solid #e0e0e0',
                 borderRadius: '8px',
@@ -188,27 +202,52 @@ function EmployeeMatchRequest() {
               onFocus={(e) => e.target.style.border = '2px solid #667eea'}
               onBlur={(e) => e.target.style.border = '2px solid #e0e0e0'}
             />
-            <button
-              onClick={handleSearchCompany}
-              disabled={searching}
-              style={{
-                padding: '12px 24px',
-                background: searching ? '#ccc' : '#667eea',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                cursor: searching ? 'not-allowed' : 'pointer',
-                transition: 'all 0.3s'
-              }}
-            >
-              {searching ? '검색 중...' : '검색'}
-            </button>
           </div>
 
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333', fontSize: '14px' }}>
+              사업주 핸드폰번호 <span style={{ color: 'red' }}>*</span>
+            </label>
+            <input
+              type="tel"
+              value={ownerPhone}
+              onChange={(e) => setOwnerPhone(e.target.value)}
+              placeholder="010-1234-5678"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                fontSize: '16px',
+                outline: 'none'
+              }}
+              onFocus={(e) => e.target.style.border = '2px solid #667eea'}
+              onBlur={(e) => e.target.style.border = '2px solid #e0e0e0'}
+            />
+          </div>
+
+          <button
+            onClick={handleSearchCompany}
+            disabled={searching}
+            style={{
+              width: '100%',
+              padding: '14px',
+              background: searching ? '#ccc' : '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: searching ? 'not-allowed' : 'pointer',
+              transition: 'all 0.3s',
+              marginBottom: '16px'
+            }}
+          >
+            {searching ? '검색 중...' : '🔍 회사 찾기'}
+          </button>
+
           <p style={{ color: '#666', fontSize: '14px' }}>
-            💡 사업주에게 사업자등록번호를 확인하세요.
+            💡 사업주에게 사업자등록번호와 핸드폰번호를 확인하세요.
           </p>
         </div>
 

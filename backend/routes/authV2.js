@@ -250,10 +250,10 @@ router.post('/login', async (req, res) => {
 
 
 // ============================================
-// 3. 사업자등록번호로 회사 검색 (근로자용)
+// 3. 사업자등록번호 + 사업주 핸드폰번호로 회사 검색 (근로자용)
 // ============================================
 router.get('/companies/search', async (req, res) => {
-  const { business_number } = req.query;
+  const { business_number, owner_phone } = req.query;
 
   try {
     if (!business_number) {
@@ -263,6 +263,14 @@ router.get('/companies/search', async (req, res) => {
       });
     }
 
+    if (!owner_phone) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '사업주 핸드폰번호를 입력해주세요.' 
+      });
+    }
+
+    // 사업자등록번호와 사업주 핸드폰번호가 모두 일치하는 회사 검색
     const company = await get(
       `SELECT 
         c.id,
@@ -272,19 +280,20 @@ router.get('/companies/search', async (req, res) => {
         c.address,
         c.phone,
         c.verified,
-        u.name as owner_name
+        u.name as owner_name,
+        u.phone as owner_phone
       FROM companies c
       LEFT JOIN company_admins ca ON c.id = ca.company_id AND ca.role = 'owner'
       LEFT JOIN users u ON ca.user_id = u.id
-      WHERE c.business_number = ?
+      WHERE c.business_number = ? AND u.phone = ?
       LIMIT 1`,
-      [business_number]
+      [business_number, owner_phone]
     );
 
     if (!company) {
       return res.json({
         success: false,
-        message: '해당 사업자등록번호로 등록된 회사가 없습니다.'
+        message: '사업자등록번호 또는 사업주 핸드폰번호가 일치하지 않습니다. 다시 확인해주세요.'
       });
     }
 

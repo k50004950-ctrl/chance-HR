@@ -9210,6 +9210,7 @@ const OwnerDashboard = () => {
         <EmployeeInviteManager
           workplaceId={selectedWorkplace}
           companyId={ownerCompanyId}
+          ownerId={user.id}
           onClose={() => setShowInviteManager(false)}
         />
       )}

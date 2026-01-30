@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { inviteAPI } from '../services/api';
 
-const EmployeeInviteManager = ({ workplaceId, companyId, onClose }) => {
+const EmployeeInviteManager = ({ workplaceId, companyId, ownerId, onClose }) => {
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -37,6 +37,7 @@ const EmployeeInviteManager = ({ workplaceId, companyId, onClose }) => {
       const response = await inviteAPI.createInvite({
         workplaceId,
         companyId,
+        ownerId,
         expiresInDays: formData.expiresInDays,
         maxUses: formData.maxUses || null
       });

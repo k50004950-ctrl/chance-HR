@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { attendanceAPI, salaryAPI, employeeAPI, announcementsAPI, communityAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +9,7 @@ import html2canvas from 'html2canvas';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [todayStatus, setTodayStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -681,16 +683,25 @@ const EmployeeDashboard = () => {
     <div>
       <Header />
       <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
           <h2 style={{ margin: 0, color: '#374151' }}>직원 대시보드</h2>
-          <button
-            className="btn btn-primary"
-            onClick={handleGetCertificate}
-            disabled={loading}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            📄 재직증명서 발급
-          </button>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-success"
+              onClick={() => navigate('/employee/match-request')}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              🏢 회사 찾기
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleGetCertificate}
+              disabled={loading}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              📄 재직증명서 발급
+            </button>
+          </div>
         </div>
 
         {message.text && (

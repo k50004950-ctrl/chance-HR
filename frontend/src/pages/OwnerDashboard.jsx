@@ -2611,6 +2611,15 @@ const OwnerDashboard = () => {
                 📄 급여명세서
               </button>
 
+              {/* 매칭 요청 메뉴 */}
+              <button
+                className={`nav-tab ${activeTab === 'matching' ? 'active' : ''}`}
+                onClick={() => setActiveTab('matching')}
+                style={{ fontSize: '16px', fontWeight: '700' }}
+              >
+                🔔 매칭 승인
+              </button>
+
               {/* 퇴직금 계산 메뉴 */}
               <button
                 className={`nav-tab ${activeTab === 'severance' ? 'active' : ''}`}

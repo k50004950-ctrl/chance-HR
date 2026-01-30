@@ -2752,7 +2752,7 @@ const OwnerDashboard = () => {
                       risks.push({ type: 'contract', label: '서류 필요', color: '#f59e0b' });
                     }
                     // 급여 미설정
-                    if (!emp.base_pay || emp.base_pay === 0) {
+                    if (!emp.salary_type || !emp.amount || emp.amount === 0 || emp.amount === '0' || emp.amount === '0.00') {
                       risks.push({ type: 'salary', label: '급여 미설정', color: '#ef4444' });
                     }
                     // 퇴사 처리 필요 (퇴사 상태인데 퇴사일 없음)
@@ -3017,7 +3017,7 @@ const OwnerDashboard = () => {
                                 if (!emp.contract_file_url) {
                                   risks.push({ type: 'contract', label: '서류 필요', color: '#f59e0b' });
                                 }
-                                if (!emp.base_pay || emp.base_pay === 0) {
+                                if (!emp.salary_type || !emp.amount || emp.amount === 0 || emp.amount === '0' || emp.amount === '0.00') {
                                   risks.push({ type: 'salary', label: '급여 미설정', color: '#ef4444' });
                                 }
                                 if (emp.employment_status === 'resigned' && !emp.resignation_date) {
@@ -3128,7 +3128,7 @@ const OwnerDashboard = () => {
                             if (!emp.contract_file_url) {
                               risks.push({ type: 'contract', label: '서류 필요', color: '#f59e0b' });
                             }
-                            if (!emp.base_pay || emp.base_pay === 0) {
+                            if (!emp.salary_type || !emp.amount || emp.amount === 0 || emp.amount === '0' || emp.amount === '0.00') {
                               risks.push({ type: 'salary', label: '급여 미설정', color: '#ef4444' });
                             }
                             if (emp.employment_status === 'resigned' && !emp.resignation_date) {

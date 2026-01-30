@@ -15,6 +15,7 @@ import Toast from '../components/Toast';
 import NotificationCenter from '../components/NotificationCenter';
 import OwnerMatchingApproval from '../components/OwnerMatchingApproval';
 import EmployeeInviteManager from '../components/EmployeeInviteManager';
+import MapPicker from '../components/MapPicker';
 import MobileLayout from '../components/MobileLayout';
 import MobileDashboard from '../components/MobileDashboard';
 import MobileActionCard from '../components/MobileActionCard';
@@ -2482,6 +2483,27 @@ const OwnerDashboard = () => {
                       />
                     </div>
                   </div>
+
+                  {/* 지도에서 위치 선택 */}
+                  {workplaceForm.address && workplaceForm.latitude && workplaceForm.longitude && (
+                    <div className="form-group">
+                      <label className="form-label" style={{ marginBottom: '12px', display: 'block', fontSize: '16px', fontWeight: 'bold' }}>
+                        🗺️ 지도에서 정확한 위치 설정
+                      </label>
+                      <MapPicker
+                        latitude={workplaceForm.latitude}
+                        longitude={workplaceForm.longitude}
+                        address={workplaceForm.address}
+                        onLocationChange={(coords) => {
+                          setWorkplaceForm(prev => ({
+                            ...prev,
+                            latitude: coords.latitude.toFixed(6),
+                            longitude: coords.longitude.toFixed(6)
+                          }));
+                        }}
+                      />
+                    </div>
+                  )}
 
                   <div className="form-group">
                     <label className="form-label">출퇴근 인정 반경 (미터) <span style={{ color: 'red' }}>*</span></label>
@@ -6755,6 +6777,28 @@ const OwnerDashboard = () => {
                       onChange={handleWorkplaceFormChange}
                     />
                   </div>
+
+                  {/* 지도에서 위치 선택 */}
+                  {workplaceLocationForm.address && workplaceLocationForm.latitude && workplaceLocationForm.longitude && (
+                    <div className="form-group">
+                      <label className="form-label" style={{ marginBottom: '12px', display: 'block', fontSize: '16px', fontWeight: 'bold' }}>
+                        🗺️ 지도에서 정확한 위치 설정
+                      </label>
+                      <MapPicker
+                        latitude={workplaceLocationForm.latitude}
+                        longitude={workplaceLocationForm.longitude}
+                        address={workplaceLocationForm.address}
+                        onLocationChange={(coords) => {
+                          setWorkplaceLocationForm(prev => ({
+                            ...prev,
+                            latitude: coords.latitude.toFixed(6),
+                            longitude: coords.longitude.toFixed(6)
+                          }));
+                        }}
+                      />
+                    </div>
+                  )}
+
                   <div className="form-group">
                     <label className="form-label">반경 (미터)</label>
                     <input

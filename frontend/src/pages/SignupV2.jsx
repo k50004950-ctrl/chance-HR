@@ -19,7 +19,10 @@ function SignupV2() {
     name: '',
     phone: '',
     role: defaultRole,  // 로그인 페이지에서 선택한 역할 또는 기본값
-    business_number: ''
+    business_number: '',
+    ssn: '',  // 주민등록번호
+    email: '',  // 이메일
+    address: ''  // 주소
   });
 
   const [errors, setErrors] = useState({});
@@ -74,6 +77,25 @@ function SignupV2() {
       newErrors.business_number = '사업자등록번호는 10자리 숫자여야 합니다.';
     }
 
+    // 근로자 필수 항목 검증
+    if (formData.role === 'employee') {
+      if (!formData.ssn.trim()) {
+        newErrors.ssn = '주민등록번호를 입력해주세요.';
+      } else if (!/^\d{13}$/.test(formData.ssn.replace(/-/g, ''))) {
+        newErrors.ssn = '주민등록번호는 13자리 숫자여야 합니다.';
+      }
+
+      if (!formData.email.trim()) {
+        newErrors.email = '이메일을 입력해주세요.';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = '올바른 이메일 형식이 아닙니다.';
+      }
+
+      if (!formData.address.trim()) {
+        newErrors.address = '주소를 입력해주세요.';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -88,11 +110,14 @@ function SignupV2() {
     setLoading(true);
 
     try {
-      // 전화번호와 사업자등록번호에서 하이픈 제거
+      // 전화번호, 사업자등록번호, 주민등록번호에서 하이픈 제거
       const cleanedData = {
         ...formData,
         phone: formData.phone.replace(/-/g, ''),
-        business_number: formData.business_number ? formData.business_number.replace(/-/g, '') : undefined
+        business_number: formData.business_number ? formData.business_number.replace(/-/g, '') : undefined,
+        ssn: formData.ssn ? formData.ssn.replace(/-/g, '') : undefined,
+        email: formData.email || undefined,
+        address: formData.address || undefined
       };
 
       const response = await apiClient.post('/v2/auth/signup', cleanedData);
@@ -138,6 +163,12 @@ function SignupV2() {
     if (cleaned.length <= 3) return cleaned;
     if (cleaned.length <= 5) return `${cleaned.slice(0, 3)}-${cleaned.slice(3)}`;
     return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 5)}-${cleaned.slice(5, 10)}`;
+  };
+
+  const formatSSN = (value) => {
+    const cleaned = value.replace(/\D/g, '');
+    if (cleaned.length <= 6) return cleaned;
+    return `${cleaned.slice(0, 6)}-${cleaned.slice(6, 13)}`;
   };
 
   return (
@@ -320,6 +351,87 @@ function SignupV2() {
             />
             {errors.phone && <p style={{ color: '#f44336', fontSize: '12px', marginTop: '4px' }}>{errors.phone}</p>}
           </div>
+
+          {/* 주민등록번호 (근로자만) */}
+          {formData.role === 'employee' && (
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333', fontSize: '14px' }}>
+                주민등록번호 <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                type="text"
+                name="ssn"
+                value={formData.ssn}
+                onChange={(e) => {
+                  const formatted = formatSSN(e.target.value);
+                  setFormData(prev => ({ ...prev, ssn: formatted }));
+                }}
+                placeholder="123456-1234567"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: errors.ssn ? '2px solid #f44336' : '2px solid #e0e0e0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'border 0.2s'
+                }}
+              />
+              {errors.ssn && <p style={{ color: '#f44336', fontSize: '12px', marginTop: '4px' }}>{errors.ssn}</p>}
+            </div>
+          )}
+
+          {/* 이메일 (근로자만) */}
+          {formData.role === 'employee' && (
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333', fontSize: '14px' }}>
+                이메일 <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="example@email.com"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: errors.email ? '2px solid #f44336' : '2px solid #e0e0e0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'border 0.2s'
+                }}
+              />
+              {errors.email && <p style={{ color: '#f44336', fontSize: '12px', marginTop: '4px' }}>{errors.email}</p>}
+            </div>
+          )}
+
+          {/* 주소 (근로자만) */}
+          {formData.role === 'employee' && (
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333', fontSize: '14px' }}>
+                주소 <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                type="text"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="서울시 강남구 테헤란로 123"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: errors.address ? '2px solid #f44336' : '2px solid #e0e0e0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'border 0.2s'
+                }}
+              />
+              {errors.address && <p style={{ color: '#f44336', fontSize: '12px', marginTop: '4px' }}>{errors.address}</p>}
+            </div>
+          )}
 
           {/* 사업자등록번호 (사업주만) */}
           {formData.role === 'owner' && (

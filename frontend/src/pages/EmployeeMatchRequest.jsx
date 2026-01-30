@@ -14,16 +14,6 @@ function EmployeeMatchRequest() {
   const [businessNumber, setBusinessNumber] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
   const [company, setCompany] = useState(null);
-  const [showMatchForm, setShowMatchForm] = useState(false);
-
-  const [matchData, setMatchData] = useState({
-    startDate: new Date().toISOString().split('T')[0],
-    position: '',
-    employmentType: 'regular',
-    taxType: '4대보험',
-    monthlySalary: '',
-    hourlyRate: ''
-  });
 
   const formatBusinessNumber = (value) => {
     const cleaned = value.replace(/\D/g, '');
@@ -60,15 +50,13 @@ function EmployeeMatchRequest() {
 
       if (response.data.success) {
         setCompany(response.data.company);
-        setShowMatchForm(true);
         setToast({
           show: true,
-          message: '회사를 찾았습니다!',
+          message: '회사를 찾았습니다! 매칭을 요청하시겠습니까?',
           type: 'success'
         });
       } else {
         setCompany(null);
-        setShowMatchForm(false);
         setToast({
           show: true,
           message: response.data.message || '회사를 찾을 수 없습니다.',
@@ -78,7 +66,6 @@ function EmployeeMatchRequest() {
     } catch (error) {
       console.error('회사 검색 오류:', error);
       setCompany(null);
-      setShowMatchForm(false);
       setToast({
         show: true,
         message: error.response?.data?.message || '회사 검색 중 오류가 발생했습니다.',
@@ -90,28 +77,10 @@ function EmployeeMatchRequest() {
   };
 
   const handleMatchRequest = async () => {
-    if (!matchData.startDate) {
+    if (!company) {
       setToast({
         show: true,
-        message: '입사일을 입력해주세요.',
-        type: 'error'
-      });
-      return;
-    }
-
-    if (matchData.employmentType === 'regular' && !matchData.monthlySalary) {
-      setToast({
-        show: true,
-        message: '월급을 입력해주세요.',
-        type: 'error'
-      });
-      return;
-    }
-
-    if (matchData.employmentType === 'parttime' && !matchData.hourlyRate) {
-      setToast({
-        show: true,
-        message: '시급을 입력해주세요.',
+        message: '먼저 회사를 검색해주세요.',
         type: 'error'
       });
       return;
@@ -122,13 +91,7 @@ function EmployeeMatchRequest() {
     try {
       const requestData = {
         userId: user.id,
-        companyId: company.id,
-        startDate: matchData.startDate,
-        position: matchData.position,
-        employmentType: matchData.employmentType,
-        taxType: matchData.taxType,
-        monthlySalary: matchData.monthlySalary ? parseFloat(matchData.monthlySalary) : 0,
-        hourlyRate: matchData.hourlyRate ? parseFloat(matchData.hourlyRate) : 0
+        companyId: company.id
       };
 
       const response = await apiClient.post('/v2/auth/employee/match-request', requestData);
@@ -300,150 +263,6 @@ function EmployeeMatchRequest() {
                 </div>
               )}
             </div>
-          </div>
-        )}
-
-        {/* 매칭 요청 폼 */}
-        {showMatchForm && company && (
-          <div style={{ background: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#333', marginBottom: '20px' }}>
-              📝 근무 정보 입력
-            </h2>
-
-            {/* 입사일 */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333', fontSize: '14px' }}>
-                입사일 <span style={{ color: 'red' }}>*</span>
-              </label>
-              <input
-                type="date"
-                value={matchData.startDate}
-                onChange={(e) => setMatchData(prev => ({ ...prev, startDate: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '2px solid #e0e0e0',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  outline: 'none'
-                }}
-              />
-            </div>
-
-            {/* 직급/직책 */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333', fontSize: '14px' }}>
-                직급/직책
-              </label>
-              <input
-                type="text"
-                value={matchData.position}
-                onChange={(e) => setMatchData(prev => ({ ...prev, position: e.target.value }))}
-                placeholder="예: 주방보조, 서빙"
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '2px solid #e0e0e0',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  outline: 'none'
-                }}
-              />
-            </div>
-
-            {/* 고용형태 */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333', fontSize: '14px' }}>
-                고용형태 <span style={{ color: 'red' }}>*</span>
-              </label>
-              <select
-                value={matchData.employmentType}
-                onChange={(e) => setMatchData(prev => ({ ...prev, employmentType: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '2px solid #e0e0e0',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="regular">정규직 (월급제)</option>
-                <option value="parttime">시간제 (시급제)</option>
-                <option value="contract">계약직</option>
-                <option value="freelancer">프리랜서</option>
-              </select>
-            </div>
-
-            {/* 세금 유형 */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333', fontSize: '14px' }}>
-                세금 유형 <span style={{ color: 'red' }}>*</span>
-              </label>
-              <select
-                value={matchData.taxType}
-                onChange={(e) => setMatchData(prev => ({ ...prev, taxType: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '2px solid #e0e0e0',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="4대보험">4대보험</option>
-                <option value="3.3%">3.3% 원천징수</option>
-              </select>
-            </div>
-
-            {/* 월급 (정규직인 경우) */}
-            {matchData.employmentType === 'regular' && (
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333', fontSize: '14px' }}>
-                  월급 <span style={{ color: 'red' }}>*</span>
-                </label>
-                <input
-                  type="number"
-                  value={matchData.monthlySalary}
-                  onChange={(e) => setMatchData(prev => ({ ...prev, monthlySalary: e.target.value }))}
-                  placeholder="예: 2500000"
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '2px solid #e0e0e0',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-            )}
-
-            {/* 시급 (시간제인 경우) */}
-            {matchData.employmentType === 'parttime' && (
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333', fontSize: '14px' }}>
-                  시급 <span style={{ color: 'red' }}>*</span>
-                </label>
-                <input
-                  type="number"
-                  value={matchData.hourlyRate}
-                  onChange={(e) => setMatchData(prev => ({ ...prev, hourlyRate: e.target.value }))}
-                  placeholder="예: 10000"
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '2px solid #e0e0e0',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-            )}
 
             {/* 매칭 요청 버튼 */}
             <button
@@ -460,11 +279,15 @@ function EmployeeMatchRequest() {
                 fontWeight: 'bold',
                 cursor: loading ? 'not-allowed' : 'pointer',
                 transition: 'all 0.3s',
-                marginTop: '10px'
+                marginTop: '20px'
               }}
             >
-              {loading ? '요청 중...' : '매칭 요청하기'}
+              {loading ? '요청 중...' : '🤝 매칭 요청하기'}
             </button>
+
+            <p style={{ color: '#666', fontSize: '14px', marginTop: '16px', textAlign: 'center' }}>
+              💼 근무 정보는 사업주가 승인할 때 입력합니다
+            </p>
           </div>
         )}
 

@@ -16,7 +16,10 @@ router.post('/signup', async (req, res) => {
     name,
     phone,
     role,  // 'owner' 또는 'employee'
-    business_number  // 사업주는 필수, 근로자는 선택
+    business_number,  // 사업주는 필수, 근로자는 선택
+    ssn,  // 근로자 주민등록번호
+    email,  // 근로자 이메일
+    address  // 근로자 주소
   } = req.body;
 
   try {
@@ -41,6 +44,24 @@ router.post('/signup', async (req, res) => {
         success: false, 
         message: '사업자등록번호를 입력해주세요.' 
       });
+    }
+
+    // 근로자인 경우 주민등록번호, 이메일, 주소 필수
+    if (role === 'employee') {
+      if (!ssn || !email || !address) {
+        return res.status(400).json({ 
+          success: false, 
+          message: '근로자는 주민등록번호, 이메일, 주소가 필수입니다.' 
+        });
+      }
+
+      // 주민등록번호 형식 검증 (13자리 숫자)
+      if (!/^\d{13}$/.test(ssn)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: '주민등록번호는 13자리 숫자여야 합니다.' 
+        });
+      }
     }
 
     // 사업자등록번호 형식 검증 (10자리 숫자)
@@ -80,15 +101,31 @@ router.post('/signup', async (req, res) => {
     // 비밀번호 해시
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 사용자 생성
+    // 사용자 생성 (근로자는 ssn, email, address 포함)
     const result = await run(
       `INSERT INTO users (
-        username, password, name, phone, role, business_number, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [username, hashedPassword, name, phone, role, business_number || null]
+        username, password, name, phone, role, business_number, ssn, email, address, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [
+        username, 
+        hashedPassword, 
+        name, 
+        phone, 
+        role, 
+        business_number || null,
+        ssn || null,
+        email || null,
+        address || null
+      ]
     );
 
     const userId = result.id || result.lastID; // PostgreSQL은 id, SQLite는 lastID
+
+    console.log(`✅ 근로자 회원가입 완료: ${username}`, {
+      ssn: ssn ? '✓' : '✗',
+      email: email ? '✓' : '✗',
+      address: address ? '✓' : '✗'
+    });
 
     // 사업주인 경우: companies 테이블에도 등록 (기본 회사 정보)
     if (role === 'owner' && business_number) {
@@ -318,51 +355,50 @@ router.get('/companies/search', async (req, res) => {
 
 
 // ============================================
-// 4. 근로자 -> 회사 매칭 요청
+// 4. 근로자 -> 회사 매칭 요청 (근무정보는 사업주가 승인 시 입력)
 // ============================================
 router.post('/employee/match-request', async (req, res) => {
   const { 
-    userId,           // 근로자 ID
-    companyId,        // 회사 ID
-    startDate,        // 입사일
-    position,         // 직급
-    employmentType,   // 고용형태
-    taxType,          // 4대보험, 3.3%
-    monthlySalary,    // 월급
-    hourlyRate        // 시급
+    userId,     // 근로자 ID
+    companyId   // 회사 ID
   } = req.body;
 
   try {
     // 입력 검증
-    if (!userId || !companyId || !startDate) {
+    if (!userId || !companyId) {
       return res.status(400).json({ 
         success: false, 
         message: '필수 항목을 모두 입력해주세요.' 
       });
     }
 
-    // 이미 같은 회사에 재직중인지 확인
+    // 이미 같은 회사에 매칭 중이거나 재직중인지 확인
     const existing = await get(
-      `SELECT id FROM company_employee_relations 
-       WHERE company_id = ? AND user_id = ? AND status = 'active' AND end_date IS NULL`,
+      `SELECT id, status FROM company_employee_relations 
+       WHERE company_id = ? AND user_id = ? AND status IN ('pending', 'active')`,
       [companyId, userId]
     );
 
     if (existing) {
-      return res.status(400).json({ 
-        success: false, 
-        message: '이미 해당 회사에 재직중입니다.' 
-      });
+      if (existing.status === 'pending') {
+        return res.status(400).json({ 
+          success: false, 
+          message: '이미 매칭 요청이 대기 중입니다.' 
+        });
+      } else {
+        return res.status(400).json({ 
+          success: false, 
+          message: '이미 해당 회사에 재직중입니다.' 
+        });
+      }
     }
 
-    // 매칭 요청 생성 (status: 'pending' 으로 시작, 사업주 승인 필요)
+    // 매칭 요청 생성 (status: 'pending', 근무정보는 사업주가 승인 시 입력)
     const result = await run(
       `INSERT INTO company_employee_relations (
-        company_id, user_id, start_date, position, employment_type, status,
-        tax_type, monthly_salary, hourly_rate, created_at
-      ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [companyId, userId, startDate, position || '', employmentType || 'regular', 
-       taxType || '4대보험', monthlySalary || 0, hourlyRate || 0]
+        company_id, user_id, status, created_at
+      ) VALUES (?, ?, 'pending', CURRENT_TIMESTAMP)`,
+      [companyId, userId]
     );
 
     console.log(`✅ 매칭 요청 생성: user ${userId} -> company ${companyId}`);
@@ -370,7 +406,7 @@ router.post('/employee/match-request', async (req, res) => {
     res.json({
       success: true,
       message: '매칭 요청이 완료되었습니다. 사업주의 승인을 기다려주세요.',
-      relationId: result.lastID
+      relationId: result.id || result.lastID
     });
 
   } catch (error) {

@@ -1091,23 +1091,35 @@ const OwnerDashboard = () => {
       setWorkplaceSearchLoading(true);
       const result = await searchAddress();
       const address = result.address || '';
-      setWorkplaceLocationForm((prev) => ({
-        ...prev,
-        address
-      }));
-      if (address) {
-        try {
-          const coords = await getCoordinatesFromAddress(address);
-          setWorkplaceLocationForm((prev) => ({
-            ...prev,
-            latitude: coords.latitude?.toFixed ? coords.latitude.toFixed(6) : coords.latitude,
-            longitude: coords.longitude?.toFixed ? coords.longitude.toFixed(6) : coords.longitude
-          }));
-          if (coords.success === false && coords.message) {
-            setMessage({ type: 'error', text: coords.message });
+      
+      // 주소 검색에서 이미 좌표를 가져온 경우 사용
+      if (result.latitude && result.longitude) {
+        setWorkplaceLocationForm((prev) => ({
+          ...prev,
+          address,
+          latitude: result.latitude.toFixed(6),
+          longitude: result.longitude.toFixed(6)
+        }));
+      } else {
+        // 좌표가 없는 경우에만 주소로 재검색
+        setWorkplaceLocationForm((prev) => ({
+          ...prev,
+          address
+        }));
+        if (address) {
+          try {
+            const coords = await getCoordinatesFromAddress(address);
+            setWorkplaceLocationForm((prev) => ({
+              ...prev,
+              latitude: coords.latitude?.toFixed ? coords.latitude.toFixed(6) : coords.latitude,
+              longitude: coords.longitude?.toFixed ? coords.longitude.toFixed(6) : coords.longitude
+            }));
+            if (coords.success === false && coords.message) {
+              setMessage({ type: 'error', text: coords.message });
+            }
+          } catch (error) {
+            setMessage({ type: 'error', text: '주소 좌표 변환에 실패했습니다. 수동으로 입력해주세요.' });
           }
-        } catch (error) {
-          setMessage({ type: 'error', text: '주소 좌표 변환에 실패했습니다. 수동으로 입력해주세요.' });
         }
       }
     } catch (error) {
@@ -2358,17 +2370,29 @@ const OwnerDashboard = () => {
                             setWorkplaceSearchLoading(true);
                             const result = await searchAddress();
                             const address = result.address || '';
-                            setWorkplaceForm(prev => ({ ...prev, address }));
-                            if (address) {
-                              try {
-                                const coords = await getCoordinatesFromAddress(address);
-                                setWorkplaceForm(prev => ({
-                                  ...prev,
-                                  latitude: coords.latitude?.toFixed ? coords.latitude.toFixed(6) : coords.latitude,
-                                  longitude: coords.longitude?.toFixed ? coords.longitude.toFixed(6) : coords.longitude
-                                }));
-                              } catch (error) {
-                                setToast({ show: true, message: '주소 좌표 변환에 실패했습니다. 수동으로 입력해주세요.', type: 'error' });
+                            
+                            // 주소 검색에서 이미 좌표를 가져온 경우 사용
+                            if (result.latitude && result.longitude) {
+                              setWorkplaceForm(prev => ({
+                                ...prev,
+                                address,
+                                latitude: result.latitude.toFixed(6),
+                                longitude: result.longitude.toFixed(6)
+                              }));
+                            } else {
+                              // 좌표가 없는 경우에만 주소로 재검색
+                              setWorkplaceForm(prev => ({ ...prev, address }));
+                              if (address) {
+                                try {
+                                  const coords = await getCoordinatesFromAddress(address);
+                                  setWorkplaceForm(prev => ({
+                                    ...prev,
+                                    latitude: coords.latitude?.toFixed ? coords.latitude.toFixed(6) : coords.latitude,
+                                    longitude: coords.longitude?.toFixed ? coords.longitude.toFixed(6) : coords.longitude
+                                  }));
+                                } catch (error) {
+                                  setToast({ show: true, message: '주소 좌표 변환에 실패했습니다. 수동으로 입력해주세요.', type: 'error' });
+                                }
                               }
                             }
                           } catch (error) {
@@ -2391,17 +2415,29 @@ const OwnerDashboard = () => {
                             setWorkplaceSearchLoading(true);
                             const result = await searchAddress();
                             const address = result.address || '';
-                            setWorkplaceForm(prev => ({ ...prev, address }));
-                            if (address) {
-                              try {
-                                const coords = await getCoordinatesFromAddress(address);
-                                setWorkplaceForm(prev => ({
-                                  ...prev,
-                                  latitude: coords.latitude?.toFixed ? coords.latitude.toFixed(6) : coords.latitude,
-                                  longitude: coords.longitude?.toFixed ? coords.longitude.toFixed(6) : coords.longitude
-                                }));
-                              } catch (error) {
-                                setToast({ show: true, message: '주소 좌표 변환에 실패했습니다. 수동으로 입력해주세요.', type: 'error' });
+                            
+                            // 주소 검색에서 이미 좌표를 가져온 경우 사용
+                            if (result.latitude && result.longitude) {
+                              setWorkplaceForm(prev => ({
+                                ...prev,
+                                address,
+                                latitude: result.latitude.toFixed(6),
+                                longitude: result.longitude.toFixed(6)
+                              }));
+                            } else {
+                              // 좌표가 없는 경우에만 주소로 재검색
+                              setWorkplaceForm(prev => ({ ...prev, address }));
+                              if (address) {
+                                try {
+                                  const coords = await getCoordinatesFromAddress(address);
+                                  setWorkplaceForm(prev => ({
+                                    ...prev,
+                                    latitude: coords.latitude?.toFixed ? coords.latitude.toFixed(6) : coords.latitude,
+                                    longitude: coords.longitude?.toFixed ? coords.longitude.toFixed(6) : coords.longitude
+                                  }));
+                                } catch (error) {
+                                  setToast({ show: true, message: '주소 좌표 변환에 실패했습니다. 수동으로 입력해주세요.', type: 'error' });
+                                }
                               }
                             }
                           } catch (error) {

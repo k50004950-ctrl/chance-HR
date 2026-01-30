@@ -119,25 +119,38 @@ const Signup = () => {
   const handleSearchAddress = async () => {
     try {
       const result = await searchAddress();
-      setFormData((prev) => ({
-        ...prev,
-        address: result.address
-      }));
-
-      setMessage({ type: 'info', text: '좌표를 검색하는 중...' });
-      const coords = await getCoordinatesFromAddress(result.address);
-
-      setFormData((prev) => ({
-        ...prev,
-        address: result.address,
-        latitude: coords.latitude,
-        longitude: coords.longitude
-      }));
-
-      if (coords.success) {
+      
+      // 주소 검색에서 이미 좌표를 가져온 경우 사용
+      if (result.latitude && result.longitude) {
+        setFormData((prev) => ({
+          ...prev,
+          address: result.address,
+          latitude: result.latitude,
+          longitude: result.longitude
+        }));
         setMessage({ type: 'success', text: '주소와 좌표가 자동으로 입력되었습니다!' });
       } else {
-        setMessage({ type: 'info', text: coords.message });
+        // 좌표가 없는 경우에만 주소로 재검색
+        setFormData((prev) => ({
+          ...prev,
+          address: result.address
+        }));
+
+        setMessage({ type: 'info', text: '좌표를 검색하는 중...' });
+        const coords = await getCoordinatesFromAddress(result.address);
+
+        setFormData((prev) => ({
+          ...prev,
+          address: result.address,
+          latitude: coords.latitude,
+          longitude: coords.longitude
+        }));
+
+        if (coords.success) {
+          setMessage({ type: 'success', text: '주소와 좌표가 자동으로 입력되었습니다!' });
+        } else {
+          setMessage({ type: 'info', text: coords.message });
+        }
       }
     } catch (error) {
       setMessage({ type: 'error', text: error.message || '주소 검색에 실패했습니다.' });

@@ -69,14 +69,40 @@ export const searchAddress = async () => {
     }
 
     new window.daum.Postcode({
-      oncomplete: function(data) {
+      oncomplete: async function(data) {
         // 도로명 주소 또는 지번 주소 사용
         const fullAddress = data.roadAddress || data.jibunAddress;
+        
+        // Kakao Maps API로 정확한 좌표 가져오기
+        let coordinates = null;
+        try {
+          await ensureKakaoMapsLoaded();
+          if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
+            const geocoder = new window.kakao.maps.services.Geocoder();
+            coordinates = await new Promise((resolveCoords) => {
+              geocoder.addressSearch(fullAddress, (result, status) => {
+                if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
+                  resolveCoords({
+                    latitude: parseFloat(result[0].y),
+                    longitude: parseFloat(result[0].x)
+                  });
+                } else {
+                  resolveCoords(null);
+                }
+              });
+            });
+          }
+        } catch (error) {
+          console.error('좌표 변환 오류:', error);
+        }
+        
         resolve({
           address: fullAddress,
           roadAddress: data.roadAddress,
           jibunAddress: data.jibunAddress,
-          zonecode: data.zonecode
+          zonecode: data.zonecode,
+          latitude: coordinates?.latitude,
+          longitude: coordinates?.longitude
         });
       },
       onclose: function(state) {

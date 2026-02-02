@@ -1366,9 +1366,6 @@ const OwnerDashboard = () => {
         });
       }
       const response = await salaryAPI.calculateWorkplace(selectedWorkplace, { startDate, endDate });
-      console.log('🔍 [급여 계산 API 응답]', response.data);
-      console.log('📊 직원 수:', response.data.employees?.length);
-      console.log('👥 직원 목록:', response.data.employees?.map(e => ({ id: e.employeeId, name: e.employeeName })));
       setSalaryData(response.data);
     } catch (error) {
       console.error('급여 계산 오류:', error);

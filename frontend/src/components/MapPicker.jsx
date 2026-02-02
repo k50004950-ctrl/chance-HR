@@ -17,13 +17,11 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
   useEffect(() => {
     const loadKakaoMap = async () => {
       try {
-        console.log('🗺️ Kakao Maps API 로드 시작...');
         await ensureKakaoMapsLoaded();
-        console.log('✅ Kakao Maps API 로드 완료');
         setIsLoading(false);
       } catch (err) {
-        console.error('❌ Kakao Maps API 로드 실패:', err);
-        setError(err.message || '지도 API 로드에 실패했습니다.');
+        console.error('지도 API 로드 실패:', err);
+        setError('지도를 불러올 수 없습니다. 위도/경도를 직접 입력해주세요.');
         setIsLoading(false);
       }
     };
@@ -34,16 +32,13 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
   // 지도 초기화 및 마커 설정
   useEffect(() => {
     if (isLoading || !mapRef.current || !window.kakao || !window.kakao.maps) {
-      console.log('⏳ 지도 초기화 대기 중...', { isLoading, hasRef: !!mapRef.current, hasKakao: !!(window.kakao && window.kakao.maps) });
       return;
     }
     if (!latitude || !longitude) {
-      console.log('⏳ 좌표 대기 중...', { latitude, longitude });
       return;
     }
 
     try {
-      console.log('🗺️ 지도 초기화 시작...', { latitude, longitude });
       const kakao = window.kakao;
       const lat = parseFloat(latitude);
       const lng = parseFloat(longitude);
@@ -54,7 +49,6 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
         level: 3 // 확대 레벨
       };
       const newMap = new kakao.maps.Map(mapRef.current, mapOption);
-      console.log('✅ 지도 생성 완료');
 
       // 마커 생성 (드래그 가능)
       const newMarker = new kakao.maps.Marker({
@@ -62,12 +56,10 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
         draggable: true // 마커를 드래그 가능하게 설정
       });
       newMarker.setMap(newMap);
-      console.log('✅ 마커 생성 완료');
 
       // 마커 드래그 종료 이벤트
       kakao.maps.event.addListener(newMarker, 'dragend', function() {
         const position = newMarker.getPosition();
-        console.log('📍 마커 드래그 완료:', position.getLat(), position.getLng());
         onLocationChange({
           latitude: position.getLat(),
           longitude: position.getLng()
@@ -77,7 +69,6 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
       // 지도 클릭 이벤트
       kakao.maps.event.addListener(newMap, 'click', function(mouseEvent) {
         const latlng = mouseEvent.latLng;
-        console.log('📍 지도 클릭:', latlng.getLat(), latlng.getLng());
         newMarker.setPosition(latlng);
         onLocationChange({
           latitude: latlng.getLat(),
@@ -87,9 +78,9 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
 
       setMap(newMap);
       setMarker(newMarker);
-      console.log('✅ 지도 초기화 완료');
     } catch (error) {
-      console.error('❌ 지도 초기화 오류:', error);
+      console.error('지도 초기화 오류:', error);
+      setError('지도를 초기화할 수 없습니다.');
     }
   }, [isLoading, latitude, longitude]);
 

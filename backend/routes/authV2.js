@@ -72,9 +72,9 @@ router.post('/signup', async (req, res) => {
       });
     }
 
-    // 중복 체크 (삭제된 사용자 제외)
+    // 중복 체크
     const existingUser = await get(
-      'SELECT id FROM users WHERE username = ? AND (is_deleted IS NULL OR is_deleted = false)',
+      'SELECT id FROM users WHERE username = ?',
       [username]
     );
 
@@ -85,9 +85,9 @@ router.post('/signup', async (req, res) => {
       });
     }
 
-    // 전화번호 중복 체크 (삭제된 사용자 제외)
+    // 전화번호 중복 체크
     const existingPhone = await get(
-      'SELECT id FROM users WHERE phone = ? AND (is_deleted IS NULL OR is_deleted = false)',
+      'SELECT id FROM users WHERE phone = ?',
       [phone]
     );
 

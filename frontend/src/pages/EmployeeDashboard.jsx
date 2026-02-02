@@ -125,11 +125,15 @@ const EmployeeDashboard = () => {
         location_consent_date: new Date().toISOString()
       });
       
+      // 동의 완료 후 프로필 상태 업데이트 (재조회 대신 직접 업데이트)
+      setEmployeeProfile(prev => ({
+        ...prev,
+        privacy_consent: true,
+        location_consent: true
+      }));
+      
       setShowConsentModal(false);
       setMessage({ type: 'success', text: '동의가 완료되었습니다.' });
-      
-      // 동의 완료 후 프로필 다시 로드
-      await checkConsent();
     } catch (error) {
       console.error('동의 처리 오류:', error);
       // V2 근로자는 아직 employees 테이블에 없을 수 있음

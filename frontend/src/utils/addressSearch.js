@@ -25,34 +25,76 @@ const ensureDaumPostcodeLoaded = () => {
 };
 
 export const ensureKakaoMapsLoaded = () => {
+  // 이미 로드되어 있으면 즉시 반환
   if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
+    console.log('✅ Kakao Maps 이미 로드됨');
     return Promise.resolve();
+  }
+
+  // 이전 Promise가 있고 성공했다면 재사용
+  if (kakaoScriptPromise) {
+    console.log('🔄 Kakao Maps 로딩 중...');
+    return kakaoScriptPromise.catch(() => {
+      // 이전에 실패했다면 재시도
+      console.log('⚠️ 이전 로딩 실패, 재시도 중...');
+      kakaoScriptPromise = null;
+      return ensureKakaoMapsLoaded();
+    });
   }
 
   const appKey = import.meta.env.VITE_KAKAO_MAPS_KEY || 'f08c77bfb5eb0bcf42a30ed4982c94f2';
   if (!appKey) {
+    console.error('❌ Kakao Maps API 키 없음');
     return Promise.reject(new Error('Kakao Maps API 키가 설정되지 않았습니다.'));
   }
 
-  if (kakaoScriptPromise) {
-    return kakaoScriptPromise;
-  }
+  console.log('🗺️ Kakao Maps 스크립트 로딩 시작...');
 
   kakaoScriptPromise = new Promise((resolve, reject) => {
+    // 기존 스크립트가 있으면 제거
+    const existingScript = document.querySelector('script[src*="dapi.kakao.com"]');
+    if (existingScript) {
+      existingScript.remove();
+    }
+
     const script = document.createElement('script');
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&libraries=services`;
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&libraries=services&autoload=false`;
     script.async = true;
+    
     script.onload = () => {
-      if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
-        resolve();
-      } else if (window.kakao && window.kakao.maps) {
-        window.kakao.maps.load(resolve);
+      console.log('✅ Kakao Maps 스크립트 로드 완료');
+      
+      if (window.kakao && window.kakao.maps) {
+        // autoload=false로 수동 초기화
+        window.kakao.maps.load(() => {
+          if (window.kakao.maps.services) {
+            console.log('✅ Kakao Maps 서비스 로드 완료');
+            resolve();
+          } else {
+            console.error('❌ Kakao Maps 서비스 로드 실패');
+            reject(new Error('Kakao 지도 서비스를 로드할 수 없습니다.'));
+          }
+        });
       } else {
+        console.error('❌ Kakao Maps 객체 없음');
         reject(new Error('Kakao 지도 서비스를 로드할 수 없습니다.'));
       }
     };
-    script.onerror = () => reject(new Error('Kakao 지도 스크립트를 로드할 수 없습니다.'));
+    
+    script.onerror = (error) => {
+      console.error('❌ Kakao Maps 스크립트 로드 오류:', error);
+      reject(new Error('Kakao 지도 스크립트를 로드할 수 없습니다. 네트워크를 확인해주세요.'));
+    };
+    
     document.head.appendChild(script);
+    
+    // 타임아웃 설정 (10초)
+    setTimeout(() => {
+      if (!window.kakao || !window.kakao.maps) {
+        console.error('⏱️ Kakao Maps 로딩 타임아웃');
+        reject(new Error('Kakao 지도 로딩 시간이 초과되었습니다.'));
+      }
+    }, 10000);
   });
 
   return kakaoScriptPromise;

@@ -17,17 +17,36 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
   useEffect(() => {
     const loadKakaoMap = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
         await ensureKakaoMapsLoaded();
         setIsLoading(false);
       } catch (err) {
-        console.error('지도 API 로드 실패:', err);
-        setError('지도를 불러올 수 없습니다. 위도/경도를 직접 입력해주세요.');
+        console.error('❌ 지도 API 로드 실패:', err);
+        setError(err.message || '지도를 불러올 수 없습니다.');
         setIsLoading(false);
       }
     };
 
     loadKakaoMap();
   }, []);
+
+  // 재시도 함수
+  const handleRetry = () => {
+    setIsLoading(true);
+    setError(null);
+    
+    setTimeout(async () => {
+      try {
+        await ensureKakaoMapsLoaded();
+        setIsLoading(false);
+      } catch (err) {
+        console.error('❌ 지도 API 로드 재시도 실패:', err);
+        setError(err.message || '지도를 불러올 수 없습니다.');
+        setIsLoading(false);
+      }
+    }, 100);
+  };
 
   // 지도 초기화 및 마커 설정
   useEffect(() => {
@@ -108,10 +127,35 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
         borderRadius: '8px',
         border: '2px solid #ffc107'
       }}>
-        <div style={{ textAlign: 'center', padding: '20px' }}>
+        <div style={{ textAlign: 'center', padding: '20px', maxWidth: '500px' }}>
           <div style={{ marginBottom: '10px', fontSize: '36px' }}>⚠️</div>
-          <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>{error}</div>
-          <div style={{ fontSize: '14px', color: '#666' }}>위도/경도를 직접 입력하거나 "현재 위치로 설정" 버튼을 사용하세요.</div>
+          <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '16px' }}>
+            지도를 불러올 수 없습니다
+          </div>
+          <div style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
+            {error}
+          </div>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '12px' }}>
+            <button
+              onClick={handleRetry}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#4285f4',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              🔄 다시 시도
+            </button>
+          </div>
+          <div style={{ fontSize: '13px', color: '#666', padding: '10px', backgroundColor: '#fff', borderRadius: '6px' }}>
+            💡 <strong>대안:</strong><br/>
+            위도/경도를 직접 입력하거나 "현재 위치로 설정" 버튼을 사용하세요.
+          </div>
         </div>
       </div>
     );

@@ -3,13 +3,77 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>출퇴근 관리 시스템</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <title>찬스 출퇴근 관리</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="근로자 출퇴근 및 급여 관리 시스템" />
+    <meta name="theme-color" content="#667eea" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="찬스" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- iOS Splash Screens & Icons -->
+    <link rel="apple-touch-icon" href="/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icon-192x192.png" />
+    
     <!-- Daum 우편번호 서비스 -->
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Service Worker 등록 -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('✅ Service Worker 등록 성공:', registration.scope);
+              
+              // 업데이트 확인
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('🔄 새 버전 사용 가능! 페이지를 새로고침하세요.');
+                    // 사용자에게 새로고침 안내 (선택사항)
+                    if (confirm('새 버전이 있습니다. 지금 업데이트하시겠습니까?')) {
+                      window.location.reload();
+                    }
+                  }
+                });
+              });
+            })
+            .catch((error) => {
+              console.error('❌ Service Worker 등록 실패:', error);
+            });
+        });
+      }
+      
+      // PWA 설치 프롬프트
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('📱 PWA 설치 가능!');
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // 설치 버튼 표시 (선택사항)
+        // showInstallButton();
+      });
+      
+      // 설치 완료 이벤트
+      window.addEventListener('appinstalled', () => {
+        console.log('✅ PWA 설치 완료!');
+        deferredPrompt = null;
+      });
+    </script>
   </body>
 </html>

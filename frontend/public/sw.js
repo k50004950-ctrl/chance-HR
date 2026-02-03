@@ -1,5 +1,5 @@
 // Service Worker for PWA
-const CACHE_NAME = 'chance-attendance-v1';
+const CACHE_NAME = 'chance-attendance-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -51,6 +51,27 @@ self.addEventListener('fetch', (event) => {
             JSON.stringify({ error: '오프라인 상태입니다.' }),
             { headers: { 'Content-Type': 'application/json' } }
           );
+        })
+    );
+    return;
+  }
+
+  // HTML 파일은 항상 네트워크 우선 (최신 버전 보장)
+  if (event.request.url.includes('.html') || event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          return response;
+        })
+        .catch(() => {
+          // 오프라인일 때만 캐시 사용
+          return caches.match(event.request)
+            .then((response) => response || caches.match('/index.html'));
         })
     );
     return;

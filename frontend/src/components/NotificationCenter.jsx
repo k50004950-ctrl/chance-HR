@@ -2,7 +2,16 @@ import React, { useState, useEffect } from 'react';
 
 const NotificationCenter = ({ notifications = [], onClose, onActionClick }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const urgentCount = notifications.filter(n => n.urgent).length;
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <div style={{ position: 'relative' }}>
@@ -57,9 +66,10 @@ const NotificationCenter = ({ notifications = [], onClose, onActionClick }) => {
         )}
       </button>
 
-      {/* 알림 드롭다운 */}
+      {/* 알림 드롭다운/모달 */}
       {isOpen && (
         <>
+          {/* 배경 오버레이 */}
           <div
             onClick={() => setIsOpen(false)}
             style={{
@@ -68,17 +78,22 @@ const NotificationCenter = ({ notifications = [], onClose, onActionClick }) => {
               left: 0,
               right: 0,
               bottom: 0,
+              backgroundColor: isMobile ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
               zIndex: 999
             }}
           />
+          {/* 알림 패널 */}
           <div style={{
-            position: 'absolute',
-            top: '60px',
-            right: 0,
-            width: 'min(380px, calc(100vw - 32px))',
-            maxHeight: 'min(600px, calc(100vh - 140px))',
+            position: isMobile ? 'fixed' : 'absolute',
+            top: isMobile ? '50%' : '60px',
+            left: isMobile ? '50%' : 'auto',
+            right: isMobile ? 'auto' : 0,
+            transform: isMobile ? 'translate(-50%, -50%)' : 'none',
+            width: isMobile ? 'calc(100vw - 32px)' : 'min(360px, calc(100vw - 32px))',
+            maxWidth: isMobile ? '500px' : '360px',
+            maxHeight: isMobile ? 'calc(90vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))' : 'min(500px, calc(100vh - 140px))',
             background: 'white',
-            borderRadius: '16px',
+            borderRadius: isMobile ? '20px' : '16px',
             boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
             zIndex: 1000,
             overflow: 'hidden',
@@ -120,7 +135,11 @@ const NotificationCenter = ({ notifications = [], onClose, onActionClick }) => {
             </div>
 
             {/* 알림 리스트 */}
-            <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+            <div style={{ 
+              maxHeight: isMobile ? 'calc(80vh - 120px)' : '400px', 
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch'
+            }}>
               {notifications.length === 0 ? (
                 <div style={{
                   padding: '60px 20px',

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Footer = ({ simple = false }) => {
   if (simple) {
@@ -69,9 +70,8 @@ const Footer = ({ simple = false }) => {
           flexWrap: 'wrap', 
           gap: '12px' 
         }}>
-          <a 
-            href="/docs/PRIVACY_POLICY.md" 
-            target="_blank"
+          <Link 
+            to="/privacy-policy"
             style={{ 
               color: '#667eea', 
               textDecoration: 'none',
@@ -81,11 +81,10 @@ const Footer = ({ simple = false }) => {
             onMouseOut={(e) => e.target.style.textDecoration = 'none'}
           >
             개인정보처리방침
-          </a>
+          </Link>
           <span style={{ color: '#ddd' }}>|</span>
-          <a 
-            href="/docs/NEW_SYSTEM_GUIDE.md" 
-            target="_blank"
+          <Link 
+            to="/system-guide"
             style={{ 
               color: '#667eea', 
               textDecoration: 'none',
@@ -95,7 +94,7 @@ const Footer = ({ simple = false }) => {
             onMouseOut={(e) => e.target.style.textDecoration = 'none'}
           >
             이용가이드
-          </a>
+          </Link>
         </div>
 
         {/* 저작권 */}

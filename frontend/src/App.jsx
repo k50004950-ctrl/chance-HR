@@ -15,6 +15,8 @@ import EmployeeDashboard from './pages/EmployeeDashboard';
 import UsageGuide from './pages/UsageGuide';
 import QrAttendance from './pages/QrAttendance';
 import NotificationsPage from './pages/NotificationsPage';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import SystemGuide from './pages/SystemGuide';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -52,6 +54,8 @@ const AppRouter = () => {
       <Route path="/signup-v2" element={user ? <Navigate to="/" /> : <SignupV2 />} />
       <Route path="/invite/:token" element={<InviteSignup />} />
       <Route path="/guide" element={<UsageGuide />} />
+      <Route path="/system-guide" element={<SystemGuide />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/qr" element={<QrAttendance />} />
       <Route
         path="/notifications"

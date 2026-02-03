@@ -91,6 +91,15 @@ const EmployeeDashboard = () => {
 
   const checkConsent = async () => {
     try {
+      // 로컬 스토리지에서 동의 완료 여부 확인
+      const consentKey = `consent_completed_${user.id}`;
+      const consentCompleted = localStorage.getItem(consentKey);
+      
+      // 이미 동의 완료한 경우 서버 확인 건너뛰기
+      if (consentCompleted === 'true') {
+        return;
+      }
+      
       const response = await employeeAPI.getById(user.id);
       const employee = response.data;
       setEmployeeProfile(employee);
@@ -99,8 +108,12 @@ const EmployeeDashboard = () => {
         : [];
       setEmployeeWorkDays(workDays);
       
-      // 동의하지 않은 경우 모달 표시
-      if (!employee.privacy_consent || !employee.location_consent) {
+      // 서버에서 동의 확인됨 → 로컬 스토리지에 저장
+      if (employee.privacy_consent && employee.location_consent) {
+        localStorage.setItem(consentKey, 'true');
+        setShowConsentModal(false);
+      } else {
+        // 동의하지 않은 경우 모달 표시
         setShowConsentModal(true);
       }
     } catch (error) {
@@ -125,12 +138,16 @@ const EmployeeDashboard = () => {
         location_consent_date: new Date().toISOString()
       });
       
-      // 동의 완료 후 프로필 상태 업데이트 (재조회 대신 직접 업데이트)
+      // 동의 완료 후 프로필 상태 업데이트
       setEmployeeProfile(prev => ({
         ...prev,
         privacy_consent: true,
         location_consent: true
       }));
+      
+      // 로컬 스토리지에 동의 완료 표시 (다음 로그인시 팝업 안뜨게)
+      const consentKey = `consent_completed_${user.id}`;
+      localStorage.setItem(consentKey, 'true');
       
       setShowConsentModal(false);
       setMessage({ type: 'success', text: '동의가 완료되었습니다.' });

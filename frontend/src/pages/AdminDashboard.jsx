@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import { workplaceAPI, authAPI, announcementsAPI, insuranceAPI, communityAPI, ratesMasterAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import Footer from '../components/Footer';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -1584,6 +1585,8 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
+
+      <Footer />
     </div>
   );
 };

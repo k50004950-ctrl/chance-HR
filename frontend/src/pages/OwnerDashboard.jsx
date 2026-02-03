@@ -18,6 +18,7 @@ import EmployeeInviteManager from '../components/EmployeeInviteManager';
 import MapPicker from '../components/MapPicker';
 import MobileLayout from '../components/MobileLayout';
 import MobileDashboard from '../components/MobileDashboard';
+import Footer from '../components/Footer';
 import MobileActionCard from '../components/MobileActionCard';
 import useIsMobile from '../hooks/useIsMobile';
 import { useEmployeeSort } from '../hooks/useEmployeeSort';
@@ -9388,6 +9389,8 @@ const OwnerDashboard = () => {
           onClose={() => setShowInviteManager(false)}
         />
       )}
+
+      <Footer />
     </div>
   );
 };

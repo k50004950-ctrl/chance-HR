@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import { attendanceAPI, salaryAPI, employeeAPI, announcementsAPI, communityAPI, apiClient } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import AnnouncementModal from '../components/AnnouncementModal';
+import Footer from '../components/Footer';
 import { Html5Qrcode } from 'html5-qrcode';
 import html2canvas from 'html2canvas';
 
@@ -2069,6 +2070,8 @@ const EmployeeDashboard = () => {
           onClose={handleCloseAnnouncement}
         />
       )}
+
+      <Footer />
     </div>
   );
 };

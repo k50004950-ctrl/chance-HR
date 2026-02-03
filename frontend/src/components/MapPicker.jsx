@@ -119,15 +119,16 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
     return (
       <div style={{
         width: '100%',
-        height: '400px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#fff3cd',
         borderRadius: '8px',
-        border: '2px solid #ffc107'
+        border: '2px solid #ffc107',
+        overflow: 'hidden'
       }}>
-        <div style={{ textAlign: 'center', padding: '20px', maxWidth: '500px' }}>
+        {/* 에러 메시지 섹션 */}
+        <div style={{
+          padding: '20px',
+          backgroundColor: '#fff3cd',
+          textAlign: 'center'
+        }}>
           <div style={{ marginBottom: '10px', fontSize: '36px' }}>⚠️</div>
           <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '16px' }}>
             지도를 불러올 수 없습니다
@@ -135,26 +136,97 @@ const MapPicker = ({ latitude, longitude, onLocationChange, address }) => {
           <div style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
             {error}
           </div>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '12px' }}>
-            <button
-              onClick={handleRetry}
+          <button
+            onClick={handleRetry}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#4285f4',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              marginBottom: '12px'
+            }}
+          >
+            🔄 다시 시도
+          </button>
+        </div>
+
+        {/* 현재 좌표 정보 */}
+        {latitude && longitude && (
+          <div style={{
+            padding: '16px',
+            backgroundColor: '#f8f9fa',
+            borderTop: '1px solid #dee2e6'
+          }}>
+            <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px', color: '#495057' }}>
+              ✅ 현재 설정된 좌표
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '10px',
+              marginBottom: '12px'
+            }}>
+              <div style={{ 
+                padding: '10px',
+                backgroundColor: 'white',
+                borderRadius: '6px',
+                border: '1px solid #dee2e6'
+              }}>
+                <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '4px' }}>위도</div>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#212529' }}>
+                  {parseFloat(latitude).toFixed(6)}
+                </div>
+              </div>
+              <div style={{ 
+                padding: '10px',
+                backgroundColor: 'white',
+                borderRadius: '6px',
+                border: '1px solid #dee2e6'
+              }}>
+                <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '4px' }}>경도</div>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#212529' }}>
+                  {parseFloat(longitude).toFixed(6)}
+                </div>
+              </div>
+            </div>
+            <a
+              href={`https://www.google.com/maps?q=${latitude},${longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
-                padding: '10px 20px',
+                display: 'block',
+                padding: '10px',
                 backgroundColor: '#4285f4',
                 color: 'white',
-                border: 'none',
+                textDecoration: 'none',
                 borderRadius: '6px',
+                textAlign: 'center',
                 fontSize: '14px',
-                fontWeight: 'bold',
-                cursor: 'pointer'
+                fontWeight: 'bold'
               }}
             >
-              🔄 다시 시도
-            </button>
+              🗺️ Google Maps에서 확인하기
+            </a>
           </div>
-          <div style={{ fontSize: '13px', color: '#666', padding: '10px', backgroundColor: '#fff', borderRadius: '6px' }}>
-            💡 <strong>대안:</strong><br/>
-            위도/경도를 직접 입력하거나 "현재 위치로 설정" 버튼을 사용하세요.
+        )}
+
+        {/* 대안 안내 */}
+        <div style={{
+          padding: '16px',
+          backgroundColor: '#e7f3ff',
+          borderTop: '1px solid #b3d9ff'
+        }}>
+          <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#0c5ba0' }}>
+            💡 지도 없이도 등록 가능합니다
+          </div>
+          <div style={{ fontSize: '13px', color: '#495057', lineHeight: '1.6' }}>
+            1️⃣ <strong>"📍 현재 위치로 설정"</strong> 버튼을 눌러 GPS로 자동 설정<br/>
+            2️⃣ 또는 위도/경도를 수동으로 입력 (Google Maps에서 확인 가능)<br/>
+            3️⃣ <strong>"✅ 등록하기"</strong> 버튼을 눌러 저장
           </div>
         </div>
       </div>

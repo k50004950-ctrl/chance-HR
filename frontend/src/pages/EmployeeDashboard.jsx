@@ -169,13 +169,16 @@ const EmployeeDashboard = () => {
   const loadEmployerInfo = async () => {
     try {
       const response = await apiClient.get(`/v2/auth/employee/my-employment/${user.id}`);
+      console.log('🔍 사업주 정보 조회 결과:', response.data);
+      
       if (response.data.success && response.data.employments) {
         setEmployments(response.data.employments);
         
-        // 현재 활성화된 사업주 찾기 (status = 'approved', end_date = null)
+        // 현재 활성화된 사업주 찾기 (status = 'active' 또는 'approved', end_date = null)
         const current = response.data.employments.find(emp => 
-          emp.status === 'approved' && !emp.end_date
+          (emp.status === 'active' || emp.status === 'approved') && !emp.end_date
         );
+        console.log('✅ 현재 사업주:', current);
         setCurrentEmployer(current || null);
       }
     } catch (error) {

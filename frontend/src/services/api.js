@@ -207,7 +207,12 @@ export const communityAPI = {
   getPost: (id) => api.get(`/community/posts/${id}`),
   createPost: (data) => api.post('/community/posts', data),
   updatePost: (id, data) => api.put(`/community/posts/${id}`, data),
-  deletePost: (id) => api.delete(`/community/posts/${id}`)
+  deletePost: (id) => api.delete(`/community/posts/${id}`),
+  // 댓글 API
+  getComments: (postId) => api.get(`/community/posts/${postId}/comments`),
+  createComment: (postId, data) => api.post(`/community/posts/${postId}/comments`, data),
+  updateComment: (commentId, data) => api.put(`/community/comments/${commentId}`, data),
+  deleteComment: (commentId) => api.delete(`/community/comments/${commentId}`)
 };
 
 // 초대 링크 API

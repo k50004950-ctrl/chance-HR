@@ -2625,6 +2625,15 @@ const OwnerDashboard = () => {
 
             {/* 탭 메뉴 - 단순화 (PC만) */}
             {!isMobile && <div className="nav-tabs">
+              {/* 설정 메뉴 - 맨 왼쪽 */}
+              <button
+                className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
+                onClick={() => setActiveTab('settings')}
+                style={{ fontSize: '16px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                ⚙️ 설정
+              </button>
+
               <button
                 className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
                 onClick={() => setActiveTab('dashboard')}
@@ -2653,17 +2662,6 @@ const OwnerDashboard = () => {
               >
                 👥 직원 관리
               </button>
-              
-              {/* 설정 메뉴 */}
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <button
-                  className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('settings')}
-                  style={{ fontSize: '16px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  ⚙️ 설정
-                </button>
-              </div>
 
               {/* 급여명세서 메뉴 */}
               <button
@@ -2674,13 +2672,22 @@ const OwnerDashboard = () => {
                 📄 급여명세서
               </button>
 
-              {/* 매칭 요청 메뉴 */}
+              {/* 매칭 승인 메뉴 */}
               <button
                 className={`nav-tab ${activeTab === 'matching' ? 'active' : ''}`}
                 onClick={() => setActiveTab('matching')}
                 style={{ fontSize: '16px', fontWeight: '700' }}
               >
                 🔔 매칭 승인
+              </button>
+
+              {/* 커뮤니티 메뉴 */}
+              <button
+                className={`nav-tab ${activeTab === 'community' ? 'active' : ''}`}
+                onClick={() => setActiveTab('community')}
+                style={{ fontSize: '16px', fontWeight: '700' }}
+              >
+                💬 소통방
               </button>
 
               {/* 퇴직금 계산 메뉴 */}
@@ -2691,17 +2698,6 @@ const OwnerDashboard = () => {
               >
                 🧮 퇴직금 계산
               </button>
-
-              {/* V2: 매칭 요청 메뉴 */}
-              {ownerCompanyId && (
-                <button
-                  className={`nav-tab ${activeTab === 'matching' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('matching')}
-                  style={{ fontSize: '16px', fontWeight: '700' }}
-                >
-                  🔔 매칭 요청
-                </button>
-              )}
             </div>}
 
             {activeTab === 'calendar' && (
@@ -6731,7 +6727,11 @@ const OwnerDashboard = () => {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#9ca3af' }}>
                           <span>작성자: {post.author_name}</span>
-                          <span>{new Date(post.created_at).toLocaleDateString('ko-KR')} {new Date(post.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
+                          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <span>👁️ {post.view_count || 0}</span>
+                            <span>💬 {post.comment_count || 0}</span>
+                            <span>{new Date(post.created_at).toLocaleDateString('ko-KR')} {new Date(post.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
                         </div>
                       </div>
                     ))}

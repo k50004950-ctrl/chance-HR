@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>출퇴근 관리 시스템 - 프로그램 소개</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 42px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header .tagline {
+            font-size: 20px;
+            opacity: 0.95;
+            margin-bottom: 20px;
+        }
+        
+        .header .company-info {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .intro {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f6f8fc 0%, #eef2ff 100%);
+            border-radius: 15px;
+        }
+        
+        .intro h2 {
+            font-size: 28px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .intro p {
+            font-size: 16px;
+            color: #555;
+            line-height: 1.8;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .feature-card {
+            background: #fff;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+        
+        .feature-card .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .feature-card h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .feature-card p {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .benefits {
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+        }
+        
+        .benefits h2 {
+            text-align: center;
+            font-size: 28px;
+            color: #dc2626;
+            margin-bottom: 25px;
+        }
+        
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .benefit-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        
+        .benefit-item .check {
+            font-size: 24px;
+            color: #10b981;
+            flex-shrink: 0;
+        }
+        
+        .benefit-item .text {
+            font-size: 15px;
+            color: #555;
+        }
+        
+        .specs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .spec-section h3 {
+            font-size: 22px;
+            margin-bottom: 15px;
+            color: #667eea;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .spec-list {
+            list-style: none;
+        }
+        
+        .spec-list li {
+            padding: 10px 0;
+            padding-left: 25px;
+            position: relative;
+            font-size: 15px;
+            color: #555;
+        }
+        
+        .spec-list li:before {
+            content: "▶";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-size: 12px;
+        }
+        
+        .contact {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .contact h2 {
+            font-size: 26px;
+            margin-bottom: 20px;
+        }
+        
+        .contact-info {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            font-size: 16px;
+        }
+        
+        .contact-info div {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 28px;
+            }
+            
+            .specs {
+                grid-template-columns: 1fr;
+            }
+            
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <h1>📱 출퇴근 관리 시스템</h1>
+            <div class="tagline">스마트한 근태관리, 정확한 급여계산, 모든 것이 한 곳에서</div>
+            <div class="company-info">
+                <strong>찬스컴퍼니</strong> | 사업자등록번호: 819-06-01671 | 대표자: 김우연<br>
+                이메일: K50004950@gmail.com | Since 2020
+            </div>
+        </div>
+
+        <!-- 본문 -->
+        <div class="content">
+            <!-- 소개 -->
+            <div class="intro">
+                <h2>🎯 프로그램 소개</h2>
+                <p>
+                    <strong>출퇴근 관리 시스템</strong>은 중소기업과 사업장을 위한 올인원 인사관리 솔루션입니다.<br>
+                    GPS 기반 출퇴근 체크부터 급여 계산, 4대보험 처리까지 모든 인사 업무를 하나의 플랫폼에서 해결하세요.
+                </p>
+            </div>
+
+            <!-- 주요 기능 -->
+            <div class="features">
+                <div class="feature-card">
+                    <div class="icon">📍</div>
+                    <h3>GPS 출퇴근 관리</h3>
+                    <p>위치 기반 출퇴근 인증으로 정확한 근태 관리. 지각, 조퇴, 결근 자동 체크 및 실시간 알림.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">💰</div>
+                    <h3>자동 급여 계산</h3>
+                    <p>월급/시급 자동 계산, 주휴수당, 연장수당, 야간수당 포함. 4대보험 및 소득세 자동 산출.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">📄</div>
+                    <h3>급여명세서 발급</h3>
+                    <p>전자 급여명세서 자동 생성 및 직원별 배포. 언제 어디서나 모바일로 확인 가능.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">👥</div>
+                    <h3>직원 관리</h3>
+                    <p>직원 정보 통합 관리, 계약서류 보관, 입퇴사 처리, 근무 스케줄 설정 및 관리.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">📊</div>
+                    <h3>근태 현황 분석</h3>
+                    <p>캘린더 뷰로 한눈에 보는 근태 현황. 지각/결근/연차 통계 및 리스크 알림 기능.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">🧮</div>
+                    <h3>퇴직금 계산</h3>
+                    <p>근속기간 자동 계산, 퇴직금 시뮬레이션, 법정 퇴직금 정확한 산출.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">💬</div>
+                    <h3>커뮤니티</h3>
+                    <p>사업주/직원 간 소통 공간. 공지사항 전달 및 실시간 알림 기능.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">📱</div>
+                    <h3>모바일 최적화</h3>
+                    <p>PC/모바일 완벽 지원. PWA 기술로 앱처럼 사용 가능. 언제 어디서나 편리하게.</p>
+                </div>
+            </div>
+
+            <!-- 도입 효과 -->
+            <div class="benefits">
+                <h2>✨ 도입 효과</h2>
+                <div class="benefits-grid">
+                    <div class="benefit-item">
+                        <div class="check">✅</div>
+                        <div class="text"><strong>업무 효율 UP</strong><br>수기 작성 불필요, 자동화로 시간 절약</div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="check">✅</div>
+                        <div class="text"><strong>실수 제로</strong><br>급여 계산 오류 방지, 정확한 세무 처리</div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="check">✅</div>
+                        <div class="text"><strong>법규 준수</strong><br>근로기준법, 최저임금 자동 체크</div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="check">✅</div>
+                        <div class="text"><strong>비용 절감</strong><br>세무사/노무사 비용 절감, 효율적 운영</div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="check">✅</div>
+                        <div class="text"><strong>직원 만족도 UP</strong><br>투명한 급여 관리, 언제든 확인 가능</div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="check">✅</div>
+                        <div class="text"><strong>실시간 모니터링</strong><br>근태 현황 즉시 파악, 신속한 대응</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 시스템 사양 -->
+            <div class="specs">
+                <div class="spec-section">
+                    <h3>🔧 시스템 사양</h3>
+                    <ul class="spec-list">
+                        <li>웹 기반 서비스 (설치 불필요)</li>
+                        <li>PC/모바일/태블릿 지원</li>
+                        <li>PWA 지원 (앱처럼 사용 가능)</li>
+                        <li>안전한 클라우드 저장</li>
+                        <li>실시간 동기화</li>
+                        <li>24시간 접속 가능</li>
+                    </ul>
+                </div>
+
+                <div class="spec-section">
+                    <h3>🎯 추천 대상</h3>
+                    <ul class="spec-list">
+                        <li>직원 5~50명 규모 중소기업</li>
+                        <li>음식점, 카페, 편의점 등 소상공인</li>
+                        <li>복수 매장 운영 사업주</li>
+                        <li>건설현장, 공장 등 현장 근무</li>
+                        <li>급여 계산이 복잡한 사업장</li>
+                        <li>체계적인 인사관리가 필요한 곳</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 연락처 -->
+            <div class="contact">
+                <h2>📞 문의하기</h2>
+                <div class="contact-info">
+                    <div>
+                        <span>📧</span>
+                        <span>K50004950@gmail.com</span>
+                    </div>
+                    <div>
+                        <span>🏢</span>
+                        <span>사업자번호: 819-06-01671</span>
+                    </div>
+                    <div>
+                        <span>👤</span>
+                        <span>대표: 김우연</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

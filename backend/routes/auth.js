@@ -614,7 +614,24 @@ router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin', 'sup
     await run('DELETE FROM announcements WHERE created_by = ?', [userId]);
     console.log('  ✅ 작성한 공지사항 삭제 완료');
 
-    // 9. 소유한 사업장 삭제 (사업주인 경우)
+    // 9. 소유한 회사(company) 삭제 (사업주인 경우)
+    if (userToDelete.role === 'owner' || userToDelete.role === 'super_admin') {
+      try {
+        const companies = await query('SELECT id, name FROM companies WHERE id IN (SELECT company_id FROM users WHERE id = ?)', [userId]);
+        if (companies.length > 0) {
+          console.log(`  🏢 ${companies.length}개 회사 발견`);
+          for (const company of companies) {
+            await run('DELETE FROM companies WHERE id = ?', [company.id]);
+            console.log(`    ✅ 회사 "${company.name}" 삭제`);
+          }
+        }
+      } catch (error) {
+        console.error('  ❌ 회사 삭제 중 오류:', error.message);
+        // 회사 삭제는 실패해도 계속 진행
+      }
+    }
+
+    // 10. 소유한 사업장 삭제 (사업주인 경우)
     if (userToDelete.role === 'owner' || userToDelete.role === 'super_admin') {
       try {
         const workplaces = await query('SELECT id FROM workplaces WHERE owner_id = ?', [userId]);
@@ -653,7 +670,7 @@ router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin', 'sup
       }
     }
 
-    // 10. 사용자 계정 삭제
+    // 11. 사용자 계정 삭제
     await run('DELETE FROM users WHERE id = ?', [userId]);
     console.log('  ✅ 사용자 계정 삭제 완료');
 

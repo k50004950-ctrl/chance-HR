@@ -3366,7 +3366,7 @@ const OwnerDashboard = () => {
                 {!isMobile && (
                   <>
                     <h2 style={{ marginBottom: '8px', color: '#111827', fontSize: '28px', fontWeight: '700' }}>
-                      안녕하세요, {user?.name || '사장님'}! 👋
+                      안녕하세요, {user?.name || '사장님'} 대표님! 👋
                     </h2>
                     <p style={{ marginBottom: '32px', color: '#6b7280', fontSize: '16px' }}>
                       오늘도 수고하셨습니다. 확인이 필요한 사항을 정리했습니다.

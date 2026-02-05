@@ -56,7 +56,7 @@ const Footer = ({ simple = false }) => {
             <span>|</span>
             <span>대표자: 김우연</span>
             <span>|</span>
-            <span>설립: 2020년</span>
+            <span>Since 2020</span>
           </div>
           <div style={{ marginTop: '8px' }}>
             <span>이메일: K50004950@gmail.com</span>

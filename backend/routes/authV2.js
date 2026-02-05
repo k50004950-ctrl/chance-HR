@@ -938,11 +938,46 @@ router.get('/owner/employees/:companyId', async (req, res) => {
 // 사업장 수동 생성 (사업주 전용)
 // ============================================
 router.post('/owner/create-workplace', async (req, res) => {
-  const { companyId, ownerId, name, address, phone, latitude, longitude, radius, business_number } = req.body;
+  let { companyId, ownerId, name, address, phone, latitude, longitude, radius, business_number } = req.body;
 
   try {
-    if (!companyId || !ownerId || !name || !business_number || !address || !latitude || !longitude || !radius) {
+    // 필수 항목 체크 (companyId는 제외 - 자동 생성 가능)
+    if (!ownerId || !name || !business_number || !address || !latitude || !longitude || !radius) {
       return res.status(400).json({ success: false, message: '필수 항목을 모두 입력해주세요.' });
+    }
+
+    // companyId가 없으면 자동 생성 (V1 사용자 지원)
+    if (!companyId) {
+      console.log('🔄 companyId 없음. 자동 생성 시작...');
+      
+      // 사용자 정보 조회
+      const owner = await get(
+        `SELECT id, name, phone, business_number FROM users WHERE id = ?`,
+        [ownerId]
+      );
+
+      if (!owner) {
+        return res.status(404).json({ 
+          success: false, 
+          message: '사용자를 찾을 수 없습니다.' 
+        });
+      }
+
+      // 회사 자동 생성
+      const companyResult = await run(
+        `INSERT INTO companies (name, business_number, representative_name, phone, created_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        [name, business_number, owner.name, phone || owner.phone || '미정']
+      );
+      companyId = companyResult.id || companyResult.lastID;
+
+      // users 테이블의 company_id 업데이트
+      await run(
+        `UPDATE users SET company_id = ? WHERE id = ?`,
+        [companyId, ownerId]
+      );
+
+      console.log(`✅ 회사 자동 생성 완료: ${name} (company_id: ${companyId})`);
     }
 
     // 사업장 생성
@@ -965,7 +1000,8 @@ router.post('/owner/create-workplace', async (req, res) => {
     res.json({
       success: true,
       message: '사업장이 성공적으로 등록되었습니다.',
-      workplaceId: workplaceId
+      workplaceId: workplaceId,
+      companyId: companyId
     });
 
   } catch (error) {

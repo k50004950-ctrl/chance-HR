@@ -25,7 +25,7 @@
     
     <!-- Daum 우편번호 서비스 -->
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
-    <script type="module" crossorigin src="/assets/index-Y2vFnrwS.js"></script>
+    <script type="module" crossorigin src="/assets/index-DsQq4B_Y.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-BfUBcw_T.css">
   </head>
   <body>
@@ -34,28 +34,39 @@
     <!-- Service Worker 등록 -->
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('✅ Service Worker 등록 성공:', registration.scope);
-              
-              // 업데이트 확인
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    console.log('🔄 새 버전 사용 가능! 페이지를 새로고침하세요.');
-                    // 사용자에게 새로고침 안내 (선택사항)
-                    if (confirm('새 버전이 있습니다. 지금 업데이트하시겠습니까?')) {
-                      window.location.reload();
-                    }
-                  }
-                });
+        window.addEventListener('load', async () => {
+          try {
+            // 기존 Service Worker 모두 제거
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              await registration.unregister();
+              console.log('🗑️ 기존 Service Worker 제거됨');
+            }
+            
+            // 캐시 모두 삭제
+            if ('caches' in window) {
+              const cacheNames = await caches.keys();
+              await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+              console.log('🗑️ 모든 캐시 삭제됨:', cacheNames);
+            }
+            
+            // 새로운 Service Worker 등록
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('✅ Service Worker 새로 등록 완료:', registration.scope);
+            
+            // 업데이트 확인
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('🔄 새 버전 활성화됨!');
+                  window.location.reload();
+                }
               });
-            })
-            .catch((error) => {
-              console.error('❌ Service Worker 등록 실패:', error);
             });
+          } catch (error) {
+            console.error('❌ Service Worker 처리 중 오류:', error);
+          }
         });
       }
       

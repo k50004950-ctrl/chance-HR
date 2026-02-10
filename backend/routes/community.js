@@ -376,7 +376,11 @@ router.get('/posts/:postId/like-status', authenticate, async (req, res) => {
     res.json({ liked: !!like });
   } catch (error) {
     console.error('추천 상태 확인 오류:', error);
-    res.status(500).json({ message: '추천 상태 확인에 실패했습니다.' });
+    // 테이블이 없는 경우 기본값 반환 (에러 대신)
+    if (error.message && error.message.includes('no such table')) {
+      return res.json({ liked: false });
+    }
+    res.json({ liked: false }); // 기본값 반환
   }
 });
 

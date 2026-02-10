@@ -49,25 +49,27 @@ const FindUsername = () => {
   return (
     <div style={{
       minHeight: '100vh',
+      minHeight: '100dvh', // 모바일 뷰포트 높이
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px'
+      padding: '16px'
     }}>
       <div style={{
         backgroundColor: 'white',
         borderRadius: '15px',
-        padding: '40px',
+        padding: window.innerWidth < 768 ? '24px 20px' : '40px',
         maxWidth: '500px',
         width: '100%',
         boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
       }}>
         <h2 style={{ 
           textAlign: 'center', 
-          marginBottom: '30px',
+          marginBottom: window.innerWidth < 768 ? '24px' : '30px',
           color: '#333',
-          fontSize: '28px'
+          fontSize: window.innerWidth < 768 ? '22px' : '28px',
+          fontWeight: '700'
         }}>
           🔍 아이디 찾기
         </h2>

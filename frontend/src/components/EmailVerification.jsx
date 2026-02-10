@@ -119,7 +119,7 @@ const EmailVerification = ({ purpose = 'signup', onVerified, onEmailChange }) =>
         이메일 {purpose === 'signup' && <span style={{ color: 'red' }}>*</span>}
       </label>
       
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: window.innerWidth < 400 ? 'wrap' : 'nowrap' }}>
         <input
           type="email"
           value={email}
@@ -128,11 +128,13 @@ const EmailVerification = ({ purpose = 'signup', onVerified, onEmailChange }) =>
           disabled={isVerified}
           style={{
             flex: 1,
-            padding: '10px',
+            minWidth: window.innerWidth < 400 ? '100%' : '200px',
+            padding: '12px',
             border: '1px solid #ddd',
             borderRadius: '5px',
             fontSize: '16px',
-            backgroundColor: isVerified ? '#f0f0f0' : 'white'
+            backgroundColor: isVerified ? '#f0f0f0' : 'white',
+            boxSizing: 'border-box'
           }}
         />
         <button
@@ -140,7 +142,7 @@ const EmailVerification = ({ purpose = 'signup', onVerified, onEmailChange }) =>
           onClick={handleSendCode}
           disabled={loading || isVerified || (isCodeSent && timer > 0)}
           style={{
-            padding: '10px 20px',
+            padding: window.innerWidth < 400 ? '12px 16px' : '12px 20px',
             backgroundColor: isVerified ? '#28a745' : '#667eea',
             color: 'white',
             border: 'none',
@@ -148,7 +150,9 @@ const EmailVerification = ({ purpose = 'signup', onVerified, onEmailChange }) =>
             cursor: loading || isVerified ? 'not-allowed' : 'pointer',
             whiteSpace: 'nowrap',
             fontSize: '14px',
-            opacity: loading || isVerified ? 0.6 : 1
+            opacity: loading || isVerified ? 0.6 : 1,
+            minWidth: window.innerWidth < 400 ? '100%' : 'auto',
+            fontWeight: '600'
           }}
         >
           {isVerified ? '✓ 인증완료' : isCodeSent && timer > 0 ? '재전송' : '인증번호 전송'}
@@ -171,19 +175,25 @@ const EmailVerification = ({ purpose = 'signup', onVerified, onEmailChange }) =>
 
       {/* 인증번호 입력 */}
       {isCodeSent && !isVerified && (
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: window.innerWidth < 400 ? 'wrap' : 'nowrap' }}>
           <input
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
             placeholder="인증번호 6자리"
             maxLength={6}
+            inputMode="numeric"
             style={{
               flex: 1,
-              padding: '10px',
+              minWidth: window.innerWidth < 400 ? '100%' : '200px',
+              padding: '12px',
               border: '1px solid #ddd',
               borderRadius: '5px',
-              fontSize: '16px'
+              fontSize: '16px',
+              textAlign: 'center',
+              letterSpacing: '4px',
+              fontWeight: 'bold',
+              boxSizing: 'border-box'
             }}
           />
           <button
@@ -191,7 +201,7 @@ const EmailVerification = ({ purpose = 'signup', onVerified, onEmailChange }) =>
             onClick={handleVerifyCode}
             disabled={loading || code.length !== 6}
             style={{
-              padding: '10px 20px',
+              padding: window.innerWidth < 400 ? '12px 16px' : '12px 24px',
               backgroundColor: '#28a745',
               color: 'white',
               border: 'none',
@@ -199,7 +209,9 @@ const EmailVerification = ({ purpose = 'signup', onVerified, onEmailChange }) =>
               cursor: loading || code.length !== 6 ? 'not-allowed' : 'pointer',
               whiteSpace: 'nowrap',
               fontSize: '14px',
-              opacity: loading || code.length !== 6 ? 0.6 : 1
+              opacity: loading || code.length !== 6 ? 0.6 : 1,
+              minWidth: window.innerWidth < 400 ? '100%' : 'auto',
+              fontWeight: '600'
             }}
           >
             확인

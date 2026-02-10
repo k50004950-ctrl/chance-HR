@@ -3470,12 +3470,27 @@ const OwnerDashboard = () => {
                       // 이번 달 급여 현황 데이터
                       const currentMonth = new Date().toISOString().slice(0, 7);
                       const currentMonthSalaryData = salaryData && salaryData.month === currentMonth ? salaryData : null;
+                      
+                      // 급여 계산 (amount 필드 사용)
                       const totalMonthlyCost = currentMonthSalaryData 
                         ? currentMonthSalaryData.employees.reduce((sum, emp) => sum + (emp.totalPay || emp.calculatedSalary || 0), 0)
-                        : activeEmployees.reduce((sum, emp) => sum + (emp.base_pay || 0), 0);
+                        : activeEmployees.reduce((sum, emp) => sum + (emp.amount || 0), 0);
                       const unconfirmedEmployees = currentMonthSalaryData 
                         ? currentMonthSalaryData.employees.filter(emp => !emp.confirmed).length
                         : activeEmployees.length;
+                      
+                      // 급여 현황 디버깅
+                      console.log('💰 [모바일] 급여 현황:');
+                      console.log('  - salaryData:', salaryData ? '있음' : '없음');
+                      console.log('  - 활성 직원:', activeEmployees.length, '명');
+                      if (activeEmployees.length > 0) {
+                        console.log('  - 첫 번째 직원 급여 샘플:', {
+                          name: activeEmployees[0].name,
+                          amount: activeEmployees[0].amount,
+                          salary_type: activeEmployees[0].salary_type
+                        });
+                      }
+                      console.log('  - 예상 총 인건비:', totalMonthlyCost.toLocaleString(), '원');
                       
                       // 리스크 카운트 (generateNotifications 결과 재사용)
                       const riskCount = notifications.length;
@@ -3655,12 +3670,27 @@ const OwnerDashboard = () => {
                       // 이번 달 급여 현황 데이터
                       const currentMonth = new Date().toISOString().slice(0, 7);
                       const currentMonthSalaryData = salaryData && salaryData.month === currentMonth ? salaryData : null;
+                      
+                      // 급여 계산 (amount 필드 사용)
                       const totalMonthlyCost = currentMonthSalaryData 
                         ? currentMonthSalaryData.employees.reduce((sum, emp) => sum + (emp.totalPay || emp.calculatedSalary || 0), 0)
-                        : activeEmployees.reduce((sum, emp) => sum + (emp.base_pay || 0), 0);
+                        : activeEmployees.reduce((sum, emp) => sum + (emp.amount || 0), 0);
                       const unconfirmedEmployees = currentMonthSalaryData 
                         ? currentMonthSalaryData.employees.filter(emp => !emp.confirmed).length
                         : activeEmployees.length;
+                      
+                      // 급여 현황 디버깅
+                      console.log('💰 [PC] 급여 현황:');
+                      console.log('  - salaryData:', salaryData ? '있음' : '없음');
+                      console.log('  - 활성 직원:', activeEmployees.length, '명');
+                      if (activeEmployees.length > 0) {
+                        console.log('  - 첫 번째 직원 급여 샘플:', {
+                          name: activeEmployees[0].name,
+                          amount: activeEmployees[0].amount,
+                          salary_type: activeEmployees[0].salary_type
+                        });
+                      }
+                      console.log('  - 예상 총 인건비:', totalMonthlyCost.toLocaleString(), '원');
                       
                       // 리스크 카운트
                       const riskCount = notifications.length;

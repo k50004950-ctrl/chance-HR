@@ -1902,25 +1902,48 @@ const EmployeeDashboard = () => {
                     <div style={{ fontSize: '24px', fontWeight: '700' }}>
                       {certificateData.workplaceName}
                     </div>
-                    <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
-                      <div style={{
-                        width: '120px',
-                        height: '120px',
-                        borderRadius: '50%',
-                        border: '3px solid #b91c1c',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#b91c1c',
-                        fontWeight: '700',
-                        lineHeight: '1.2'
-                      }}>
-                        <div style={{ fontSize: '12px', letterSpacing: '1px' }}>대표자</div>
-                        <div style={{ fontSize: '18px', margin: '6px 0' }}>
-                          {certificateData.ownerName || '대표자명'}
+                    <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <div style={{ position: 'relative', width: '140px', height: '140px' }}>
+                        {/* (인) 텍스트 - 검정색, 맨 아래 */}
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '10px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          fontSize: '16px',
+                          fontWeight: '700',
+                          color: '#000',
+                          zIndex: 1
+                        }}>
+                          (인)
                         </div>
-                        <div style={{ fontSize: '14px' }}>(인)</div>
+                        
+                        {/* 빨간 도장 - (인) 위에 겹침 */}
+                        <div style={{
+                          position: 'absolute',
+                          top: '0',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: '110px',
+                          height: '110px',
+                          borderRadius: '50%',
+                          border: '3px solid #b91c1c',
+                          backgroundColor: 'rgba(185, 28, 28, 0.1)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#b91c1c',
+                          fontWeight: '700',
+                          lineHeight: '1.3',
+                          zIndex: 2,
+                          boxShadow: '0 2px 8px rgba(185, 28, 28, 0.3)'
+                        }}>
+                          <div style={{ fontSize: '12px', letterSpacing: '1px' }}>대표자</div>
+                          <div style={{ fontSize: '18px', margin: '6px 0' }}>
+                            {certificateData.ownerName || '대표자명'}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -635,10 +635,32 @@ router.get('/:id/employment-certificate', authenticate, async (req, res) => {
       maskedSSN = maskedSSN.substring(0, maskedSSN.length - 7) + '*******';
     }
 
+    // 날짜 형식 변환 (ISO -> YYYY-MM-DD)
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '-';
+      // ISO 형식이면 날짜 부분만 추출
+      if (dateStr.includes('T')) {
+        return dateStr.split('T')[0];
+      }
+      return dateStr;
+    };
+
+    const formatDateKorean = (dateStr) => {
+      if (!dateStr) return '-';
+      const date = new Date(dateStr);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      return `${year}년 ${month}월 ${day}일`;
+    };
+
+    const hireDate = formatDateKorean(employeeInfo.hire_date);
+    const issueDate = formatDateKorean(new Date());
+
     res.json({
       employeeName: employeeInfo.name,
       ssn: maskedSSN,
-      hireDate: employeeInfo.hire_date,
+      hireDate,
       position: employeeInfo.position || '직원',
       department: employeeInfo.department || '-',
       address: employeeInfo.address || '-',
@@ -648,7 +670,7 @@ router.get('/:id/employment-certificate', authenticate, async (req, res) => {
       salaryType: employeeInfo.salary_type,
       amount: employeeInfo.amount,
       ownerName: employeeInfo.owner_name || null,
-      issueDate: new Date().toISOString().split('T')[0]
+      issueDate
     });
   } catch (error) {
     console.error('재직증명서 조회 오류:', error);

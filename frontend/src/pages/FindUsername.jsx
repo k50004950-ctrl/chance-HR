@@ -116,7 +116,7 @@ const FindUsername = () => {
 
             <button
               type="submit"
-              disabled={loading || !isPhoneVerified}
+              disabled={loading || !isEmailVerified}
               style={{
                 width: '100%',
                 padding: '14px',
@@ -126,9 +126,9 @@ const FindUsername = () => {
                 borderRadius: '8px',
                 fontSize: '16px',
                 fontWeight: 'bold',
-                cursor: loading || !isPhoneVerified ? 'not-allowed' : 'pointer',
+                cursor: loading || !isEmailVerified ? 'not-allowed' : 'pointer',
                 marginBottom: '15px',
-                opacity: loading || !isPhoneVerified ? 0.6 : 1
+                opacity: loading || !isEmailVerified ? 0.6 : 1
               }}
             >
               {loading ? '조회 중...' : '아이디 찾기'}

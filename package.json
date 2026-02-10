@@ -7,8 +7,8 @@
   "scripts": {
     "start": "npm start --prefix backend",
     "build": "npm run build --prefix frontend && cp -r frontend/dist backend/",
-    "install-all": "npm ci --prefix frontend && npm ci --prefix backend",
-    "postinstall": "npm ci --prefix frontend && npm ci --prefix backend && npm run build"
+    "install-all": "npm install --prefix frontend && npm install --prefix backend",
+    "postinstall": "npm install --prefix frontend && npm install --prefix backend && npm run build"
   },
   "workspaces": [
     "frontend",

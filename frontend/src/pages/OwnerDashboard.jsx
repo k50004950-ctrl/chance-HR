@@ -3471,10 +3471,10 @@ const OwnerDashboard = () => {
                       const currentMonth = new Date().toISOString().slice(0, 7);
                       const currentMonthSalaryData = salaryData && salaryData.month === currentMonth ? salaryData : null;
                       
-                      // 급여 계산 (amount 필드 사용)
+                      // 급여 계산 (amount 필드 사용, 문자열 -> 숫자 변환)
                       const totalMonthlyCost = currentMonthSalaryData 
                         ? currentMonthSalaryData.employees.reduce((sum, emp) => sum + (emp.totalPay || emp.calculatedSalary || 0), 0)
-                        : activeEmployees.reduce((sum, emp) => sum + (emp.amount || 0), 0);
+                        : activeEmployees.reduce((sum, emp) => sum + (parseFloat(emp.amount) || 0), 0);
                       const unconfirmedEmployees = currentMonthSalaryData 
                         ? currentMonthSalaryData.employees.filter(emp => !emp.confirmed).length
                         : activeEmployees.length;
@@ -3671,10 +3671,10 @@ const OwnerDashboard = () => {
                       const currentMonth = new Date().toISOString().slice(0, 7);
                       const currentMonthSalaryData = salaryData && salaryData.month === currentMonth ? salaryData : null;
                       
-                      // 급여 계산 (amount 필드 사용)
+                      // 급여 계산 (amount 필드 사용, 문자열 -> 숫자 변환)
                       const totalMonthlyCost = currentMonthSalaryData 
                         ? currentMonthSalaryData.employees.reduce((sum, emp) => sum + (emp.totalPay || emp.calculatedSalary || 0), 0)
-                        : activeEmployees.reduce((sum, emp) => sum + (emp.amount || 0), 0);
+                        : activeEmployees.reduce((sum, emp) => sum + (parseFloat(emp.amount) || 0), 0);
                       const unconfirmedEmployees = currentMonthSalaryData 
                         ? currentMonthSalaryData.employees.filter(emp => !emp.confirmed).length
                         : activeEmployees.length;

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '../services/api';
 import Toast from '../components/Toast';
 import Footer from '../components/Footer';
+import PhoneVerification from '../components/PhoneVerification';
 
 function SignupV2() {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ function SignupV2() {
   });
 
   const [errors, setErrors] = useState({});
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -68,6 +70,10 @@ function SignupV2() {
       newErrors.phone = '전화번호를 입력해주세요.';
     } else if (!/^01[0-9]{8,9}$/.test(formData.phone.replace(/-/g, ''))) {
       newErrors.phone = '올바른 전화번호 형식이 아닙니다.';
+    }
+
+    if (!isPhoneVerified) {
+      newErrors.phone = '전화번호 인증을 완료해주세요.';
     }
 
     if (formData.role === 'owner' && !formData.business_number.trim()) {
@@ -327,8 +333,21 @@ function SignupV2() {
             {errors.name && <p style={{ color: '#f44336', fontSize: '12px', marginTop: '4px' }}>{errors.name}</p>}
           </div>
 
-          {/* 전화번호 */}
-          <div style={{ marginBottom: '20px' }}>
+          {/* 전화번호 인증 */}
+          <PhoneVerification
+            purpose="signup"
+            onVerified={(verifiedPhone) => {
+              setIsPhoneVerified(true);
+              setFormData(prev => ({ ...prev, phone: verifiedPhone }));
+            }}
+            onPhoneChange={(phone) => {
+              setFormData(prev => ({ ...prev, phone }));
+            }}
+          />
+          {errors.phone && <p style={{ color: '#f44336', fontSize: '12px', marginTop: '-10px', marginBottom: '10px' }}>{errors.phone}</p>}
+
+          {/* 전화번호 (숨김 - PhoneVerification으로 대체) */}
+          <div style={{ display: 'none', marginBottom: '20px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333', fontSize: '14px' }}>
               전화번호 <span style={{ color: 'red' }}>*</span>
             </label>

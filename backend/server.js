@@ -28,6 +28,8 @@ import insuranceRoutes from './routes/insurance.js';
 import communityRoutes from './routes/community.js';
 import adminDevRoutes from './routes/adminDev.js'; // ⚠️ 임시 개발자용 API
 import ratesMasterRoutes from './routes/ratesMaster.js';
+import smsRoutes from './routes/sms.js';
+import accountRecoveryRoutes from './routes/account-recovery.js';
 import { startPaydayScheduler } from './services/payrollSchedule.js';
 import { startAttendanceScheduler } from './services/attendanceScheduler.js';
 
@@ -115,6 +117,8 @@ app.use('/api/announcements', cors(corsOptions), announcementsRoutes);
 app.use('/api/insurance', cors(corsOptions), insuranceRoutes);
 app.use('/api/community', cors(corsOptions), communityRoutes);
 app.use('/api/admin/dev', cors(corsOptions), adminDevRoutes);
+app.use('/api/sms', cors(corsOptions), smsRoutes);
+app.use('/api/account', cors(corsOptions), accountRecoveryRoutes);
 
 // ratesMaster 라우트 - 상세 로깅
 console.log('🔧 Importing ratesMaster routes from:', './routes/ratesMaster.js');

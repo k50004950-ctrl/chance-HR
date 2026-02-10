@@ -17,6 +17,8 @@ import QrAttendance from './pages/QrAttendance';
 import NotificationsPage from './pages/NotificationsPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import SystemGuide from './pages/SystemGuide';
+import FindUsername from './pages/FindUsername';
+import ResetPassword from './pages/ResetPassword';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -52,6 +54,8 @@ const AppRouter = () => {
       <Route path="/signup" element={user ? <Navigate to="/" /> : <Signup />} />
       <Route path="/login-v2" element={user ? <Navigate to="/" /> : <LoginV2 />} />
       <Route path="/signup-v2" element={user ? <Navigate to="/" /> : <SignupV2 />} />
+      <Route path="/find-username" element={user ? <Navigate to="/" /> : <FindUsername />} />
+      <Route path="/reset-password" element={user ? <Navigate to="/" /> : <ResetPassword />} />
       <Route path="/invite/:token" element={<InviteSignup />} />
       <Route path="/guide" element={<UsageGuide />} />
       <Route path="/system-guide" element={<SystemGuide />} />

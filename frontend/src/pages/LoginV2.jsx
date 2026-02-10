@@ -200,6 +200,41 @@ function LoginV2() {
           >
             {loading ? '로그인 중...' : '로그인'}
           </button>
+
+          {/* 아이디/비밀번호 찾기 */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '10px' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/find-username')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#667eea',
+                fontSize: '14px',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                padding: '0'
+              }}
+            >
+              아이디 찾기
+            </button>
+            <span style={{ color: '#ddd' }}>|</span>
+            <button
+              type="button"
+              onClick={() => navigate('/reset-password')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#667eea',
+                fontSize: '14px',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                padding: '0'
+              }}
+            >
+              비밀번호 찾기
+            </button>
+          </div>
         </form>
 
         {/* 회원가입 구분 */}

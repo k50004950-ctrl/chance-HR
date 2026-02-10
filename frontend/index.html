@@ -30,7 +30,7 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     
-    <!-- Service Worker 등록 -->
+    <!-- Service Worker 완전 제거 -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
@@ -39,52 +39,22 @@
             const registrations = await navigator.serviceWorker.getRegistrations();
             for (let registration of registrations) {
               await registration.unregister();
-              console.log('🗑️ 기존 Service Worker 제거됨');
+              console.log('🗑️ Service Worker 제거됨');
             }
             
             // 캐시 모두 삭제
             if ('caches' in window) {
               const cacheNames = await caches.keys();
               await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
-              console.log('🗑️ 모든 캐시 삭제됨:', cacheNames);
+              console.log('🗑️ 모든 캐시 삭제됨');
             }
             
-            // 새로운 Service Worker 등록
-            const registration = await navigator.serviceWorker.register('/sw.js');
-            console.log('✅ Service Worker 새로 등록 완료:', registration.scope);
-            
-            // 업데이트 확인
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing;
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('🔄 새 버전 활성화됨!');
-                  window.location.reload();
-                }
-              });
-            });
+            console.log('✅ Service Worker 비활성화 완료');
           } catch (error) {
-            console.error('❌ Service Worker 처리 중 오류:', error);
+            console.error('❌ Service Worker 제거 중 오류:', error);
           }
         });
       }
-      
-      // PWA 설치 프롬프트
-      let deferredPrompt;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        console.log('📱 PWA 설치 가능!');
-        e.preventDefault();
-        deferredPrompt = e;
-        
-        // 설치 버튼 표시 (선택사항)
-        // showInstallButton();
-      });
-      
-      // 설치 완료 이벤트
-      window.addEventListener('appinstalled', () => {
-        console.log('✅ PWA 설치 완료!');
-        deferredPrompt = null;
-      });
     </script>
   </body>
 </html>

@@ -344,11 +344,31 @@ const OwnerDashboard = () => {
     const todayAttendance = attendance.filter(a => a.date === today);
     const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
     
+    // 디버깅 로그
+    console.log('📊 대시보드 통계 계산:');
+    console.log('  - 오늘 날짜:', today);
+    console.log('  - 전체 출근기록:', attendance.length, '건');
+    console.log('  - 오늘 출근기록:', todayAttendance.length, '건');
+    console.log('  - 활성 직원:', activeEmployees.length, '명');
+    
+    // 오늘 출근기록 상세 로그
+    if (todayAttendance.length > 0) {
+      console.log('  - 오늘 출근기록 상세:', todayAttendance.map(a => ({
+        name: a.employee_name,
+        date: a.date,
+        checkIn: a.check_in_time,
+        checkOut: a.check_out_time
+      })));
+    }
+    
     // 오늘 출근한 인원
     const checkedInToday = todayAttendance.filter(a => a.check_in_time).length;
     
     // 미퇴근 인원 (출근했지만 퇴근 안 한 사람)
     const notCheckedOut = todayAttendance.filter(a => a.check_in_time && !a.check_out_time).length;
+    
+    console.log('  ✅ 출근:', checkedInToday, '명');
+    console.log('  ⚠️ 미퇴근:', notCheckedOut, '명');
     
     // 이번 달 급여명세서 상태
     const totalSlips = employeeSlips.length;
@@ -3389,8 +3409,29 @@ const OwnerDashboard = () => {
                       const today = new Date().toISOString().split('T')[0];
                       const todayAttendance = attendance.filter(a => a.date === today);
                       const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
+                      
+                      // 모바일 대시보드 디버깅
+                      console.log('📱 [모바일 대시보드] 출근 통계:');
+                      console.log('  - 오늘:', today);
+                      console.log('  - 전체 출근기록:', attendance.length, '건');
+                      console.log('  - 오늘 출근기록:', todayAttendance.length, '건');
+                      console.log('  - 활성 직원:', activeEmployees.length, '명');
+                      if (attendance.length > 0) {
+                        console.log('  - 첫 번째 출근기록 샘플:', attendance[0]);
+                      }
+                      if (todayAttendance.length > 0) {
+                        console.log('  - 오늘 출근기록 상세:', todayAttendance.map(a => ({
+                          name: a.employee_name,
+                          date: a.date,
+                          checkIn: a.check_in_time
+                        })));
+                      }
+                      
                       const notCheckedOut = todayAttendance.filter(a => a.check_in_time && !a.check_out_time).length;
                       const checkedInToday = todayAttendance.filter(a => a.check_in_time).length;
+                      
+                      console.log('  ✅ 출근:', checkedInToday, '명');
+                      console.log('  ⚠️ 미퇴근:', notCheckedOut, '명');
                       const lateToday = todayAttendance.filter(a => {
                         if (!a.check_in_time || !a.employee_work_start_time) return false;
                         const checkIn = new Date(a.check_in_time);
@@ -3544,8 +3585,29 @@ const OwnerDashboard = () => {
                       const today = new Date().toISOString().split('T')[0];
                       const todayAttendance = attendance.filter(a => a.date === today);
                       const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
+                      
+                      // PC 대시보드 디버깅
+                      console.log('🖥️ [PC 대시보드] 출근 통계:');
+                      console.log('  - 오늘:', today);
+                      console.log('  - 전체 출근기록:', attendance.length, '건');
+                      console.log('  - 오늘 출근기록:', todayAttendance.length, '건');
+                      console.log('  - 활성 직원:', activeEmployees.length, '명');
+                      if (attendance.length > 0) {
+                        console.log('  - 첫 번째 출근기록 샘플:', attendance[0]);
+                      }
+                      if (todayAttendance.length > 0) {
+                        console.log('  - 오늘 출근기록 상세:', todayAttendance.map(a => ({
+                          name: a.employee_name,
+                          date: a.date,
+                          checkIn: a.check_in_time
+                        })));
+                      }
+                      
                       const notCheckedOut = todayAttendance.filter(a => a.check_in_time && !a.check_out_time).length;
                       const checkedInToday = todayAttendance.filter(a => a.check_in_time).length;
+                      
+                      console.log('  ✅ 출근:', checkedInToday, '명');
+                      console.log('  ⚠️ 미퇴근:', notCheckedOut, '명');
                       const lateToday = todayAttendance.filter(a => {
                         if (!a.check_in_time || !a.employee_work_start_time) return false;
                         const checkIn = new Date(a.check_in_time);

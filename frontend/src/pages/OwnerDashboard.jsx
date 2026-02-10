@@ -316,16 +316,24 @@ const OwnerDashboard = () => {
       const today = new Date();
       const todayStr = today.toISOString().split('T')[0];
       
-      // 이번 달
+      // 이번 달 (월 전체 데이터 로드)
       const year = today.getFullYear();
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const currentMonth = `${year}-${month}`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const startDate = `${currentMonth}-01`;
+      const endDate = `${currentMonth}-${String(lastDay).padStart(2, '0')}`;
       
       // 병렬로 데이터 로드
-      await Promise.all([
-        loadEmployees(),
-        loadAttendance(todayStr)
+      const [employeesRes, attendanceRes] = await Promise.all([
+        employeeAPI.getByWorkplace(selectedWorkplace),
+        attendanceAPI.getByWorkplace(selectedWorkplace, { startDate, endDate })
       ]);
+      
+      setEmployees(employeesRes.data);
+      setAttendance(attendanceRes.data);
+      
+      console.log(`✅ 대시보드 데이터 로드 완료: 직원 ${employeesRes.data.length}명, 출근기록 ${attendanceRes.data.length}건`);
     } catch (error) {
       console.error('대시보드 데이터 로드 오류:', error);
     }
@@ -2625,15 +2633,6 @@ const OwnerDashboard = () => {
 
             {/* 탭 메뉴 - 단순화 (PC만) */}
             {!isMobile && <div className="nav-tabs">
-              {/* 설정 메뉴 - 맨 왼쪽 */}
-              <button
-                className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
-                onClick={() => setActiveTab('settings')}
-                style={{ fontSize: '16px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                ⚙️ 설정
-              </button>
-
               <button
                 className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
                 onClick={() => setActiveTab('dashboard')}
@@ -2697,6 +2696,15 @@ const OwnerDashboard = () => {
                 style={{ fontSize: '16px', fontWeight: '700' }}
               >
                 🧮 퇴직금 계산
+              </button>
+
+              {/* 설정 메뉴 - 맨 오른쪽 */}
+              <button
+                className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
+                onClick={() => setActiveTab('settings')}
+                style={{ fontSize: '16px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                ⚙️ 설정
               </button>
             </div>}
 

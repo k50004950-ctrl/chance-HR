@@ -341,7 +341,15 @@ const OwnerDashboard = () => {
 
   const getDashboardStats = () => {
     const today = new Date().toISOString().split('T')[0];
-    const todayAttendance = attendance.filter(a => a.date === today);
+    
+    // 날짜 비교 함수 (date 필드가 다양한 형식일 수 있음)
+    const isSameDate = (dateStr, targetDate) => {
+      if (!dateStr) return false;
+      const dateOnly = dateStr.split('T')[0];
+      return dateOnly === targetDate;
+    };
+    
+    const todayAttendance = attendance.filter(a => isSameDate(a.date, today));
     const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
     
     // 디버깅 로그
@@ -389,7 +397,15 @@ const OwnerDashboard = () => {
   const generateNotifications = () => {
     const newNotifications = [];
     const today = new Date().toISOString().split('T')[0];
-    const todayAttendance = attendance.filter(a => a.date === today);
+    
+    // 날짜 비교 함수 (date 필드가 다양한 형식일 수 있음)
+    const isSameDate = (dateStr, targetDate) => {
+      if (!dateStr) return false;
+      const dateOnly = dateStr.split('T')[0];
+      return dateOnly === targetDate;
+    };
+    
+    const todayAttendance = attendance.filter(a => isSameDate(a.date, today));
     const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
     
     // 1. 미퇴근 직원 (긴급)
@@ -3407,7 +3423,16 @@ const OwnerDashboard = () => {
                   <div>
                     {(() => {
                       const today = new Date().toISOString().split('T')[0];
-                      const todayAttendance = attendance.filter(a => a.date === today);
+                      
+                      // 날짜 비교 함수 (date 필드가 다양한 형식일 수 있음)
+                      const isSameDate = (dateStr, targetDate) => {
+                        if (!dateStr) return false;
+                        // date 필드에서 날짜 부분만 추출 (YYYY-MM-DD)
+                        const dateOnly = dateStr.split('T')[0];
+                        return dateOnly === targetDate;
+                      };
+                      
+                      const todayAttendance = attendance.filter(a => isSameDate(a.date, today));
                       const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
                       
                       // 모바일 대시보드 디버깅
@@ -3583,7 +3608,16 @@ const OwnerDashboard = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
                     {(() => {
                       const today = new Date().toISOString().split('T')[0];
-                      const todayAttendance = attendance.filter(a => a.date === today);
+                      
+                      // 날짜 비교 함수 (date 필드가 다양한 형식일 수 있음)
+                      const isSameDate = (dateStr, targetDate) => {
+                        if (!dateStr) return false;
+                        // date 필드에서 날짜 부분만 추출 (YYYY-MM-DD)
+                        const dateOnly = dateStr.split('T')[0];
+                        return dateOnly === targetDate;
+                      };
+                      
+                      const todayAttendance = attendance.filter(a => isSameDate(a.date, today));
                       const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
                       
                       // PC 대시보드 디버깅

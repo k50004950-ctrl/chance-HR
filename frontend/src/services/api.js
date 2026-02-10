@@ -224,6 +224,21 @@ export const inviteAPI = {
   signupWithInvite: (data) => api.post('/v2/auth/employee/signup-with-invite', data)
 };
 
+// 이메일 인증 API
+export const emailAPI = {
+  sendVerificationCode: (email, purpose) => api.post('/email/send-code', { email, purpose }),
+  verifyCode: (email, code) => api.post('/email/verify-code', { email, code }),
+  checkVerification: (email) => api.post('/email/check-verification', { email }),
+  clearVerification: (email) => api.post('/email/clear-verification', { email })
+};
+
+// 계정 복구 API (이메일 기반)
+export const accountRecoveryAPI = {
+  findUsername: (name, email) => api.post('/account/find-username', { name, email }),
+  verifyForPasswordReset: (username, email) => api.post('/account/verify-for-password-reset', { username, email }),
+  resetPassword: (token, newPassword) => api.post('/account/reset-password', { token, newPassword })
+};
+
 // V2 API를 위한 직접 axios 인스턴스 export
 export const apiClient = api;
 

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PhoneVerification from '../components/PhoneVerification';
+import EmailVerification from '../components/EmailVerification';
 import api from '../services/api';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1: 인증, 2: 비밀번호 재설정
   const [username, setUsername] = useState('');
-  const [phone, setPhone] = useState('');
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetToken, setResetToken] = useState('');
@@ -17,9 +17,9 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handlePhoneVerified = (verifiedPhone) => {
-    setIsPhoneVerified(true);
-    setPhone(verifiedPhone);
+  const handleEmailVerified = (verifiedEmail) => {
+    setIsEmailVerified(true);
+    setEmail(verifiedEmail);
   };
 
   const handleVerifyAccount = async (e) => {
@@ -31,8 +31,8 @@ const ResetPassword = () => {
       return;
     }
 
-    if (!isPhoneVerified) {
-      setError('전화번호 인증을 완료해주세요.');
+    if (!isEmailVerified) {
+      setError('이메일 인증을 완료해주세요.');
       return;
     }
 
@@ -40,7 +40,7 @@ const ResetPassword = () => {
     try {
       const response = await api.post('/account/verify-reset-password', {
         username,
-        phone
+        email
       });
 
       setResetToken(response.data.resetToken);
@@ -134,10 +134,10 @@ const ResetPassword = () => {
               />
             </div>
 
-            <PhoneVerification
+            <EmailVerification
               purpose="reset-password"
-              onVerified={handlePhoneVerified}
-              onPhoneChange={setPhone}
+              onVerified={handleEmailVerified}
+              onEmailChange={setEmail}
             />
 
             {error && (

@@ -4,21 +4,21 @@ import { query, run } from '../config/database.js';
 
 const router = express.Router();
 
-// 아이디 찾기 (이름 + 전화번호)
+// 아이디 찾기 (이름 + 이메일)
 router.post('/find-username', async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const { name, email } = req.body;
 
-    if (!name || !phone) {
-      return res.status(400).json({ error: '이름과 전화번호를 입력해주세요.' });
+    if (!name || !email) {
+      return res.status(400).json({ error: '이름과 이메일을 입력해주세요.' });
     }
 
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const lowerEmail = email.toLowerCase().trim();
 
     // 사용자 조회
     const users = await query(
-      'SELECT username, created_at, role FROM users WHERE name = ? AND phone = ?',
-      [name, cleanPhone]
+      'SELECT username, created_at, role FROM users WHERE name = ? AND email = ?',
+      [name, lowerEmail]
     );
 
     if (users.length === 0) {
@@ -57,18 +57,18 @@ router.post('/find-username', async (req, res) => {
 // 비밀번호 재설정 - 인증 확인
 router.post('/verify-reset-password', async (req, res) => {
   try {
-    const { username, phone } = req.body;
+    const { username, email } = req.body;
 
-    if (!username || !phone) {
-      return res.status(400).json({ error: '아이디와 전화번호를 입력해주세요.' });
+    if (!username || !email) {
+      return res.status(400).json({ error: '아이디와 이메일을 입력해주세요.' });
     }
 
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const lowerEmail = email.toLowerCase().trim();
 
     // 사용자 확인
     const users = await query(
-      'SELECT id, username, name FROM users WHERE username = ? AND phone = ?',
-      [username, cleanPhone]
+      'SELECT id, username, name FROM users WHERE username = ? AND email = ?',
+      [username, lowerEmail]
     );
 
     if (users.length === 0) {

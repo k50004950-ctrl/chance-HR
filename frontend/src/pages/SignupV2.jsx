@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '../services/api';
 import Toast from '../components/Toast';
 import Footer from '../components/Footer';
-import PhoneVerification from '../components/PhoneVerification';
+import EmailVerification from '../components/EmailVerification';
 
 function SignupV2() {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ function SignupV2() {
   });
 
   const [errors, setErrors] = useState({});
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -72,8 +72,8 @@ function SignupV2() {
       newErrors.phone = '올바른 전화번호 형식이 아닙니다.';
     }
 
-    if (!isPhoneVerified) {
-      newErrors.phone = '전화번호 인증을 완료해주세요.';
+    if (!isEmailVerified) {
+      newErrors.email = '이메일 인증을 완료해주세요.';
     }
 
     if (formData.role === 'owner' && !formData.business_number.trim()) {
@@ -333,18 +333,18 @@ function SignupV2() {
             {errors.name && <p style={{ color: '#f44336', fontSize: '12px', marginTop: '4px' }}>{errors.name}</p>}
           </div>
 
-          {/* 전화번호 인증 */}
-          <PhoneVerification
+          {/* 이메일 인증 */}
+          <EmailVerification
             purpose="signup"
-            onVerified={(verifiedPhone) => {
-              setIsPhoneVerified(true);
-              setFormData(prev => ({ ...prev, phone: verifiedPhone }));
+            onVerified={(verifiedEmail) => {
+              setIsEmailVerified(true);
+              setFormData(prev => ({ ...prev, email: verifiedEmail }));
             }}
-            onPhoneChange={(phone) => {
-              setFormData(prev => ({ ...prev, phone }));
+            onEmailChange={(email) => {
+              setFormData(prev => ({ ...prev, email }));
             }}
           />
-          {errors.phone && <p style={{ color: '#f44336', fontSize: '12px', marginTop: '-10px', marginBottom: '10px' }}>{errors.phone}</p>}
+          {errors.email && <p style={{ color: '#f44336', fontSize: '12px', marginTop: '-10px', marginBottom: '10px' }}>{errors.email}</p>}
 
           {/* 전화번호 (숨김 - PhoneVerification으로 대체) */}
           <div style={{ display: 'none', marginBottom: '20px' }}>

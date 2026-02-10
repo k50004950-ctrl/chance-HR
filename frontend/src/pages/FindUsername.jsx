@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PhoneVerification from '../components/PhoneVerification';
+import EmailVerification from '../components/EmailVerification';
 import api from '../services/api';
 
 const FindUsername = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [foundUsers, setFoundUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handlePhoneVerified = (verifiedPhone) => {
-    setIsPhoneVerified(true);
-    setPhone(verifiedPhone);
+  const handleEmailVerified = (verifiedEmail) => {
+    setIsEmailVerified(true);
+    setEmail(verifiedEmail);
   };
 
   const handleFindUsername = async (e) => {
@@ -26,8 +26,8 @@ const FindUsername = () => {
       return;
     }
 
-    if (!isPhoneVerified) {
-      setError('전화번호 인증을 완료해주세요.');
+    if (!isEmailVerified) {
+      setError('이메일 인증을 완료해주세요.');
       return;
     }
 
@@ -35,7 +35,7 @@ const FindUsername = () => {
     try {
       const response = await api.post('/account/find-username', {
         name,
-        phone
+        email
       });
 
       setFoundUsers(response.data.users);
@@ -94,10 +94,10 @@ const FindUsername = () => {
               />
             </div>
 
-            <PhoneVerification
+            <EmailVerification
               purpose="find-id"
-              onVerified={handlePhoneVerified}
-              onPhoneChange={setPhone}
+              onVerified={handleEmailVerified}
+              onEmailChange={setEmail}
             />
 
             {error && (

@@ -175,6 +175,12 @@ const OwnerDashboard = () => {
   const [showCommunityModal, setShowCommunityModal] = useState(false);
   const [communityModalType, setCommunityModalType] = useState('create'); // create, edit, view
   const [communityFormData, setCommunityFormData] = useState({ id: null, title: '', content: '' });
+  const [selectedPost, setSelectedPost] = useState(null); // 상세보기 선택된 게시글
+  const [postComments, setPostComments] = useState([]); // 게시글 댓글 목록
+  const [newComment, setNewComment] = useState(''); // 새 댓글 입력
+  const [editingCommentId, setEditingCommentId] = useState(null); // 수정 중인 댓글 ID
+  const [editingCommentContent, setEditingCommentContent] = useState(''); // 수정 중인 댓글 내용
+  const [postLiked, setPostLiked] = useState(false); // 현재 게시글 추천 여부
   
   const uploadBaseUrl =
     import.meta.env.VITE_API_URL?.replace('/api', '') ||
@@ -1924,12 +1930,129 @@ const OwnerDashboard = () => {
 
   const openCommunityModal = (type, post = null) => {
     setCommunityModalType(type);
-    if (post) {
-      setCommunityFormData({ id: post.id, title: post.title, content: post.content });
-    } else {
+    if (type === 'create') {
       setCommunityFormData({ id: null, title: '', content: '' });
+      setShowCommunityModal(true);
+    } else if (type === 'edit' && post) {
+      setCommunityFormData({ id: post.id, title: post.title, content: post.content });
+      setShowCommunityModal(true);
+    } else if (type === 'view' && post) {
+      // 상세보기는 별도 함수로 처리
+      openPostDetail(post.id);
     }
-    setShowCommunityModal(true);
+  };
+
+  // 게시글 상세보기
+  const openPostDetail = async (postId) => {
+    try {
+      setCommunityLoading(true);
+      // 게시글 상세 정보 가져오기 (조회수 증가)
+      const postResponse = await communityAPI.getPost(postId);
+      setSelectedPost(postResponse.data);
+      
+      // 댓글 목록 가져오기
+      const commentsResponse = await communityAPI.getComments(postId);
+      setPostComments(commentsResponse.data);
+      
+      // 추천 상태 가져오기
+      const likeResponse = await communityAPI.getLikeStatus(postId);
+      setPostLiked(likeResponse.data.liked);
+      
+      setShowCommunityModal(true);
+      setCommunityModalType('view');
+    } catch (error) {
+      console.error('게시글 상세 조회 오류:', error);
+      setMessage({ type: 'error', text: '게시글을 불러오는데 실패했습니다.' });
+    } finally {
+      setCommunityLoading(false);
+    }
+  };
+
+  // 게시글 추천 토글
+  const handleToggleLike = async () => {
+    if (!selectedPost) return;
+    
+    try {
+      const response = await communityAPI.toggleLike(selectedPost.id);
+      setPostLiked(response.data.liked);
+      setSelectedPost({ ...selectedPost, like_count: response.data.like_count });
+      // 목록도 업데이트
+      setCommunityPosts(communityPosts.map(post => 
+        post.id === selectedPost.id 
+          ? { ...post, like_count: response.data.like_count }
+          : post
+      ));
+    } catch (error) {
+      console.error('추천 처리 오류:', error);
+      setMessage({ type: 'error', text: '추천 처리에 실패했습니다.' });
+    }
+  };
+
+  // 댓글 작성
+  const handleAddComment = async () => {
+    if (!selectedPost || !newComment.trim()) return;
+    
+    try {
+      setCommunityLoading(true);
+      await communityAPI.createComment(selectedPost.id, { content: newComment });
+      setNewComment('');
+      // 댓글 목록 새로고침
+      const commentsResponse = await communityAPI.getComments(selectedPost.id);
+      setPostComments(commentsResponse.data);
+      // 게시글 정보도 새로고침 (댓글 수 업데이트)
+      const postResponse = await communityAPI.getPost(selectedPost.id);
+      setSelectedPost(postResponse.data);
+      // 목록도 업데이트
+      loadCommunityPosts();
+    } catch (error) {
+      console.error('댓글 작성 오류:', error);
+      setMessage({ type: 'error', text: '댓글 작성에 실패했습니다.' });
+    } finally {
+      setCommunityLoading(false);
+    }
+  };
+
+  // 댓글 수정
+  const handleUpdateComment = async (commentId) => {
+    if (!editingCommentContent.trim()) return;
+    
+    try {
+      setCommunityLoading(true);
+      await communityAPI.updateComment(commentId, { content: editingCommentContent });
+      setEditingCommentId(null);
+      setEditingCommentContent('');
+      // 댓글 목록 새로고침
+      const commentsResponse = await communityAPI.getComments(selectedPost.id);
+      setPostComments(commentsResponse.data);
+    } catch (error) {
+      console.error('댓글 수정 오류:', error);
+      setMessage({ type: 'error', text: '댓글 수정에 실패했습니다.' });
+    } finally {
+      setCommunityLoading(false);
+    }
+  };
+
+  // 댓글 삭제
+  const handleDeleteComment = async (commentId) => {
+    if (!confirm('이 댓글을 삭제하시겠습니까?')) return;
+    
+    try {
+      setCommunityLoading(true);
+      await communityAPI.deleteComment(commentId);
+      // 댓글 목록 새로고침
+      const commentsResponse = await communityAPI.getComments(selectedPost.id);
+      setPostComments(commentsResponse.data);
+      // 게시글 정보도 새로고침 (댓글 수 업데이트)
+      const postResponse = await communityAPI.getPost(selectedPost.id);
+      setSelectedPost(postResponse.data);
+      // 목록도 업데이트
+      loadCommunityPosts();
+    } catch (error) {
+      console.error('댓글 삭제 오류:', error);
+      setMessage({ type: 'error', text: '댓글 삭제에 실패했습니다.' });
+    } finally {
+      setCommunityLoading(false);
+    }
   };
 
   const handleSaveCommunityPost = async (e) => {
@@ -6813,62 +6936,88 @@ const OwnerDashboard = () => {
                     작성된 게시글이 없습니다.
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {communityPosts.map((post) => (
-                      <div
-                        key={post.id}
-                        style={{
-                          padding: '20px',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '8px',
-                          background: '#fff',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.boxShadow = 'none';
-                        }}
-                        onClick={() => openCommunityModal('view', post)}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                          <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>
-                            {post.title}
-                          </h4>
-                          {post.user_id === user.id && (
-                            <div style={{ display: 'flex', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
-                              <button
-                                className="btn btn-secondary"
-                                style={{ padding: '4px 12px', fontSize: '12px' }}
-                                onClick={() => openCommunityModal('edit', post)}
-                              >
-                                수정
-                              </button>
-                              <button
-                                className="btn"
-                                style={{ padding: '4px 12px', fontSize: '12px', background: '#ef4444', color: 'white' }}
-                                onClick={() => handleDeleteCommunityPost(post.id)}
-                              >
-                                삭제
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '12px', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
-                          {post.content.length > 200 ? `${post.content.substring(0, 200)}...` : post.content}
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#9ca3af' }}>
-                          <span>작성자: {post.author_name}</span>
-                          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                            <span>👁️ {post.view_count || 0}</span>
-                            <span>💬 {post.comment_count || 0}</span>
-                            <span>{new Date(post.created_at).toLocaleDateString('ko-KR')} {new Date(post.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
+                          <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>번호</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151', width: '50%' }}>제목</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#374151' }}>작성자</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#374151' }}>조회수</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#374151' }}>댓글</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#374151' }}>추천</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#374151' }}>작성일</th>
+                          {user && <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#374151' }}>관리</th>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {communityPosts.map((post, index) => (
+                          <tr 
+                            key={post.id} 
+                            style={{ 
+                              borderBottom: '1px solid #e5e7eb',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            onClick={() => openCommunityModal('view', post)}
+                          >
+                            <td style={{ padding: '12px 16px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
+                              {communityPosts.length - index}
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'left' }}>
+                              <div style={{ fontSize: '15px', fontWeight: '500', color: '#111827' }}>
+                                {post.title}
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
+                              {post.author_name}
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
+                              👁️ {post.view_count || 0}
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
+                              💬 {post.comment_count || 0}
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
+                              👍 {post.like_count || 0}
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'center', color: '#6b7280', fontSize: '13px' }}>
+                              {new Date(post.created_at).toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' })}
+                            </td>
+                            {user && (
+                              <td style={{ padding: '12px 16px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                {post.user_id === user.id && (
+                                  <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                    <button
+                                      className="btn btn-secondary"
+                                      style={{ padding: '4px 8px', fontSize: '12px' }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openCommunityModal('edit', post);
+                                      }}
+                                    >
+                                      수정
+                                    </button>
+                                    <button
+                                      className="btn"
+                                      style={{ padding: '4px 8px', fontSize: '12px', background: '#ef4444', color: 'white' }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteCommunityPost(post.id);
+                                      }}
+                                    >
+                                      삭제
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>

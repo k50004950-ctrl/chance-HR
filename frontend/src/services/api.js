@@ -212,7 +212,10 @@ export const communityAPI = {
   getComments: (postId) => api.get(`/community/posts/${postId}/comments`),
   createComment: (postId, data) => api.post(`/community/posts/${postId}/comments`, data),
   updateComment: (commentId, data) => api.put(`/community/comments/${commentId}`, data),
-  deleteComment: (commentId) => api.delete(`/community/comments/${commentId}`)
+  deleteComment: (commentId) => api.delete(`/community/comments/${commentId}`),
+  // 추천(좋아요) API
+  toggleLike: (postId) => api.post(`/community/posts/${postId}/like`),
+  getLikeStatus: (postId) => api.get(`/community/posts/${postId}/like-status`)
 };
 
 // 초대 링크 API

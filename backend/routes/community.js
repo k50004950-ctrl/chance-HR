@@ -312,4 +312,72 @@ router.delete('/comments/:id', authenticate, async (req, res) => {
   }
 });
 
+// ==================== 추천(좋아요) API ====================
+
+// 게시글 추천 토글 (추천/취소)
+router.post('/posts/:postId/like', authenticate, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user.id;
+
+    // 게시글 존재 확인
+    const post = await get('SELECT * FROM community_posts WHERE id = ?', [postId]);
+    if (!post) {
+      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+    }
+
+    // 이미 추천했는지 확인
+    const existingLike = await get(
+      'SELECT * FROM community_post_likes WHERE post_id = ? AND user_id = ?',
+      [postId, userId]
+    );
+
+    if (existingLike) {
+      // 이미 추천한 경우 → 추천 취소
+      await run('DELETE FROM community_post_likes WHERE post_id = ? AND user_id = ?', [postId, userId]);
+      await run('UPDATE community_posts SET like_count = like_count - 1 WHERE id = ?', [postId]);
+      
+      res.json({ 
+        message: '추천이 취소되었습니다.',
+        liked: false,
+        like_count: (post.like_count || 0) - 1
+      });
+    } else {
+      // 추천하지 않은 경우 → 추천 추가
+      await run(
+        'INSERT INTO community_post_likes (post_id, user_id) VALUES (?, ?)',
+        [postId, userId]
+      );
+      await run('UPDATE community_posts SET like_count = like_count + 1 WHERE id = ?', [postId]);
+      
+      res.json({ 
+        message: '추천했습니다.',
+        liked: true,
+        like_count: (post.like_count || 0) + 1
+      });
+    }
+  } catch (error) {
+    console.error('게시글 추천 오류:', error);
+    res.status(500).json({ message: '추천 처리에 실패했습니다.' });
+  }
+});
+
+// 게시글 추천 상태 확인
+router.get('/posts/:postId/like-status', authenticate, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user.id;
+
+    const like = await get(
+      'SELECT * FROM community_post_likes WHERE post_id = ? AND user_id = ?',
+      [postId, userId]
+    );
+
+    res.json({ liked: !!like });
+  } catch (error) {
+    console.error('추천 상태 확인 오류:', error);
+    res.status(500).json({ message: '추천 상태 확인에 실패했습니다.' });
+  }
+});
+
 export default router;

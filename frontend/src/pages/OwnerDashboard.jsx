@@ -2682,6 +2682,35 @@ const OwnerDashboard = () => {
                     </div>
                   </div>
 
+                  {/* 중요 안내 */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                    border: '2px solid #f59e0b',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '16px'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      marginBottom: '8px'
+                    }}>
+                      <span style={{ fontSize: '24px' }}>⚠️</span>
+                      <strong style={{ fontSize: '18px', color: '#92400e' }}>
+                        사업장 위치에서 등록하세요!
+                      </strong>
+                    </div>
+                    <p style={{ 
+                      margin: 0, 
+                      color: '#78350f', 
+                      fontSize: '14px',
+                      lineHeight: '1.6'
+                    }}>
+                      정확한 출퇴근 인증을 위해 <strong>실제 사업장이 있는 장소</strong>에서 "현재 위치로 설정" 버튼을 눌러주세요.
+                    </p>
+                  </div>
+
                   {/* 현재 위치로 설정 버튼 */}
                   <div className="form-group">
                     <button

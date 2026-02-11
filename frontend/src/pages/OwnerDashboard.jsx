@@ -2682,6 +2682,92 @@ const OwnerDashboard = () => {
                     </div>
                   </div>
 
+                  {/* 현재 위치로 설정 버튼 */}
+                  <div className="form-group">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={async () => {
+                        try {
+                          setWorkplaceSearchLoading(true);
+                          console.log('📍 현재 위치 가져오기 시작...');
+                          
+                          if (!navigator.geolocation) {
+                            setToast({ show: true, message: '이 브라우저는 위치 서비스를 지원하지 않습니다.', type: 'error' });
+                            return;
+                          }
+
+                          navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                              const lat = position.coords.latitude.toFixed(6);
+                              const lng = position.coords.longitude.toFixed(6);
+                              console.log('✅ 현재 위치:', lat, lng);
+                              
+                              setWorkplaceForm(prev => ({
+                                ...prev,
+                                latitude: lat,
+                                longitude: lng
+                              }));
+                              
+                              setToast({ 
+                                show: true, 
+                                message: `현재 위치로 설정되었습니다. (위도: ${lat}, 경도: ${lng})`, 
+                                type: 'success' 
+                              });
+                              setWorkplaceSearchLoading(false);
+                            },
+                            (error) => {
+                              console.error('❌ 위치 가져오기 실패:', error);
+                              let errorMsg = '위치를 가져올 수 없습니다.';
+                              
+                              switch (error.code) {
+                                case error.PERMISSION_DENIED:
+                                  errorMsg = '위치 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.';
+                                  break;
+                                case error.POSITION_UNAVAILABLE:
+                                  errorMsg = '위치 정보를 사용할 수 없습니다.';
+                                  break;
+                                case error.TIMEOUT:
+                                  errorMsg = '위치 요청 시간이 초과되었습니다.';
+                                  break;
+                              }
+                              
+                              setToast({ show: true, message: errorMsg, type: 'error' });
+                              setWorkplaceSearchLoading(false);
+                            },
+                            {
+                              enableHighAccuracy: true,
+                              timeout: 10000,
+                              maximumAge: 0
+                            }
+                          );
+                        } catch (error) {
+                          console.error('❌ 현재 위치 오류:', error);
+                          setToast({ show: true, message: '현재 위치를 가져오는 중 오류가 발생했습니다.', type: 'error' });
+                          setWorkplaceSearchLoading(false);
+                        }
+                      }}
+                      disabled={workplaceSearchLoading}
+                      style={{ 
+                        width: '100%',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        color: 'white',
+                        padding: '14px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      📍 {workplaceSearchLoading ? '위치 가져오는 중...' : '현재 위치로 설정'}
+                    </button>
+                    <small style={{ color: '#6b7280', marginTop: '8px', display: 'block', textAlign: 'center' }}>
+                      주소 검색 후 좌표가 자동 입력되지 않으면 이 버튼을 클릭하세요
+                    </small>
+                  </div>
+
                   {/* 지도에서 위치 선택 */}
                   {workplaceForm.address && workplaceForm.latitude && workplaceForm.longitude && (
                     <div className="form-group">

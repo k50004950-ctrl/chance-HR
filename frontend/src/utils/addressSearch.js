@@ -61,6 +61,8 @@ export const ensureKakaoMapsLoaded = () => {
     script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&libraries=services&autoload=false`;
     script.async = true;
     
+    let resolved = false;
+    
     script.onload = () => {
       console.log('✅ Kakao Maps 스크립트 로드 완료');
       
@@ -69,32 +71,43 @@ export const ensureKakaoMapsLoaded = () => {
         window.kakao.maps.load(() => {
           if (window.kakao.maps.services) {
             console.log('✅ Kakao Maps 서비스 로드 완료');
+            resolved = true;
             resolve();
           } else {
             console.error('❌ Kakao Maps 서비스 로드 실패');
-            reject(new Error('Kakao 지도 서비스를 로드할 수 없습니다.'));
+            if (!resolved) {
+              resolved = true;
+              reject(new Error('Kakao 지도 서비스를 로드할 수 없습니다.'));
+            }
           }
         });
       } else {
         console.error('❌ Kakao Maps 객체 없음');
-        reject(new Error('Kakao 지도 서비스를 로드할 수 없습니다.'));
+        if (!resolved) {
+          resolved = true;
+          reject(new Error('Kakao 지도 서비스를 로드할 수 없습니다.'));
+        }
       }
     };
     
     script.onerror = (error) => {
       console.error('❌ Kakao Maps 스크립트 로드 오류:', error);
-      reject(new Error('Kakao 지도 스크립트를 로드할 수 없습니다. 네트워크를 확인해주세요.'));
+      if (!resolved) {
+        resolved = true;
+        reject(new Error('Kakao 지도 스크립트를 로드할 수 없습니다. 네트워크를 확인해주세요.'));
+      }
     };
     
     document.head.appendChild(script);
     
-    // 타임아웃 설정 (10초)
+    // 타임아웃 설정 (20초로 증가)
     setTimeout(() => {
-      if (!window.kakao || !window.kakao.maps) {
-        console.error('⏱️ Kakao Maps 로딩 타임아웃');
-        reject(new Error('Kakao 지도 로딩 시간이 초과되었습니다.'));
+      if (!resolved && (!window.kakao || !window.kakao.maps || !window.kakao.maps.services)) {
+        console.error('⏱️ Kakao Maps 로딩 타임아웃 (20초)');
+        resolved = true;
+        reject(new Error('Kakao 지도 로딩 시간이 초과되었습니다. 인터넷 연결을 확인해주세요.'));
       }
-    }, 10000);
+    }, 20000);
   });
 
   return kakaoScriptPromise;
@@ -167,13 +180,14 @@ export const searchAddress = async () => {
               coordinates = await new Promise((resolveCoords) => {
                 console.log('🔍 도로명 주소 검색:', data.roadAddress);
                 const coordTimeout = setTimeout(() => {
-                  console.log('⏱️ 도로명 주소 검색 타임아웃');
+                  console.log('⏱️ 도로명 주소 검색 타임아웃 (10초)');
                   resolveCoords(null);
-                }, 5000);
+                }, 10000); // 5초 → 10초로 증가
                 
                 try {
                   geocoder.addressSearch(data.roadAddress, (result, status) => {
                     clearTimeout(coordTimeout);
+                    console.log('📍 도로명 주소 검색 콜백 실행 - status:', status, 'result:', result);
                     if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
                       console.log('✅ 도로명 주소 검색 성공:', result[0]);
                       resolveCoords({
@@ -200,13 +214,14 @@ export const searchAddress = async () => {
               coordinates = await new Promise((resolveCoords) => {
                 console.log('🔍 지번 주소 검색:', data.jibunAddress);
                 const coordTimeout = setTimeout(() => {
-                  console.log('⏱️ 지번 주소 검색 타임아웃');
+                  console.log('⏱️ 지번 주소 검색 타임아웃 (10초)');
                   resolveCoords(null);
-                }, 5000);
+                }, 10000); // 5초 → 10초로 증가
                 
                 try {
                   geocoder.addressSearch(data.jibunAddress, (result, status) => {
                     clearTimeout(coordTimeout);
+                    console.log('📍 지번 주소 검색 콜백 실행 - status:', status, 'result:', result);
                     if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
                       console.log('✅ 지번 주소 검색 성공:', result[0]);
                       resolveCoords({

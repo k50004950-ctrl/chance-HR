@@ -2541,35 +2541,48 @@ const OwnerDashboard = () => {
                         onClick={async () => {
                           try {
                             setWorkplaceSearchLoading(true);
+                            console.log('🔍 주소 검색 시작... (input 클릭)');
+                            
                             const result = await searchAddress();
+                            console.log('✅ 주소 검색 결과:', result);
+                            
                             const address = result.address || '';
+                            
+                            // 일단 주소는 무조건 입력
+                            setWorkplaceForm(prev => ({ ...prev, address }));
                             
                             // 주소 검색에서 이미 좌표를 가져온 경우 사용
                             if (result.latitude && result.longitude) {
+                              console.log('✅ 좌표 자동 입력:', result.latitude, result.longitude);
                               setWorkplaceForm(prev => ({
                                 ...prev,
                                 address,
                                 latitude: result.latitude.toFixed(6),
                                 longitude: result.longitude.toFixed(6)
                               }));
+                              setToast({ show: true, message: '주소와 좌표가 자동으로 입력되었습니다.', type: 'success' });
                             } else {
                               // 좌표가 없는 경우에만 주소로 재검색
-                              setWorkplaceForm(prev => ({ ...prev, address }));
+                              console.log('⚠️ 좌표 없음, 재검색 시작...');
                               if (address) {
                                 try {
                                   const coords = await getCoordinatesFromAddress(address);
+                                  console.log('✅ 좌표 재검색 성공:', coords);
                                   setWorkplaceForm(prev => ({
                                     ...prev,
                                     latitude: coords.latitude?.toFixed ? coords.latitude.toFixed(6) : coords.latitude,
                                     longitude: coords.longitude?.toFixed ? coords.longitude.toFixed(6) : coords.longitude
                                   }));
+                                  setToast({ show: true, message: coords.message || '주소와 좌표가 입력되었습니다.', type: coords.success ? 'success' : 'warning' });
                                 } catch (error) {
-                                  setToast({ show: true, message: '주소 좌표 변환에 실패했습니다. 수동으로 입력해주세요.', type: 'error' });
+                                  console.error('❌ 좌표 변환 실패:', error);
+                                  setToast({ show: true, message: '주소가 입력되었습니다. 위도/경도를 수동으로 입력하거나 "현재 위치" 버튼을 사용해주세요.', type: 'warning' });
                                 }
                               }
                             }
                           } catch (error) {
-                            if (error?.message) {
+                            console.error('❌ 주소 검색 오류:', error);
+                            if (error?.message && !error.message.includes('취소')) {
                               setToast({ show: true, message: error.message, type: 'error' });
                             }
                           } finally {

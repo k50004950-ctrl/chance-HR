@@ -54,7 +54,7 @@ const Login = () => {
           fontSize: '28px',
           fontWeight: '700'
         }}>
-          출퇴근 관리 시스템 HR
+          찬스HR
         </h1>
 
         {error && (

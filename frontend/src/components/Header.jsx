@@ -31,7 +31,7 @@ const Header = () => {
       <div className="header">
         <div className="header-content">
           <div className="header-title">
-            📋 출퇴근 관리 시스템 HR
+            📋 찬스HR
           </div>
           
           {/* PC 버전 네비게이션 */}

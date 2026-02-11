@@ -994,12 +994,12 @@ router.post('/owner/create-workplace', async (req, res) => {
       console.log(`✅ 회사 자동 생성 완료: ${name} (company_id: ${companyId})`);
     }
 
-    // 사업장 생성
+    // 사업장 생성 (phone과 business_number는 companies 테이블에 저장됨)
     const result = await run(
       `INSERT INTO workplaces (
-        company_id, owner_id, name, address, phone, latitude, longitude, radius, business_number, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [companyId, ownerId, name, address, phone || '미정', latitude, longitude, radius, business_number]
+        company_id, owner_id, name, address, latitude, longitude, radius, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [companyId, ownerId, name, address, latitude, longitude, radius]
     );
     const workplaceId = result.id || result.lastID; // PostgreSQL은 id, SQLite는 lastID
 

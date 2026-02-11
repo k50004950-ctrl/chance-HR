@@ -1374,8 +1374,18 @@ router.post('/slips/generate/:workplaceId', authenticate, async (req, res) => {
 
       // 급여 정보 조회
       const salaryInfo = await get('SELECT * FROM salary_info WHERE user_id = ?', [employee.id]);
+      
+      // 급여 정보가 없으면 기본값으로 생성
       if (!salaryInfo) {
-        skipped++;
+        console.log(`⚠️ ${employee.name} 급여 정보 없음, 기본값(0원)으로 생성`);
+        await run(
+          `INSERT INTO salary_slips (
+            workplace_id, user_id, payroll_month, pay_date, tax_type,
+            base_pay, total_deductions, net_pay, published
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [workplaceId, employee.id, payrollMonth, payDate, '4대보험', 0, 0, 0, false]
+        );
+        created++;
         continue;
       }
 

@@ -21,9 +21,9 @@ export async function sendVerificationEmail(email, code, purpose) {
   };
 
   const mailOptions = {
-    from: `"찬스 출퇴근 관리" <${process.env.EMAIL_USER}>`,
+    from: `"찬스HR" <${process.env.EMAIL_USER}>`,
     to: email,
-    subject: `[찬스 출퇴근] ${purposeText[purpose]} 인증번호`,
+    subject: `[찬스HR] ${purposeText[purpose]} 인증번호`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -77,7 +77,7 @@ export async function sendVerificationEmail(email, code, purpose) {
       </head>
       <body>
         <div class="container">
-          <div class="logo">🎯 찬스 출퇴근 관리</div>
+          <div class="logo">🎯 찬스HR</div>
           <h2>${purposeText[purpose]} 인증번호</h2>
           <p>아래 인증번호를 입력해주세요.</p>
           

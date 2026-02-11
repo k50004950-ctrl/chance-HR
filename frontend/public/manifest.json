@@ -1,7 +1,7 @@
 {
   "name": "찬스HR",
   "short_name": "찬스HR",
-  "description": "근로자 출퇴근 및 급여 관리 시스템",
+  "description": "찬스HR - 급여 관리 시스템",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#667eea",

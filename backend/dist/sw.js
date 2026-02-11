@@ -118,7 +118,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification('찬스 출퇴근 관리', options)
+    self.registration.showNotification('찬스HR', options)
   );
 });
 

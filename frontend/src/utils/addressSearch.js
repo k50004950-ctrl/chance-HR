@@ -142,68 +142,91 @@ export const searchAddress = async () => {
         // Kakao Maps API로 정확한 좌표 가져오기
         let coordinates = null;
         try {
+          console.log('🗺️ Kakao Maps 로딩 시작...');
           await ensureKakaoMapsLoaded();
+          console.log('✅ Kakao Maps 로드 완료');
+          
           if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
-            // 1차 시도: 건물명 포함 검색 (가장 정확)
-            if (buildingName) {
-              const places = new window.kakao.maps.services.Places();
-              coordinates = await new Promise((resolveCoords) => {
-                const searchQuery = `${fullAddress} ${buildingName}`;
-                console.log('🔍 장소 검색:', searchQuery);
-                places.keywordSearch(searchQuery, (result, status) => {
-                  if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
-                    console.log('✅ 장소 검색 성공:', result[0]);
-                    resolveCoords({
-                      latitude: parseFloat(result[0].y),
-                      longitude: parseFloat(result[0].x),
-                      method: 'places_with_building'
-                    });
-                  } else {
-                    resolveCoords(null);
-                  }
-                });
-              });
-            }
-            
-            // 2차 시도: 도로명 주소로 검색
-            if (!coordinates && data.roadAddress) {
+            // 1차 시도: 도로명 주소로 검색 (가장 정확)
+            if (data.roadAddress) {
               const geocoder = new window.kakao.maps.services.Geocoder();
               coordinates = await new Promise((resolveCoords) => {
                 console.log('🔍 도로명 주소 검색:', data.roadAddress);
-                geocoder.addressSearch(data.roadAddress, (result, status) => {
-                  if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
-                    console.log('✅ 도로명 주소 검색 성공:', result[0]);
-                    resolveCoords({
-                      latitude: parseFloat(result[0].y),
-                      longitude: parseFloat(result[0].x),
-                      method: 'geocoder_road'
-                    });
-                  } else {
-                    resolveCoords(null);
-                  }
-                });
+                try {
+                  geocoder.addressSearch(data.roadAddress, (result, status) => {
+                    if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
+                      console.log('✅ 도로명 주소 검색 성공:', result[0]);
+                      resolveCoords({
+                        latitude: parseFloat(result[0].y),
+                        longitude: parseFloat(result[0].x),
+                        method: 'geocoder_road'
+                      });
+                    } else {
+                      console.log('❌ 도로명 주소 검색 실패:', status);
+                      resolveCoords(null);
+                    }
+                  });
+                } catch (e) {
+                  console.error('❌ Geocoder 오류:', e);
+                  resolveCoords(null);
+                }
               });
             }
             
-            // 3차 시도: 지번 주소로 검색
+            // 2차 시도: 지번 주소로 검색
             if (!coordinates && data.jibunAddress) {
               const geocoder = new window.kakao.maps.services.Geocoder();
               coordinates = await new Promise((resolveCoords) => {
                 console.log('🔍 지번 주소 검색:', data.jibunAddress);
-                geocoder.addressSearch(data.jibunAddress, (result, status) => {
-                  if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
-                    console.log('✅ 지번 주소 검색 성공:', result[0]);
-                    resolveCoords({
-                      latitude: parseFloat(result[0].y),
-                      longitude: parseFloat(result[0].x),
-                      method: 'geocoder_jibun'
-                    });
-                  } else {
-                    resolveCoords(null);
-                  }
-                });
+                try {
+                  geocoder.addressSearch(data.jibunAddress, (result, status) => {
+                    if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
+                      console.log('✅ 지번 주소 검색 성공:', result[0]);
+                      resolveCoords({
+                        latitude: parseFloat(result[0].y),
+                        longitude: parseFloat(result[0].x),
+                        method: 'geocoder_jibun'
+                      });
+                    } else {
+                      console.log('❌ 지번 주소 검색 실패:', status);
+                      resolveCoords(null);
+                    }
+                  });
+                } catch (e) {
+                  console.error('❌ Geocoder 오류:', e);
+                  resolveCoords(null);
+                }
               });
             }
+            
+            // 3차 시도: 건물명 포함 검색
+            if (!coordinates && buildingName) {
+              const places = new window.kakao.maps.services.Places();
+              coordinates = await new Promise((resolveCoords) => {
+                const searchQuery = `${fullAddress} ${buildingName}`;
+                console.log('🔍 장소 검색:', searchQuery);
+                try {
+                  places.keywordSearch(searchQuery, (result, status) => {
+                    if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
+                      console.log('✅ 장소 검색 성공:', result[0]);
+                      resolveCoords({
+                        latitude: parseFloat(result[0].y),
+                        longitude: parseFloat(result[0].x),
+                        method: 'places_with_building'
+                      });
+                    } else {
+                      console.log('❌ 장소 검색 실패:', status);
+                      resolveCoords(null);
+                    }
+                  });
+                } catch (e) {
+                  console.error('❌ Places 오류:', e);
+                  resolveCoords(null);
+                }
+              });
+            }
+          } else {
+            console.error('❌ Kakao Maps 서비스가 로드되지 않았습니다.');
           }
         } catch (error) {
           console.error('❌ 좌표 변환 오류:', error);
@@ -212,7 +235,7 @@ export const searchAddress = async () => {
         if (coordinates) {
           console.log(`✅ 최종 좌표 (${coordinates.method}):`, coordinates);
         } else {
-          console.warn('⚠️ 좌표를 찾을 수 없습니다. 수동 입력이 필요합니다.');
+          console.warn('⚠️ 좌표를 찾을 수 없습니다. 주소는 입력되었으니 수동으로 좌표를 입력해주세요.');
         }
         
         // 모바일 레이어 제거
@@ -249,39 +272,76 @@ export const searchAddress = async () => {
       height: '100%'
     };
 
-    const postcodeInstance = new window.daum.Postcode(postcodeConfig);
-    
-    if (isMobile && layer) {
-      // 모바일: 레이어에 임베드
-      postcodeInstance.embed(layer);
+    try {
+      const postcodeInstance = new window.daum.Postcode(postcodeConfig);
       
-      // 닫기 버튼 추가
-      const closeButton = document.createElement('button');
-      closeButton.innerHTML = '✕ 닫기';
-      closeButton.style.cssText = `
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        z-index: 10001;
-        padding: 12px 20px;
-        background: #667eea;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-      `;
-      closeButton.onclick = () => {
+      if (isMobile && layer) {
+        // 모바일: 레이어 구조 생성
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = `
+          position: relative;
+          width: 100%;
+          height: 100%;
+        `;
+        
+        // 닫기 버튼을 먼저 추가 (상단에 고정)
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '✕';
+        closeButton.style.cssText = `
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          z-index: 10002;
+          width: 44px;
+          height: 44px;
+          padding: 0;
+          background: rgba(0,0,0,0.7);
+          color: white;
+          border: none;
+          border-radius: 50%;
+          font-size: 24px;
+          font-weight: bold;
+          cursor: pointer;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        `;
+        closeButton.onclick = () => {
+          try {
+            document.body.removeChild(layer);
+            document.body.style.overflow = '';
+          } catch (e) {
+            console.error('레이어 제거 오류:', e);
+          }
+          reject(new Error('주소 검색이 취소되었습니다.'));
+        };
+        
+        // 우편번호 검색 컨테이너
+        const postcodeContainer = document.createElement('div');
+        postcodeContainer.id = 'postcode-container';
+        postcodeContainer.style.cssText = `
+          width: 100%;
+          height: 100%;
+        `;
+        
+        wrapper.appendChild(closeButton);
+        wrapper.appendChild(postcodeContainer);
+        layer.appendChild(wrapper);
+        
+        // 레이어에 임베드
+        postcodeInstance.embed(postcodeContainer);
+      } else {
+        // 데스크톱: 팝업
+        postcodeInstance.open();
+      }
+    } catch (error) {
+      console.error('주소 검색 오류:', error);
+      if (isMobile && layer && document.body.contains(layer)) {
         document.body.removeChild(layer);
         document.body.style.overflow = '';
-        reject(new Error('주소 검색이 취소되었습니다.'));
-      };
-      layer.appendChild(closeButton);
-    } else {
-      // 데스크톱: 팝업
-      postcodeInstance.open();
+      }
+      reject(error);
     }
   });
 };

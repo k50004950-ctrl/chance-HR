@@ -110,7 +110,30 @@ export const searchAddress = async () => {
       return;
     }
 
-    new window.daum.Postcode({
+    // 모바일 여부 확인
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 768;
+    
+    // 모바일용 레이어 생성
+    let layer = null;
+    if (isMobile) {
+      layer = document.createElement('div');
+      layer.id = 'daum-postcode-layer';
+      layer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+        z-index: 10000;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+      `;
+      document.body.appendChild(layer);
+      document.body.style.overflow = 'hidden';
+    }
+
+    const postcodeConfig = {
       oncomplete: async function(data) {
         // 도로명 주소 또는 지번 주소 사용
         const fullAddress = data.roadAddress || data.jibunAddress;
@@ -192,6 +215,12 @@ export const searchAddress = async () => {
           console.warn('⚠️ 좌표를 찾을 수 없습니다. 수동 입력이 필요합니다.');
         }
         
+        // 모바일 레이어 제거
+        if (isMobile && layer) {
+          document.body.removeChild(layer);
+          document.body.style.overflow = '';
+        }
+
         resolve({
           address: fullAddress,
           roadAddress: data.roadAddress,
@@ -204,13 +233,56 @@ export const searchAddress = async () => {
         });
       },
       onclose: function(state) {
+        // 모바일 레이어 제거
+        if (isMobile && layer) {
+          document.body.removeChild(layer);
+          document.body.style.overflow = '';
+        }
+        
         if (state === 'COMPLETE_CLOSE') {
           // 정상 완료
         } else {
           reject(new Error('주소 검색이 취소되었습니다.'));
         }
-      }
-    }).open();
+      },
+      width: '100%',
+      height: '100%'
+    };
+
+    const postcodeInstance = new window.daum.Postcode(postcodeConfig);
+    
+    if (isMobile && layer) {
+      // 모바일: 레이어에 임베드
+      postcodeInstance.embed(layer);
+      
+      // 닫기 버튼 추가
+      const closeButton = document.createElement('button');
+      closeButton.innerHTML = '✕ 닫기';
+      closeButton.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 10001;
+        padding: 12px 20px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      `;
+      closeButton.onclick = () => {
+        document.body.removeChild(layer);
+        document.body.style.overflow = '';
+        reject(new Error('주소 검색이 취소되었습니다.'));
+      };
+      layer.appendChild(closeButton);
+    } else {
+      // 데스크톱: 팝업
+      postcodeInstance.open();
+    }
   });
 };
 

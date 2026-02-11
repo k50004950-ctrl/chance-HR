@@ -1831,6 +1831,7 @@ const OwnerDashboard = () => {
         setToast({ message: '✓ 직원 정보가 수정되었습니다.', type: 'success' });
         closeModal();
         loadEmployees();
+        loadAttendance(); // 출퇴근 기록 다시 로드 (지각 판단 업데이트)
         setFormErrors({});
       } else {
         const response = await employeeAPI.create(formDataToSend);
@@ -1838,6 +1839,7 @@ const OwnerDashboard = () => {
         setToast({ message: '✓ 직원이 등록되었습니다.', type: 'success' });
         closeModal();
         loadEmployees();
+        loadAttendance(); // 출퇴근 기록 다시 로드
         setFormErrors({});
       }
     } catch (error) {

@@ -102,7 +102,12 @@ export const ensureKakaoMapsLoaded = () => {
 
 // Daum 우편번호 서비스를 사용한 주소 검색
 export const searchAddress = async () => {
-  await ensureDaumPostcodeLoaded();
+  try {
+    await ensureDaumPostcodeLoaded();
+  } catch (error) {
+    console.error('Daum Postcode 로딩 실패:', error);
+    throw new Error('주소 검색 서비스를 로드할 수 없습니다. 페이지를 새로고침 해주세요.');
+  }
 
   return new Promise((resolve, reject) => {
     if (!window.daum || !window.daum.Postcode) {
@@ -132,6 +137,15 @@ export const searchAddress = async () => {
       document.body.appendChild(layer);
       document.body.style.overflow = 'hidden';
     }
+    
+    // 안전 장치: 30초 타임아웃
+    const timeoutId = setTimeout(() => {
+      if (isMobile && layer && document.body.contains(layer)) {
+        document.body.removeChild(layer);
+        document.body.style.overflow = '';
+      }
+      reject(new Error('주소 검색 시간이 초과되었습니다. 다시 시도해주세요.'));
+    }, 30000);
 
     const postcodeConfig = {
       oncomplete: async function(data) {
@@ -152,8 +166,14 @@ export const searchAddress = async () => {
               const geocoder = new window.kakao.maps.services.Geocoder();
               coordinates = await new Promise((resolveCoords) => {
                 console.log('🔍 도로명 주소 검색:', data.roadAddress);
+                const coordTimeout = setTimeout(() => {
+                  console.log('⏱️ 도로명 주소 검색 타임아웃');
+                  resolveCoords(null);
+                }, 5000);
+                
                 try {
                   geocoder.addressSearch(data.roadAddress, (result, status) => {
+                    clearTimeout(coordTimeout);
                     if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
                       console.log('✅ 도로명 주소 검색 성공:', result[0]);
                       resolveCoords({
@@ -167,6 +187,7 @@ export const searchAddress = async () => {
                     }
                   });
                 } catch (e) {
+                  clearTimeout(coordTimeout);
                   console.error('❌ Geocoder 오류:', e);
                   resolveCoords(null);
                 }
@@ -178,8 +199,14 @@ export const searchAddress = async () => {
               const geocoder = new window.kakao.maps.services.Geocoder();
               coordinates = await new Promise((resolveCoords) => {
                 console.log('🔍 지번 주소 검색:', data.jibunAddress);
+                const coordTimeout = setTimeout(() => {
+                  console.log('⏱️ 지번 주소 검색 타임아웃');
+                  resolveCoords(null);
+                }, 5000);
+                
                 try {
                   geocoder.addressSearch(data.jibunAddress, (result, status) => {
+                    clearTimeout(coordTimeout);
                     if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
                       console.log('✅ 지번 주소 검색 성공:', result[0]);
                       resolveCoords({
@@ -193,6 +220,7 @@ export const searchAddress = async () => {
                     }
                   });
                 } catch (e) {
+                  clearTimeout(coordTimeout);
                   console.error('❌ Geocoder 오류:', e);
                   resolveCoords(null);
                 }
@@ -238,10 +266,17 @@ export const searchAddress = async () => {
           console.warn('⚠️ 좌표를 찾을 수 없습니다. 주소는 입력되었으니 수동으로 좌표를 입력해주세요.');
         }
         
+        // 타임아웃 제거
+        clearTimeout(timeoutId);
+        
         // 모바일 레이어 제거
-        if (isMobile && layer) {
-          document.body.removeChild(layer);
-          document.body.style.overflow = '';
+        if (isMobile && layer && document.body.contains(layer)) {
+          try {
+            document.body.removeChild(layer);
+            document.body.style.overflow = '';
+          } catch (e) {
+            console.error('레이어 제거 오류:', e);
+          }
         }
 
         resolve({
@@ -256,10 +291,17 @@ export const searchAddress = async () => {
         });
       },
       onclose: function(state) {
+        // 타임아웃 제거
+        clearTimeout(timeoutId);
+        
         // 모바일 레이어 제거
-        if (isMobile && layer) {
-          document.body.removeChild(layer);
-          document.body.style.overflow = '';
+        if (isMobile && layer && document.body.contains(layer)) {
+          try {
+            document.body.removeChild(layer);
+            document.body.style.overflow = '';
+          } catch (e) {
+            console.error('레이어 제거 오류:', e);
+          }
         }
         
         if (state === 'COMPLETE_CLOSE') {
@@ -273,9 +315,12 @@ export const searchAddress = async () => {
     };
 
     try {
+      console.log('📍 Daum Postcode 인스턴스 생성 시작...');
       const postcodeInstance = new window.daum.Postcode(postcodeConfig);
+      console.log('✅ Daum Postcode 인스턴스 생성 완료');
       
       if (isMobile && layer) {
+        console.log('📱 모바일 레이어 구조 생성...');
         // 모바일: 레이어 구조 생성
         const wrapper = document.createElement('div');
         wrapper.style.cssText = `
@@ -308,8 +353,11 @@ export const searchAddress = async () => {
           justify-content: center;
         `;
         closeButton.onclick = () => {
+          clearTimeout(timeoutId);
           try {
-            document.body.removeChild(layer);
+            if (document.body.contains(layer)) {
+              document.body.removeChild(layer);
+            }
             document.body.style.overflow = '';
           } catch (e) {
             console.error('레이어 제거 오류:', e);
@@ -330,18 +378,27 @@ export const searchAddress = async () => {
         layer.appendChild(wrapper);
         
         // 레이어에 임베드
+        console.log('🔄 Postcode를 레이어에 임베드 중...');
         postcodeInstance.embed(postcodeContainer);
+        console.log('✅ Postcode 임베드 완료');
       } else {
+        console.log('💻 데스크톱 팝업 열기...');
         // 데스크톱: 팝업
         postcodeInstance.open();
+        console.log('✅ 팝업 열기 완료');
       }
     } catch (error) {
-      console.error('주소 검색 오류:', error);
+      console.error('❌ 주소 검색 오류:', error);
+      clearTimeout(timeoutId);
       if (isMobile && layer && document.body.contains(layer)) {
-        document.body.removeChild(layer);
-        document.body.style.overflow = '';
+        try {
+          document.body.removeChild(layer);
+          document.body.style.overflow = '';
+        } catch (e) {
+          console.error('레이어 정리 오류:', e);
+        }
       }
-      reject(error);
+      reject(new Error('주소 검색 창을 열 수 없습니다: ' + error.message));
     }
   });
 };

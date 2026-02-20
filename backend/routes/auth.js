@@ -7,6 +7,41 @@ import { authenticate, authorizeRole } from '../middleware/auth.js';
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production-2026';
 
+// 사업주: 소속 직원 계정 정보 확인 (이메일/SSN 등록 여부)
+router.get('/owner/check-employee-account', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner' && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+    const { username } = req.query;
+    if (!username) return res.status(400).json({ message: '아이디를 입력해주세요.' });
+
+    const user = await get(
+      `SELECT id, username, name, role, created_at,
+        CASE WHEN email IS NOT NULL AND email != '' THEN true ELSE false END as has_email,
+        CASE WHEN ssn IS NOT NULL AND ssn != '' THEN true ELSE false END as has_ssn
+       FROM users WHERE username = $1`,
+      [username]
+    );
+
+    if (!user) return res.status(404).json({ message: '해당 아이디의 계정을 찾을 수 없습니다.' });
+
+    res.json({
+      username: user.username,
+      name: user.name,
+      role: user.role,
+      created_at: user.created_at,
+      has_email: user.has_email,
+      has_ssn: user.has_ssn,
+      canResetByEmail: user.has_email,
+      canResetBySsn: user.has_ssn
+    });
+  } catch (error) {
+    console.error('계정 확인 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 // 사용자명 중복 확인
 router.get('/username-check', async (req, res) => {
   try {

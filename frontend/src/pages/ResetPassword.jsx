@@ -9,6 +9,7 @@ const ResetPassword = () => {
   const [method, setMethod] = useState('email'); // 'email' | 'name'
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
+  const [ssnLast7, setSsnLast7] = useState('');
   const [email, setEmail] = useState('');
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -33,9 +34,12 @@ const ResetPassword = () => {
       return;
     }
 
-    if (method === 'name' && !name.trim()) {
-      setError('이름을 입력해주세요.');
-      return;
+    if (method === 'name') {
+      if (!name.trim()) { setError('이름을 입력해주세요.'); return; }
+      if (!ssnLast7 || ssnLast7.replace(/-/g,'').length !== 7) {
+        setError('주민등록번호 뒤 7자리를 입력해주세요.');
+        return;
+      }
     }
 
     setLoading(true);
@@ -44,7 +48,7 @@ const ResetPassword = () => {
       if (method === 'email') {
         response = await api.post('/account/verify-reset-password', { username, email });
       } else {
-        response = await api.post('/account/verify-reset-by-name', { username, name });
+        response = await api.post('/account/verify-reset-by-name', { username, name, ssnLast7 });
       }
 
       setResetToken(response.data.resetToken);
@@ -177,7 +181,7 @@ const ResetPassword = () => {
               />
             )}
 
-            {/* 이름 인증 방법 */}
+            {/* 이름 + 주민번호 인증 방법 */}
             {method === 'name' && (
               <>
                 <div style={{ marginBottom: '16px' }}>
@@ -190,6 +194,23 @@ const ResetPassword = () => {
                     style={inputStyle}
                   />
                 </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={labelStyle}>주민등록번호 뒤 7자리 <span style={{ color: 'red' }}>*</span></label>
+                  <input
+                    type="password"
+                    value={ssnLast7}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 7);
+                      setSsnLast7(v);
+                    }}
+                    placeholder="예: 1234567"
+                    maxLength={7}
+                    style={inputStyle}
+                  />
+                  <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                    주민등록번호 뒤 7자리 (숫자만 입력)
+                  </small>
+                </div>
                 <div style={{
                   padding: '12px 14px',
                   background: '#fffbeb',
@@ -199,7 +220,7 @@ const ResetPassword = () => {
                   fontSize: '13px',
                   color: '#92400e'
                 }}>
-                  ⚠️ 아이디와 가입 시 등록한 <strong>실명</strong>이 일치해야 합니다.
+                  🔒 아이디 + 이름 + 주민등록번호로 본인 확인 후 재설정됩니다.
                 </div>
               </>
             )}

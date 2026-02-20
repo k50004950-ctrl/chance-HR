@@ -54,17 +54,23 @@ router.post('/find-username', async (req, res) => {
   }
 });
 
-// 비밀번호 재설정 - 이름으로 인증 (이메일 없는 경우 대안)
+// 비밀번호 재설정 - 이름 + 주민등록번호 뒤 7자리 인증 (이메일 없는 경우 대안)
 router.post('/verify-reset-by-name', async (req, res) => {
   try {
-    const { username, name } = req.body;
+    const { username, name, ssnLast7 } = req.body;
 
-    if (!username || !name) {
-      return res.status(400).json({ error: '아이디와 이름을 입력해주세요.' });
+    if (!username || !name || !ssnLast7) {
+      return res.status(400).json({ error: '아이디, 이름, 주민등록번호 뒤 7자리를 모두 입력해주세요.' });
     }
 
+    // 주민등록번호 뒤 7자리 형식 검증
+    if (!/^\d{7}$/.test(ssnLast7.replace(/-/g, ''))) {
+      return res.status(400).json({ error: '주민등록번호 뒤 7자리를 정확히 입력해주세요.' });
+    }
+
+    // 아이디 + 이름으로 계정 조회
     const users = await query(
-      'SELECT id, username, name FROM users WHERE username = ? AND name = ?',
+      'SELECT id, username, name, ssn FROM users WHERE username = ? AND name = ?',
       [username.trim(), name.trim()]
     );
 
@@ -73,6 +79,20 @@ router.post('/verify-reset-by-name', async (req, res) => {
     }
 
     const user = users[0];
+
+    // 주민등록번호 확인
+    if (!user.ssn) {
+      return res.status(400).json({ error: '주민등록번호가 등록되지 않은 계정입니다. 관리자에게 문의해주세요.' });
+    }
+
+    const storedSsnClean = user.ssn.replace(/-/g, '');
+    const inputSsnClean = ssnLast7.replace(/-/g, '');
+    const storedLast7 = storedSsnClean.slice(-7);
+
+    if (storedLast7 !== inputSsnClean) {
+      return res.status(400).json({ error: '주민등록번호 뒤 7자리가 일치하지 않습니다.' });
+    }
+
     const resetToken = Buffer.from(`${user.id}:${Date.now()}`).toString('base64');
 
     res.json({
@@ -83,7 +103,7 @@ router.post('/verify-reset-by-name', async (req, res) => {
       name: user.name
     });
   } catch (error) {
-    console.error('이름 인증 오류:', error);
+    console.error('이름+주민번호 인증 오류:', error);
     res.status(500).json({ error: '인증에 실패했습니다.' });
   }
 });

@@ -54,6 +54,40 @@ router.post('/find-username', async (req, res) => {
   }
 });
 
+// 비밀번호 재설정 - 이름으로 인증 (이메일 없는 경우 대안)
+router.post('/verify-reset-by-name', async (req, res) => {
+  try {
+    const { username, name } = req.body;
+
+    if (!username || !name) {
+      return res.status(400).json({ error: '아이디와 이름을 입력해주세요.' });
+    }
+
+    const users = await query(
+      'SELECT id, username, name FROM users WHERE username = ? AND name = ?',
+      [username.trim(), name.trim()]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: '아이디와 이름이 일치하는 계정을 찾을 수 없습니다.' });
+    }
+
+    const user = users[0];
+    const resetToken = Buffer.from(`${user.id}:${Date.now()}`).toString('base64');
+
+    res.json({
+      success: true,
+      resetToken,
+      userId: user.id,
+      username: user.username,
+      name: user.name
+    });
+  } catch (error) {
+    console.error('이름 인증 오류:', error);
+    res.status(500).json({ error: '인증에 실패했습니다.' });
+  }
+});
+
 // 비밀번호 재설정 - 인증 확인
 router.post('/verify-reset-password', async (req, res) => {
   try {

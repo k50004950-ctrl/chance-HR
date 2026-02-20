@@ -637,6 +637,63 @@ router.post('/create-test-workers', authenticate, async (req, res) => {
   }
 });
 
+// 총관리자 전용: 전체 사용자 목록 조회
+router.get('/all-users', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const { search, role: filterRole } = req.query;
+
+    let sql = `
+      SELECT 
+        u.id, u.username, u.name, u.email, u.role, u.created_at,
+        u.approval_status,
+        CASE WHEN u.email IS NOT NULL AND u.email != '' THEN true ELSE false END as has_email,
+        CASE WHEN u.ssn IS NOT NULL AND u.ssn != '' THEN true ELSE false END as has_ssn,
+        w.name as workplace_name
+      FROM users u
+      LEFT JOIN workplaces w ON u.workplace_id = w.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (search) {
+      sql += ` AND (u.username ILIKE $${params.length + 1} OR u.name ILIKE $${params.length + 1} OR u.email ILIKE $${params.length + 1})`;
+      params.push(`%${search}%`);
+    }
+    if (filterRole && filterRole !== 'all') {
+      sql += ` AND u.role = $${params.length + 1}`;
+      params.push(filterRole);
+    }
+    sql += ` ORDER BY u.created_at DESC LIMIT 200`;
+
+    const users = await query(sql, params);
+    res.json({ users, total: users.length });
+  } catch (error) {
+    console.error('사용자 목록 조회 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 총관리자 전용: 사용자 비밀번호 강제 초기화
+router.put('/admin/reset-user-password', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const { userId, newPassword } = req.body;
+    if (!userId || !newPassword) return res.status(400).json({ message: '필수 정보가 누락되었습니다.' });
+    if (newPassword.length < 4) return res.status(400).json({ message: '비밀번호는 4자 이상이어야 합니다.' });
+
+    const user = await get('SELECT id, username FROM users WHERE id = $1', [userId]);
+    if (!user) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await run('UPDATE users SET password = $1 WHERE id = $2', [hashedPassword, userId]);
+
+    console.log(`🔐 관리자 ${req.user.username}이 ${user.username}의 비밀번호를 초기화`);
+    res.json({ message: `${user.username}의 비밀번호가 초기화되었습니다.` });
+  } catch (error) {
+    console.error('비밀번호 초기화 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 // 총관리자 전용: 계정 완전 삭제
 router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {

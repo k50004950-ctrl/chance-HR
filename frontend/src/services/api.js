@@ -52,7 +52,9 @@ export const authAPI = {
   deleteUser: (id) => api.delete(`/auth/delete-user/${id}`),
   changePassword: (data) => api.put('/auth/change-password', data),
   resetPassword: (data) => api.put('/auth/reset-password', data),
-  createTestWorkers: () => api.post('/auth/create-test-workers')
+  createTestWorkers: () => api.post('/auth/create-test-workers'),
+  getAllUsers: (params) => api.get('/auth/all-users', { params }),
+  adminResetUserPassword: (data) => api.put('/auth/admin/reset-user-password', data)
 };
 
 // 사업장 API

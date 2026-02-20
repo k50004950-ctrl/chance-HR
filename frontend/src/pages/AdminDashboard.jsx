@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Header from '../components/Header';
 import { workplaceAPI, authAPI, announcementsAPI, insuranceAPI, communityAPI, ratesMasterAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -55,6 +55,55 @@ const AdminDashboard = () => {
     memo: ''
   });
   const [editingRatesMonth, setEditingRatesMonth] = useState(null);
+
+  // 계정 관리 상태
+  const [allUsers, setAllUsers] = useState([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('all');
+  const [userLoading, setUserLoading] = useState(false);
+  const [resetTargetUser, setResetTargetUser] = useState(null);
+  const [newPwInput, setNewPwInput] = useState('');
+  const [showResetModal, setShowResetModal] = useState(false);
+
+  const loadAllUsers = useCallback(async () => {
+    setUserLoading(true);
+    try {
+      const res = await authAPI.getAllUsers({ search: userSearch, role: userRoleFilter });
+      setAllUsers(res.data.users || []);
+    } catch (e) {
+      console.error('사용자 목록 로드 오류:', e);
+    } finally {
+      setUserLoading(false);
+    }
+  }, [userSearch, userRoleFilter]);
+
+  useEffect(() => {
+    if (activeTab === 'accounts') loadAllUsers();
+  }, [activeTab, loadAllUsers]);
+
+  const handleDeleteUser = async (user) => {
+    if (!window.confirm(`⚠️ [${user.username}] ${user.name} 계정을 완전 삭제하시겠습니까?\n\n모든 출퇴근, 급여 데이터가 함께 삭제됩니다.`)) return;
+    try {
+      await authAPI.deleteUser(user.id);
+      setAllUsers(prev => prev.filter(u => u.id !== user.id));
+      setMessage({ type: 'success', text: `${user.username} 계정이 삭제되었습니다.` });
+    } catch (e) {
+      setMessage({ type: 'error', text: e.response?.data?.message || '삭제에 실패했습니다.' });
+    }
+  };
+
+  const handleResetUserPassword = async () => {
+    if (!newPwInput || newPwInput.length < 4) { alert('비밀번호를 4자 이상 입력해주세요.'); return; }
+    try {
+      await authAPI.adminResetUserPassword({ userId: resetTargetUser.id, newPassword: newPwInput });
+      alert(`${resetTargetUser.username} 비밀번호가 초기화되었습니다.`);
+      setShowResetModal(false);
+      setNewPwInput('');
+      setResetTargetUser(null);
+    } catch (e) {
+      alert(e.response?.data?.message || '초기화에 실패했습니다.');
+    }
+  };
 
   useEffect(() => {
     loadWorkplaces();
@@ -498,6 +547,13 @@ const AdminDashboard = () => {
           </button>
           {isSuperAdmin && (
             <>
+              <button
+                className={`nav-tab ${activeTab === 'accounts' ? 'active' : ''}`}
+                onClick={() => setActiveTab('accounts')}
+                style={{ background: activeTab === 'accounts' ? '#dc2626' : '', color: activeTab === 'accounts' ? 'white' : '' }}
+              >
+                👥 계정 관리
+              </button>
               <button
                 className={`nav-tab ${activeTab === 'rates' ? 'active' : ''}`}
                 onClick={() => setActiveTab('rates')}
@@ -1581,6 +1637,167 @@ const AdminDashboard = () => {
               <button type="button" className="btn btn-secondary" onClick={closeModal}>
                 닫기
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 계정 관리 탭 */}
+      {activeTab === 'accounts' && isSuperAdmin && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <h3 style={{ color: '#374151', margin: 0 }}>👥 전체 계정 관리</h3>
+            <button className="btn btn-primary" onClick={loadAllUsers} disabled={userLoading}>
+              {userLoading ? '로딩 중...' : '🔄 새로고침'}
+            </button>
+          </div>
+
+          {/* 검색 / 필터 */}
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              placeholder="아이디 / 이름 / 이메일 검색"
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && loadAllUsers()}
+              style={{ flex: 1, minWidth: '200px', padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+            />
+            <select
+              value={userRoleFilter}
+              onChange={(e) => setUserRoleFilter(e.target.value)}
+              style={{ padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+            >
+              <option value="all">전체 역할</option>
+              <option value="employee">근로자</option>
+              <option value="owner">사업주</option>
+              <option value="admin">관리자</option>
+              <option value="super_admin">총관리자</option>
+            </select>
+            <button className="btn btn-primary" onClick={loadAllUsers}>검색</button>
+          </div>
+
+          {/* 통계 요약 */}
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            {[
+              { label: '전체', count: allUsers.length, color: '#6366f1' },
+              { label: '근로자', count: allUsers.filter(u => u.role === 'employee').length, color: '#10b981' },
+              { label: '사업주', count: allUsers.filter(u => u.role === 'owner').length, color: '#f59e0b' },
+              { label: '이메일 미등록', count: allUsers.filter(u => !u.has_email).length, color: '#ef4444' },
+            ].map(({ label, count, color }) => (
+              <div key={label} style={{ padding: '10px 16px', background: '#f9fafb', border: `2px solid ${color}20`, borderRadius: '8px', textAlign: 'center', minWidth: '80px' }}>
+                <div style={{ fontSize: '20px', fontWeight: '700', color }}>{count}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* 사용자 목록 테이블 */}
+          {userLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>로딩 중...</div>
+          ) : allUsers.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>검색 결과가 없습니다.</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#f3f4f6' }}>
+                    {['ID', '아이디', '이름', '역할', '소속 사업장', '이메일', '주민번호', '가입일', '관리'].map(h => (
+                      <th key={h} style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap', fontWeight: '600', color: '#374151' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {allUsers.map((u) => (
+                    <tr key={u.id} style={{ borderBottom: '1px solid #f3f4f6' }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <td style={{ padding: '10px 12px', color: '#9ca3af', fontSize: '12px' }}>{u.id}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: '600' }}>{u.username}</td>
+                      <td style={{ padding: '10px 12px' }}>{u.name}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <span style={{
+                          padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600',
+                          background: u.role === 'owner' ? '#fef3c7' : u.role === 'employee' ? '#d1fae5' : u.role === 'super_admin' ? '#fee2e2' : '#ede9fe',
+                          color: u.role === 'owner' ? '#92400e' : u.role === 'employee' ? '#065f46' : u.role === 'super_admin' ? '#991b1b' : '#5b21b6'
+                        }}>
+                          {u.role === 'owner' ? '사업주' : u.role === 'employee' ? '근로자' : u.role === 'super_admin' ? '총관리자' : '관리자'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 12px', color: '#6b7280', fontSize: '12px' }}>{u.workplace_name || '-'}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        {u.has_email
+                          ? <span style={{ color: '#10b981', fontSize: '12px' }}>✅ 등록됨</span>
+                          : <span style={{ color: '#ef4444', fontSize: '12px' }}>❌ 미등록</span>}
+                      </td>
+                      <td style={{ padding: '10px 12px' }}>
+                        {u.has_ssn
+                          ? <span style={{ color: '#10b981', fontSize: '12px' }}>✅ 등록됨</span>
+                          : <span style={{ color: '#9ca3af', fontSize: '12px' }}>-</span>}
+                      </td>
+                      <td style={{ padding: '10px 12px', color: '#6b7280', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                        {u.created_at ? new Date(u.created_at).toLocaleDateString('ko-KR') : '-'}
+                      </td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            onClick={() => { setResetTargetUser(u); setNewPwInput(''); setShowResetModal(true); }}
+                            style={{ padding: '5px 10px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}
+                          >
+                            🔑 비번초기화
+                          </button>
+                          {u.role !== 'super_admin' && (
+                            <button
+                              onClick={() => handleDeleteUser(u)}
+                              style={{ padding: '5px 10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
+                            >
+                              🗑️ 삭제
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 비밀번호 초기화 모달 */}
+      {showResetModal && resetTargetUser && (
+        <div className="modal-overlay" onClick={() => setShowResetModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">🔑 비밀번호 초기화</div>
+            <div style={{ padding: '20px' }}>
+              <div style={{ marginBottom: '16px', padding: '12px', background: '#fef3c7', borderRadius: '8px', fontSize: '14px' }}>
+                <strong>{resetTargetUser.username}</strong> ({resetTargetUser.name})
+                <div style={{ fontSize: '12px', color: '#92400e', marginTop: '4px' }}>
+                  {resetTargetUser.role === 'owner' ? '사업주' : '근로자'} 계정
+                </div>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px' }}>새 비밀번호</label>
+                <input
+                  type="password"
+                  value={newPwInput}
+                  onChange={(e) => setNewPwInput(e.target.value)}
+                  placeholder="4자 이상 입력"
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleResetUserPassword()}
+                  autoFocus
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn btn-secondary" onClick={() => setShowResetModal(false)} style={{ flex: 1 }}>취소</button>
+                <button
+                  onClick={handleResetUserPassword}
+                  style={{ flex: 1, padding: '10px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  초기화
+                </button>
+              </div>
             </div>
           </div>
         </div>

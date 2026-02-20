@@ -1,4 +1,4 @@
-# 🚂 Railway 이메일 설정 상세 가이드
+image.png# 🚂 Railway 이메일 설정 상세 가이드
 
 Railway에 이메일 환경 변수를 등록하는 방법을 단계별로 설명합니다.
 

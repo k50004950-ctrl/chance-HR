@@ -8030,7 +8030,47 @@ const OwnerDashboard = () => {
                     </small>
                   )}
                 </div>
-                {!formData.id && (
+                {formData.id ? (
+                  <div className="form-group">
+                    <label className="form-label">비밀번호 초기화</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="password"
+                        className="form-input"
+                        value={formData._newPassword || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, _newPassword: e.target.value }))}
+                        placeholder="새 비밀번호 입력 (선택)"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ whiteSpace: 'nowrap', background: '#f59e0b', color: 'white', borderColor: '#f59e0b' }}
+                        onClick={async () => {
+                          if (!formData._newPassword || formData._newPassword.length < 4) {
+                            alert('새 비밀번호를 4자 이상 입력해주세요.');
+                            return;
+                          }
+                          if (!window.confirm(`${formData.username} 직원의 비밀번호를 초기화하시겠습니까?`)) return;
+                          try {
+                            const res = await apiClient.put('/auth/owner/reset-employee-password', {
+                              username: formData.username,
+                              newPassword: formData._newPassword
+                            });
+                            alert(res.data.message || '비밀번호가 초기화되었습니다.');
+                            setFormData(prev => ({ ...prev, _newPassword: '' }));
+                          } catch (err) {
+                            alert(err.response?.data?.message || '비밀번호 초기화에 실패했습니다.');
+                          }
+                        }}
+                      >
+                        초기화
+                      </button>
+                    </div>
+                    <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                      비워두면 비밀번호가 변경되지 않습니다.
+                    </small>
+                  </div>
+                ) : (
                   <div className="form-group">
                     <label className="form-label">비밀번호 *</label>
                     <input

@@ -360,6 +360,48 @@ router.put('/change-password', authenticate, async (req, res) => {
   }
 });
 
+// 사업주: 소속 직원 비밀번호 초기화
+router.put('/owner/reset-employee-password', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner' && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const { username, newPassword } = req.body;
+
+    if (!username || !newPassword) {
+      return res.status(400).json({ message: '아이디와 새 비밀번호를 입력해주세요.' });
+    }
+
+    if (newPassword.length < 4) {
+      return res.status(400).json({ message: '새 비밀번호는 최소 4자 이상이어야 합니다.' });
+    }
+
+    // 직원이 사업주의 사업장에 소속되어 있는지 확인
+    const employee = await get(
+      "SELECT id, username, role, workplace_id FROM users WHERE username = ? AND role = 'employee'",
+      [username]
+    );
+
+    if (!employee) {
+      return res.status(404).json({ message: '해당 아이디의 근로자를 찾을 수 없습니다.' });
+    }
+
+    // 사업주 본인 사업장 소속 확인
+    if (req.user.role === 'owner' && employee.workplace_id !== req.user.workplace_id) {
+      return res.status(403).json({ message: '본인 사업장 소속 직원만 초기화할 수 있습니다.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, employee.id]);
+
+    res.json({ message: `${username} 직원의 비밀번호가 초기화되었습니다.` });
+  } catch (error) {
+    console.error('직원 비밀번호 초기화 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 // 관리자 비밀번호 초기화
 router.put('/reset-password', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {

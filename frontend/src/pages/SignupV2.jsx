@@ -11,8 +11,9 @@ function SignupV2() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [loading, setLoading] = useState(false);
 
-  // 로그인 페이지에서 전달받은 역할
-  const role = location.state?.defaultRole || 'employee';
+  // URL 쿼리 파라미터에서 역할 읽기 (?role=owner or ?role=employee)
+  const searchParams = new URLSearchParams(location.search);
+  const role = searchParams.get('role') || location.state?.defaultRole || 'employee';
 
   const isOwner = role === 'owner';
 
@@ -307,7 +308,7 @@ function SignupV2() {
             <p style={{ color: '#888', fontSize: '13px' }}>
               {isOwner ? '근로자로 가입하시려면?' : '사업주로 가입하시려면?'}{' '}
               <span
-                onClick={() => navigate('/signup-v2', { state: { defaultRole: isOwner ? 'employee' : 'owner' } })}
+                onClick={() => navigate(`/signup-v2?role=${isOwner ? 'employee' : 'owner'}`)}
                 style={{ color: '#667eea', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 {isOwner ? '근로자 회원가입' : '사업주 회원가입'}

@@ -244,7 +244,7 @@ function LoginV2() {
           </p>
           <div style={{ display: 'grid', gap: '12px' }}>
             <button
-              onClick={() => navigate('/signup-v2', { state: { defaultRole: 'owner' } })}
+              onClick={() => navigate('/signup-v2?role=owner')}
               style={{
                 width: '100%',
                 padding: '14px',
@@ -274,7 +274,7 @@ function LoginV2() {
               <span>사업주 회원가입</span>
             </button>
             <button
-              onClick={() => navigate('/signup-v2', { state: { defaultRole: 'employee' } })}
+              onClick={() => navigate('/signup-v2?role=employee')}
               style={{
                 width: '100%',
                 padding: '14px',

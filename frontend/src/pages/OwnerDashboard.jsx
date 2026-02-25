@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
+import ChangePassword from '../components/ChangePassword';
+import '../styles/owner-erp.css';
 import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI, pushAPI, announcementsAPI, communityAPI, apiClient } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
@@ -35,6 +37,8 @@ const OwnerDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [showERPChangePassword, setShowERPChangePassword] = useState(false);
   
   // 공용 비즈니스 로직 Hooks
   const salaryCalc = useSalaryCalculation();
@@ -2366,13 +2370,117 @@ const OwnerDashboard = () => {
   };
 
   return (
-    <div>
-      <Header />
-      <div className="container" style={{
+    <div className={!isMobile ? 'erp-root' : ''}>
+      {/* PC: 새 ERP 헤더 + 사이드바 / 모바일: 기존 헤더 */}
+      {!isMobile ? (
+        <>
+          <header className="erp-header">
+            <div className="erp-header-logo">
+              찬스<span style={{ color: '#111827' }}>HR</span>
+            </div>
+            <div className="erp-header-center">
+              {workplaces.length > 0 && (
+                <select
+                  className="erp-workplace-select"
+                  value={selectedWorkplace || ''}
+                  onChange={(e) => setSelectedWorkplace(parseInt(e.target.value))}
+                >
+                  {workplaces.map((wp) => (
+                    <option key={wp.id} value={wp.id}>{wp.name} — {wp.address}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="erp-header-right">
+              <NotificationCenter notifications={notifications} onActionClick={handleNotificationAction} />
+              <button className="erp-user-btn" onClick={() => setUserDropdownOpen(v => !v)}>
+                <div className="avatar">{(user?.name || 'U')[0]}</div>
+                {user?.name || '사용자'}
+                <span style={{ fontSize: '11px', marginLeft: '2px' }}>▾</span>
+              </button>
+              {userDropdownOpen && (
+                <>
+                  <div style={{ position: 'fixed', inset: 0, zIndex: 299 }} onClick={() => setUserDropdownOpen(false)} />
+                  <div className="erp-dropdown">
+                    <button className="erp-dropdown-item" onClick={() => { setUserDropdownOpen(false); navigate('/guide'); }}>
+                      📘 사용방법
+                    </button>
+                    <button className="erp-dropdown-item" onClick={() => { setUserDropdownOpen(false); setShowERPChangePassword(true); }}>
+                      🔐 비밀번호 변경
+                    </button>
+                    <div className="erp-dropdown-divider" />
+                    <button className="erp-dropdown-item danger" onClick={() => { setUserDropdownOpen(false); logout(); }}>
+                      로그아웃
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </header>
+          {/* 사이드바 — 사업장이 선택된 경우에만 표시 */}
+          {selectedWorkplace && (
+            <aside className="erp-sidebar">
+              <div className="erp-sidebar-section">
+                <div className="erp-sidebar-section-label">메인</div>
+                <button className={`erp-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
+                  <span className="erp-nav-icon">🏠</span> 홈
+                </button>
+                <button className={`erp-nav-item ${activeTab === 'attendance' ? 'active' : ''}`} onClick={() => setActiveTab('attendance')}>
+                  <span className="erp-nav-icon">📊</span> 오늘 출근
+                </button>
+                <button className={`erp-nav-item ${activeTab === 'calendar' ? 'active' : ''}`} onClick={() => setActiveTab('calendar')}>
+                  <span className="erp-nav-icon">📅</span> 출근 달력
+                </button>
+              </div>
+              <div className="erp-sidebar-section">
+                <div className="erp-sidebar-section-label">급여</div>
+                <button className={`erp-nav-item ${activeTab === 'salary' ? 'active' : ''}`} onClick={() => setActiveTab('salary')}>
+                  <span className="erp-nav-icon">📋</span> 급여 관리
+                </button>
+                <button className={`erp-nav-item ${activeTab === 'salary-slips' ? 'active' : ''}`} onClick={() => setActiveTab('salary-slips')}>
+                  <span className="erp-nav-icon">📄</span> 급여명세서
+                </button>
+                <button className={`erp-nav-item ${activeTab === 'severance' ? 'active' : ''}`} onClick={() => setActiveTab('severance')}>
+                  <span className="erp-nav-icon">🧮</span> 퇴직금 계산
+                </button>
+              </div>
+              <div className="erp-sidebar-section">
+                <div className="erp-sidebar-section-label">인사</div>
+                <button className={`erp-nav-item ${activeTab === 'roster' ? 'active' : ''}`} onClick={() => setActiveTab('roster')}>
+                  <span className="erp-nav-icon">👥</span> 직원 관리
+                </button>
+                <button className={`erp-nav-item ${activeTab === 'past-employees' ? 'active' : ''}`} onClick={() => setActiveTab('past-employees')}>
+                  <span className="erp-nav-icon">📁</span> 서류 보관함
+                </button>
+              </div>
+              <div className="erp-sidebar-section">
+                <div className="erp-sidebar-section-label">기타</div>
+                <button className={`erp-nav-item ${activeTab === 'matching' ? 'active' : ''}`} onClick={() => setActiveTab('matching')}>
+                  <span className="erp-nav-icon">🔔</span> 매칭 승인
+                </button>
+                <button className={`erp-nav-item ${activeTab === 'community' ? 'active' : ''}`} onClick={() => setActiveTab('community')}>
+                  <span className="erp-nav-icon">💬</span> 소통방
+                </button>
+                <button className={`erp-nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
+                  <span className="erp-nav-icon">⚙️</span> 설정
+                </button>
+              </div>
+            </aside>
+          )}
+          {showERPChangePassword && (
+            <ChangePassword
+              onClose={() => setShowERPChangePassword(false)}
+              onSuccess={() => { alert('비밀번호가 변경되었습니다. 다시 로그인해주세요.'); logout(); }}
+            />
+          )}
+        </>
+      ) : (
+        <Header />
+      )}
+      <div className={!isMobile ? 'erp-main' : 'container'} style={{
         ...(isMobile && {
           padding: '0',
           maxWidth: '100%'
-          // paddingBottom은 CSS에서 처리 (safe-area 포함)
         })
       }}>
         {/* 모바일 헤더 */}
@@ -2451,37 +2559,11 @@ const OwnerDashboard = () => {
               </select>
             )}
           </div>
-        ) : (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <h2 style={{ margin: 0, color: '#374151' }}>사업주 대시보드</h2>
-            <NotificationCenter 
-              notifications={notifications}
-              onActionClick={handleNotificationAction}
-            />
-          </div>
-        )}
+        ) : null}
 
         {message.text && (
           <div className={`alert alert-${message.type}`} style={{ marginBottom: '20px' }}>
             {message.text}
-          </div>
-        )}
-
-        {/* 사업장 선택 (PC만) */}
-        {!isMobile && workplaces.length > 0 && (
-          <div className="card" style={{ marginBottom: '20px' }}>
-            <label className="form-label">사업장 선택</label>
-            <select
-              className="form-select"
-              value={selectedWorkplace || ''}
-              onChange={(e) => setSelectedWorkplace(parseInt(e.target.value))}
-            >
-              {workplaces.map((wp) => (
-                <option key={wp.id} value={wp.id}>
-                  {wp.name} - {wp.address}
-                </option>
-              ))}
-            </select>
           </div>
         )}
 
@@ -2933,82 +3015,7 @@ const OwnerDashboard = () => {
               </div>
             )}
 
-            {/* 탭 메뉴 - 단순화 (PC만) */}
-            {!isMobile && <div className="nav-tabs">
-              <button
-                className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
-                onClick={() => setActiveTab('dashboard')}
-                style={{ fontSize: '16px', fontWeight: '700' }}
-              >
-                🏠 메인
-              </button>
-              <button
-                className={`nav-tab ${activeTab === 'attendance' ? 'active' : ''}`}
-                onClick={() => setActiveTab('attendance')}
-                style={{ fontSize: '16px', fontWeight: '700' }}
-              >
-                📊 오늘 출근
-              </button>
-              <button
-                className={`nav-tab ${activeTab === 'salary' ? 'active' : ''}`}
-                onClick={() => setActiveTab('salary')}
-                style={{ fontSize: '16px', fontWeight: '700' }}
-              >
-                📋 급여명세서 배포
-              </button>
-              <button
-                className={`nav-tab ${activeTab === 'roster' ? 'active' : ''}`}
-                onClick={() => setActiveTab('roster')}
-                style={{ fontSize: '16px', fontWeight: '700' }}
-              >
-                👥 직원 관리
-              </button>
-
-              {/* 급여명세서 메뉴 */}
-              <button
-                className={`nav-tab ${activeTab === 'salary-slips' ? 'active' : ''}`}
-                onClick={() => setActiveTab('salary-slips')}
-                style={{ fontSize: '16px', fontWeight: '700' }}
-              >
-                📄 급여명세서
-              </button>
-
-              {/* 매칭 승인 메뉴 */}
-              <button
-                className={`nav-tab ${activeTab === 'matching' ? 'active' : ''}`}
-                onClick={() => setActiveTab('matching')}
-                style={{ fontSize: '16px', fontWeight: '700' }}
-              >
-                🔔 매칭 승인
-              </button>
-
-              {/* 커뮤니티 메뉴 */}
-              <button
-                className={`nav-tab ${activeTab === 'community' ? 'active' : ''}`}
-                onClick={() => setActiveTab('community')}
-                style={{ fontSize: '16px', fontWeight: '700' }}
-              >
-                💬 소통방
-              </button>
-
-              {/* 퇴직금 계산 메뉴 */}
-              <button
-                className={`nav-tab ${activeTab === 'severance' ? 'active' : ''}`}
-                onClick={() => setActiveTab('severance')}
-                style={{ fontSize: '16px', fontWeight: '700' }}
-              >
-                🧮 퇴직금 계산
-              </button>
-
-              {/* 설정 메뉴 - 맨 오른쪽 */}
-              <button
-                className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
-                onClick={() => setActiveTab('settings')}
-                style={{ fontSize: '16px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                ⚙️ 설정
-              </button>
-            </div>}
+            {/* PC 사이드바 네비게이션으로 대체됨 */}
 
             {activeTab === 'calendar' && (
               <div className="card">
@@ -3134,103 +3141,57 @@ const OwnerDashboard = () => {
                   const employeesWithRisks = employees.filter(emp => getEmployeeRisks(emp).length > 0);
                   const riskCount = employeesWithRisks.length;
 
-                  return (
+                  return !isMobile ? (
+                    <div className="erp-roster-summary">
+                      <div className="erp-roster-summary-title">👥 직원 현황</div>
+                      <div className="erp-roster-stats">
+                        <div className="erp-roster-stat">
+                          <div className="erp-roster-stat-label">전체</div>
+                          <div className="erp-roster-stat-value" style={{ color: '#2563EB' }}>{totalEmployees}</div>
+                        </div>
+                        <div className="erp-roster-stat">
+                          <div className="erp-roster-stat-label">재직</div>
+                          <div className="erp-roster-stat-value" style={{ color: '#10B981' }}>{activeEmployees.length}</div>
+                        </div>
+                        <div className="erp-roster-stat">
+                          <div className="erp-roster-stat-label">휴직</div>
+                          <div className="erp-roster-stat-value">{onLeaveEmployees.length}</div>
+                        </div>
+                        <div className="erp-roster-stat">
+                          <div className="erp-roster-stat-label">퇴사</div>
+                          <div className="erp-roster-stat-value" style={{ color: '#9CA3AF' }}>{resignedEmployees.length}</div>
+                        </div>
+                        <div className={`erp-roster-stat ${riskCount > 0 ? 'risk' : ''}`}>
+                          <div className="erp-roster-stat-label">⚠️ 주의 필요</div>
+                          <div className="erp-roster-stat-value">{riskCount}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
                     <div style={{
                       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                       borderRadius: '16px',
-                      padding: isMobile ? '20px 16px' : '24px 28px',
+                      padding: '20px 16px',
                       marginBottom: '24px',
                       boxShadow: '0 10px 20px rgba(102, 126, 234, 0.2)'
                     }}>
-                      <div style={{
-                        color: 'white',
-                        fontSize: isMobile ? '18px' : '20px',
-                        fontWeight: '700',
-                        marginBottom: '16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}>
-                        <span>👥</span>
-                        <span>직원현황</span>
-                      </div>
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
-                        gap: isMobile ? '12px' : '16px'
-                      }}>
-                        {/* 전체 */}
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.95)',
-                          borderRadius: '12px',
-                          padding: isMobile ? '16px' : '20px',
-                          textAlign: 'center',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-                        }}>
-                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>👤 전체</div>
-                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: '#667eea' }}>
-                            {totalEmployees}
-                          </div>
+                      <div style={{ color: 'white', fontSize: '18px', fontWeight: '700', marginBottom: '16px' }}>👥 직원현황</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                        <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>👤 전체</div>
+                          <div style={{ fontSize: '28px', fontWeight: '700', color: '#667eea' }}>{totalEmployees}</div>
                         </div>
-                        
-                        {/* 재직 */}
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.95)',
-                          borderRadius: '12px',
-                          padding: isMobile ? '16px' : '20px',
-                          textAlign: 'center',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-                        }}>
-                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>✓ 재직</div>
-                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: '#059669' }}>
-                            {activeEmployees.length}
-                          </div>
+                        <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>✓ 재직</div>
+                          <div style={{ fontSize: '28px', fontWeight: '700', color: '#059669' }}>{activeEmployees.length}</div>
                         </div>
-
-                        {/* 휴직 */}
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.95)',
-                          borderRadius: '12px',
-                          padding: isMobile ? '16px' : '20px',
-                          textAlign: 'center',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-                        }}>
-                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>🔵 휴직</div>
-                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: '#3b82f6' }}>
-                            {onLeaveEmployees.length}
-                          </div>
+                        <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>🔵 휴직</div>
+                          <div style={{ fontSize: '28px', fontWeight: '700', color: '#3b82f6' }}>{onLeaveEmployees.length}</div>
                         </div>
-
-                        {/* 퇴사 */}
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.95)',
-                          borderRadius: '12px',
-                          padding: isMobile ? '16px' : '20px',
-                          textAlign: 'center',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-                        }}>
-                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>📦 퇴사</div>
-                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: '#6b7280' }}>
-                            {resignedEmployees.length}
-                          </div>
-                        </div>
-
-                        {/* 주의 필요 - 강조 */}
-                        <div style={{
-                          background: riskCount > 0 ? 'rgba(245, 158, 11, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-                          borderRadius: '12px',
-                          padding: isMobile ? '16px' : '20px',
-                          textAlign: 'center',
-                          boxShadow: riskCount > 0 ? '0 4px 12px rgba(245, 158, 11, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
-                          border: riskCount > 0 ? '2px solid #d97706' : 'none',
-                          gridColumn: isMobile ? 'span 2' : 'span 1'
-                        }}>
-                          <div style={{ fontSize: '12px', color: riskCount > 0 ? '#fff' : '#6b7280', marginBottom: '8px', fontWeight: '600' }}>
-                            ⚠️ 주의 필요
-                          </div>
-                          <div style={{ fontSize: isMobile ? '28px' : '32px', fontWeight: '700', color: riskCount > 0 ? '#fff' : '#6b7280' }}>
-                            {riskCount}
-                          </div>
+                        <div style={{ background: riskCount > 0 ? 'rgba(245,158,11,0.95)' : 'rgba(255,255,255,0.95)', borderRadius: '12px', padding: '16px', textAlign: 'center', gridColumn: 'span 2' }}>
+                          <div style={{ fontSize: '12px', color: riskCount > 0 ? '#fff' : '#6b7280', marginBottom: '8px' }}>⚠️ 주의 필요</div>
+                          <div style={{ fontSize: '28px', fontWeight: '700', color: riskCount > 0 ? '#fff' : '#6b7280' }}>{riskCount}</div>
                         </div>
                       </div>
                     </div>
@@ -3884,45 +3845,19 @@ const OwnerDashboard = () => {
                   </div>
                 )}
 
-                {/* 데스크톱 홈 화면: 3요약 카드 구조 (모바일과 동일) */}
+                {/* 데스크톱 홈 화면: ERP KPI + 요약 카드 */}
                 {!isMobile && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+                  <div>
                     {(() => {
                       const today = new Date().toISOString().split('T')[0];
-                      
-                      // 날짜 비교 함수 (date 필드가 다양한 형식일 수 있음)
                       const isSameDate = (dateStr, targetDate) => {
                         if (!dateStr) return false;
-                        // date 필드에서 날짜 부분만 추출 (YYYY-MM-DD)
-                        const dateOnly = dateStr.split('T')[0];
-                        return dateOnly === targetDate;
+                        return dateStr.split('T')[0] === targetDate;
                       };
-                      
                       const todayAttendance = attendance.filter(a => isSameDate(a.date, today));
                       const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
-                      
-                      // PC 대시보드 디버깅
-                      console.log('🖥️ [PC 대시보드] 출근 통계:');
-                      console.log('  - 오늘:', today);
-                      console.log('  - 전체 출근기록:', attendance.length, '건');
-                      console.log('  - 오늘 출근기록:', todayAttendance.length, '건');
-                      console.log('  - 활성 직원:', activeEmployees.length, '명');
-                      if (attendance.length > 0) {
-                        console.log('  - 첫 번째 출근기록 샘플:', attendance[0]);
-                      }
-                      if (todayAttendance.length > 0) {
-                        console.log('  - 오늘 출근기록 상세:', todayAttendance.map(a => ({
-                          name: a.employee_name,
-                          date: a.date,
-                          checkIn: a.check_in_time
-                        })));
-                      }
-                      
                       const notCheckedOut = todayAttendance.filter(a => a.check_in_time && !a.check_out_time).length;
                       const checkedInToday = todayAttendance.filter(a => a.check_in_time).length;
-                      
-                      console.log('  ✅ 출근:', checkedInToday, '명');
-                      console.log('  ⚠️ 미퇴근:', notCheckedOut, '명');
                       const lateToday = todayAttendance.filter(a => {
                         if (!a.check_in_time || !a.employee_work_start_time) return false;
                         const checkIn = new Date(a.check_in_time);
@@ -3932,197 +3867,115 @@ const OwnerDashboard = () => {
                         return checkIn > workStart;
                       }).length;
                       const notCheckedIn = activeEmployees.length - checkedInToday;
-                      
-                      // 이번 달 급여 현황 데이터
                       const currentMonth = new Date().toISOString().slice(0, 7);
                       const currentMonthSalaryData = salaryData && salaryData.month === currentMonth ? salaryData : null;
-                      
-                      // 급여 계산 (amount 필드 사용, 문자열 -> 숫자 변환)
-                      const totalMonthlyCost = currentMonthSalaryData 
+                      const totalMonthlyCost = currentMonthSalaryData
                         ? currentMonthSalaryData.employees.reduce((sum, emp) => sum + (emp.totalPay || emp.calculatedSalary || 0), 0)
                         : activeEmployees.reduce((sum, emp) => sum + (parseFloat(emp.amount) || 0), 0);
-                      const unconfirmedEmployees = currentMonthSalaryData 
+                      const unconfirmedEmployees = currentMonthSalaryData
                         ? currentMonthSalaryData.employees.filter(emp => !emp.confirmed).length
                         : activeEmployees.length;
-                      
-                      // 급여 현황 디버깅
-                      console.log('💰 [PC] 급여 현황:');
-                      console.log('  - salaryData:', salaryData ? '있음' : '없음');
-                      console.log('  - 활성 직원:', activeEmployees.length, '명');
-                      if (activeEmployees.length > 0) {
-                        console.log('  - 첫 번째 직원 급여 샘플:', {
-                          name: activeEmployees[0].name,
-                          amount: activeEmployees[0].amount,
-                          salary_type: activeEmployees[0].salary_type
-                        });
-                      }
-                      console.log('  - 예상 총 인건비:', totalMonthlyCost.toLocaleString(), '원');
-                      
-                      // 리스크 카운트
                       const riskCount = notifications.length;
                       const urgentRiskCount = notifications.filter(n => n.urgent).length;
-                      
+
                       return (
                         <>
-                          {/* 1. 오늘 출근 상황 카드 */}
-                          <div 
-                            onClick={() => handleTabChange('attendance')} 
-                            style={{ 
-                              cursor: 'pointer',
-                              background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
-                              borderRadius: '16px',
-                              padding: '28px',
-                              border: '1px solid #e5e7eb',
-                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-                              transition: 'all 0.3s',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-4px)';
-                              e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
-                            }}
-                          >
-                            <div style={{ fontSize: '20px', fontWeight: '700', color: '#374151', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span>📊</span>
-                              <span>오늘 출근 상황</span>
+                          {/* 페이지 타이틀 */}
+                          <div style={{ marginBottom: '24px' }}>
+                            <h2 className="erp-page-title">안녕하세요, {user?.name || '사장님'} 대표님</h2>
+                            <p className="erp-page-subtitle">오늘의 출근 현황과 주요 현황을 확인하세요.</p>
+                          </div>
+
+                          {/* KPI 카드 4개 */}
+                          <div className="erp-kpi-grid" onClick={() => handleTabChange('attendance')} style={{ cursor: 'pointer' }}>
+                            <div className="erp-kpi-card" onClick={(e) => { e.stopPropagation(); handleTabChange('attendance'); }}>
+                              <div className="erp-kpi-label">정상 출근</div>
+                              <div className={`erp-kpi-value ${checkedInToday > 0 ? 'blue' : ''}`}>{checkedInToday}명</div>
+                              <div className="erp-kpi-footer">오늘 기준</div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                              <div>
-                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>출근</div>
-                                <div style={{ fontSize: '32px', fontWeight: '700', color: '#059669' }}>{checkedInToday}명</div>
-                              </div>
-                              <div>
-                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>지각</div>
-                                <div style={{ fontSize: '32px', fontWeight: '700', color: '#f59e0b' }}>{lateToday}명</div>
-                              </div>
-                              <div>
-                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>미출근</div>
-                                <div style={{ fontSize: '32px', fontWeight: '700', color: notCheckedIn > 0 ? '#ef4444' : '#6b7280' }}>
-                                  {notCheckedIn}명 {notCheckedIn > 0 && '⚠️'}
-                                </div>
-                              </div>
-                              <div>
-                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>미퇴근</div>
-                                <div style={{ fontSize: '32px', fontWeight: '700', color: notCheckedOut > 0 ? '#ef4444' : '#6b7280' }}>
-                                  {notCheckedOut}명 {notCheckedOut > 0 && '⚠️'}
-                                </div>
-                              </div>
+                            <div className="erp-kpi-card" onClick={(e) => { e.stopPropagation(); handleTabChange('attendance'); }}>
+                              <div className="erp-kpi-label">지각</div>
+                              <div className={`erp-kpi-value ${lateToday > 0 ? 'orange' : ''}`}>{lateToday}명</div>
+                              <div className="erp-kpi-footer">오늘 기준</div>
+                            </div>
+                            <div className="erp-kpi-card" onClick={(e) => { e.stopPropagation(); handleTabChange('attendance'); }}>
+                              <div className="erp-kpi-label">미출근</div>
+                              <div className={`erp-kpi-value ${notCheckedIn > 0 ? 'red' : ''}`}>{notCheckedIn}명</div>
+                              <div className="erp-kpi-footer">재직 {activeEmployees.length}명 중</div>
+                            </div>
+                            <div className="erp-kpi-card" onClick={(e) => { e.stopPropagation(); handleTabChange('attendance'); }}>
+                              <div className="erp-kpi-label">미퇴근</div>
+                              <div className={`erp-kpi-value ${notCheckedOut > 0 ? 'orange' : ''}`}>{notCheckedOut}명</div>
+                              <div className="erp-kpi-footer">퇴근 미처리</div>
                             </div>
                           </div>
-                          
-                          {/* 2. 이번 달 급여 현황 카드 */}
-                          <div 
-                            onClick={() => handleTabChange('salary')}
-                            style={{ 
-                              cursor: 'pointer',
-                              background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
-                              borderRadius: '16px',
-                              padding: '28px',
-                              border: '1px solid #e5e7eb',
-                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-                              transition: 'all 0.3s',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-4px)';
-                              e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
-                            }}
-                          >
-                            <div style={{ fontSize: '20px', fontWeight: '700', color: '#374151', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span>💰</span>
-                              <span>이번 달 급여 현황</span>
-                            </div>
-                            <div>
-                              <div style={{ marginBottom: '16px' }}>
-                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>예상 총 인건비</div>
-                                <div style={{ fontSize: '28px', fontWeight: '700', color: '#667eea' }}>
-                                  {totalMonthlyCost.toLocaleString()}원
-                                </div>
+
+                          {/* 요약 카드 3개 */}
+                          <div className="erp-summary-grid">
+                            {/* 급여 현황 */}
+                            <div className="erp-summary-card" onClick={() => handleTabChange('salary')}>
+                              <div className="erp-summary-card-title">💰 이번 달 급여 현황</div>
+                              <div className="erp-summary-row">
+                                <span className="erp-summary-row-label">예상 총 인건비</span>
+                                <span className="erp-summary-row-value blue">{totalMonthlyCost.toLocaleString()}원</span>
                               </div>
-                              <div>
-                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>미확정 직원</div>
-                                <div style={{ fontSize: '24px', fontWeight: '600', color: unconfirmedEmployees > 0 ? '#f59e0b' : '#6b7280' }}>
-                                  {unconfirmedEmployees}명 {unconfirmedEmployees > 0 && '⚠️'}
-                                </div>
+                              <div className="erp-summary-row">
+                                <span className="erp-summary-row-label">재직 직원</span>
+                                <span className="erp-summary-row-value">{activeEmployees.length}명</span>
+                              </div>
+                              <div className="erp-summary-row">
+                                <span className="erp-summary-row-label">미확정</span>
+                                <span className={`erp-summary-row-value ${unconfirmedEmployees > 0 ? 'orange' : ''}`}>{unconfirmedEmployees}명</span>
                               </div>
                             </div>
-                          </div>
                           
-                          {/* 3. 리스크 센터 카드 */}
-                          <div 
-                            onClick={() => navigate('/notifications')}
-                            style={{ 
-                              cursor: 'pointer',
-                              background: urgentRiskCount > 0 
-                                ? 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)'
-                                : 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
-                              borderRadius: '16px',
-                              padding: '28px',
-                              border: urgentRiskCount > 0 ? '2px solid #fca5a5' : '1px solid #e5e7eb',
-                              boxShadow: urgentRiskCount > 0 ? '0 4px 12px rgba(239, 68, 68, 0.15)' : '0 4px 12px rgba(0, 0, 0, 0.05)',
-                              transition: 'all 0.3s',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-4px)';
-                              e.currentTarget.style.boxShadow = urgentRiskCount > 0 
-                                ? '0 8px 20px rgba(239, 68, 68, 0.25)'
-                                : '0 8px 20px rgba(0, 0, 0, 0.1)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = urgentRiskCount > 0 
-                                ? '0 4px 12px rgba(239, 68, 68, 0.15)'
-                                : '0 4px 12px rgba(0, 0, 0, 0.05)';
-                            }}
-                          >
-                            <div style={{ 
-                              fontSize: '20px', 
-                              fontWeight: '700', 
-                              color: urgentRiskCount > 0 ? '#dc2626' : '#374151', 
-                              marginBottom: '20px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px'
-                            }}>
-                              <span>{urgentRiskCount > 0 ? '🚨' : '📋'}</span>
-                              <span>리스크 센터</span>
-                            </div>
-                            <div>
-                              <div style={{ marginBottom: '16px' }}>
-                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>총 알림</div>
-                                <div style={{ fontSize: '32px', fontWeight: '700', color: '#374151' }}>{riskCount}건</div>
+                            {/* 리스크 센터 카드 */}
+                            <div className="erp-summary-card" onClick={() => navigate('/notifications')}
+                              style={{ borderLeft: urgentRiskCount > 0 ? '3px solid #EF4444' : undefined }}>
+                              <div className="erp-summary-card-title">
+                                {urgentRiskCount > 0 ? '🚨' : '📋'} 리스크 센터
+                              </div>
+                              <div className="erp-summary-row">
+                                <span className="erp-summary-row-label">총 알림</span>
+                                <span className={`erp-summary-row-value ${riskCount > 0 ? 'orange' : ''}`}>{riskCount}건</span>
                               </div>
                               {urgentRiskCount > 0 && (
-                                <div>
-                                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>긴급 알림</div>
-                                  <div style={{ fontSize: '24px', fontWeight: '700', color: '#dc2626' }}>{urgentRiskCount}건 ⚠️</div>
+                                <div className="erp-summary-row">
+                                  <span className="erp-summary-row-label">긴급 알림</span>
+                                  <span className="erp-summary-row-value red">{urgentRiskCount}건</span>
                                 </div>
                               )}
-                              {notifications.slice(0, 3).map((notif, idx) => (
-                                <div key={idx} style={{ 
-                                  display: 'flex', 
-                                  justifyContent: 'space-between', 
-                                  alignItems: 'center',
-                                  marginTop: '8px',
-                                  padding: '8px',
-                                  background: 'rgba(255, 255, 255, 0.5)',
-                                  borderRadius: '8px',
-                                  fontSize: '13px',
-                                  color: '#6b7280'
-                                }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span>{notif.icon}</span>
-                                    <span>{notif.title}</span>
-                                  </div>
-                                  <span style={{ fontSize: '12px' }}>{notif.message}</span>
+                              {notifications.slice(0, 2).map((notif, idx) => (
+                                <div key={idx} className="erp-summary-row">
+                                  <span className="erp-summary-row-label">{notif.icon} {notif.title}</span>
+                                  <span style={{ fontSize: '12px', color: '#9CA3AF' }}>{notif.message}</span>
                                 </div>
                               ))}
+                            </div>
+                            {/* 이번 달 진행 카드 */}
+                            <div className="erp-summary-card">
+                              <div className="erp-summary-card-title">📈 이번 달 진행 현황</div>
+                              <div className="erp-summary-row">
+                                <span className="erp-summary-row-label">급여명세서 발송</span>
+                                <span className="erp-summary-row-value blue">
+                                  {employeeSlips.filter(s => s.published).length} / {employees.filter(e => e.employment_status === 'active').length}명
+                                </span>
+                              </div>
+                              <div className="erp-summary-row">
+                                <span className="erp-summary-row-label">이번 달 출근율</span>
+                                <span className="erp-summary-row-value green">
+                                  {(() => {
+                                    const thisMonth = new Date().toISOString().slice(0, 7);
+                                    const monthAtt = attendance.filter(a => a.date.startsWith(thisMonth));
+                                    const done = monthAtt.filter(a => a.check_in_time && a.check_out_time).length;
+                                    return monthAtt.length > 0 ? `${Math.round(done / monthAtt.length * 100)}%` : '0%';
+                                  })()}
+                                </span>
+                              </div>
+                              <div className="erp-summary-row">
+                                <span className="erp-summary-row-label">재직 직원</span>
+                                <span className="erp-summary-row-value">{activeEmployees.length}명</span>
+                              </div>
                             </div>
                           </div>
                         </>
@@ -4131,153 +3984,43 @@ const OwnerDashboard = () => {
                   </div>
                 )}
 
-                {/* 일반 알림 - 요약 카드 (데스크톱 전용) */}
+                {/* 확인 필요 알림 목록 (데스크톱 전용) */}
                 {!isMobile && notifications.filter(n => !n.urgent).length > 0 && (
-                  <div className="card" style={{ marginTop: '32px' }}>
-                    <h3 style={{ marginBottom: '16px', color: '#374151' }}>📌 확인해주세요</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className="erp-card">
+                    <div className="erp-card-header">
+                      <h3 className="erp-card-title">📌 확인해주세요</h3>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {notifications.filter(n => !n.urgent).map((notif, idx) => (
                         <div
                           key={idx}
-                          style={{
-                            padding: '16px',
-                            background: '#f9fafb',
-                            borderRadius: '12px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            border: '1px solid #e5e7eb',
-                            wordBreak: 'keep-all',
-                            overflowWrap: 'break-word',
-                            whiteSpace: 'normal'
-                          }}
                           onClick={() => handleNotificationAction(notif.action)}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateX(4px)';
-                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 16px',
+                            background: 'var(--bg-page)',
+                            borderRadius: 'var(--radius-sm)',
+                            cursor: 'pointer',
+                            border: '1px solid var(--border)',
+                            transition: 'background 0.15s',
+                            gap: '16px'
                           }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateX(0)';
-                            e.currentTarget.style.boxShadow = 'none';
-                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = '#EEF2FF'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-page)'}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-                            {/* 요약 정보 */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '28px', flexShrink: 0 }}>{notif.icon}</div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <span style={{ 
-                                  fontWeight: '700', 
-                                  color: '#374151', 
-                                  fontSize: '16px',
-                                  wordBreak: 'keep-all',
-                                  overflowWrap: 'break-word'
-                                }}>
-                                  {notif.title}
-                                </span>
-                                <span style={{ 
-                                  fontWeight: '700', 
-                                  color: '#667eea', 
-                                  fontSize: '20px',
-                                  marginLeft: '8px',
-                                  whiteSpace: 'nowrap'
-                                }}>
-                                  {notif.message}
-                                </span>
-                              </div>
-                            </div>
-                            {/* 자세히 보기 버튼 */}
-                            <button
-                              className="btn btn-secondary"
-                              style={{ 
-                                fontSize: '13px', 
-                                padding: '8px 16px', 
-                                whiteSpace: 'nowrap',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                flexShrink: 0
-                              }}
-                            >
-                              자세히 보기
-                              <span style={{ fontSize: '16px' }}>›</span>
-                            </button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                            <span style={{ fontSize: '20px' }}>{notif.icon}</span>
+                            <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>{notif.title}</span>
+                            <span style={{ fontSize: '14px', color: '#2563EB', fontWeight: '600' }}>{notif.message}</span>
                           </div>
+                          <span style={{ fontSize: '13px', color: '#6B7280', flexShrink: 0 }}>자세히 보기 ›</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-
-                {/* 이번 달 진행 상황 */}
-                <div className="card" style={{ marginTop: '32px' }}>
-                  <h3 style={{ marginBottom: '20px', color: '#374151' }}>📊 이번 달 진행 상황</h3>
-                  
-                  {/* 급여 진행률 */}
-                  <div style={{ marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '15px', fontWeight: '600', color: '#374151' }}>
-                        💸 급여명세서 발송
-                      </span>
-                      <span style={{ fontSize: '14px', fontWeight: '700', color: '#667eea' }}>
-                        {employeeSlips.filter(s => s.published).length} / {employees.filter(e => e.employment_status === 'active').length}명
-                      </span>
-                    </div>
-                    <div style={{
-                      height: '12px',
-                      background: '#e5e7eb',
-                      borderRadius: '999px',
-                      overflow: 'hidden'
-                    }}>
-                      <div style={{
-                        height: '100%',
-                        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-                        width: `${employees.filter(e => e.employment_status === 'active').length > 0 
-                          ? (employeeSlips.filter(s => s.published).length / employees.filter(e => e.employment_status === 'active').length * 100) 
-                          : 0}%`,
-                        transition: 'width 0.5s ease',
-                        borderRadius: '999px'
-                      }} />
-                    </div>
-                  </div>
-
-                  {/* 출근율 */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '15px', fontWeight: '600', color: '#374151' }}>
-                        📊 이번 달 출근율
-                      </span>
-                      <span style={{ fontSize: '14px', fontWeight: '700', color: '#10b981' }}>
-                        {(() => {
-                          const thisMonth = new Date().toISOString().slice(0, 7);
-                          const monthAttendance = attendance.filter(a => a.date.startsWith(thisMonth));
-                          const completedCount = monthAttendance.filter(a => a.check_in_time && a.check_out_time).length;
-                          const totalCount = monthAttendance.length;
-                          return totalCount > 0 ? `${Math.round(completedCount / totalCount * 100)}%` : '0%';
-                        })()}
-                      </span>
-                    </div>
-                    <div style={{
-                      height: '12px',
-                      background: '#e5e7eb',
-                      borderRadius: '999px',
-                      overflow: 'hidden'
-                    }}>
-                      <div style={{
-                        height: '100%',
-                        background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
-                        width: `${(() => {
-                          const thisMonth = new Date().toISOString().slice(0, 7);
-                          const monthAttendance = attendance.filter(a => a.date.startsWith(thisMonth));
-                          const completedCount = monthAttendance.filter(a => a.check_in_time && a.check_out_time).length;
-                          const totalCount = monthAttendance.length;
-                          return totalCount > 0 ? Math.round(completedCount / totalCount * 100) : 0;
-                        })()}%`,
-                        transition: 'width 0.5s ease',
-                        borderRadius: '999px'
-                      }} />
-                    </div>
-                  </div>
-                </div>
 
               </div>
             )}

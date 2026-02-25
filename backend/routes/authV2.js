@@ -98,20 +98,6 @@ router.post('/signup', async (req, res) => {
       });
     }
 
-    // 전화번호 중복 체크 (companies 테이블)
-    const existingCompanyPhone = await get(
-      'SELECT id FROM companies WHERE phone = ?',
-      [phone]
-    );
-
-    if (existingCompanyPhone) {
-      console.warn(`⚠️ 전화번호 ${phone}가 companies 테이블에 존재함 (company_id: ${existingCompanyPhone.id})`);
-      return res.status(400).json({ 
-        success: false, 
-        message: '이미 등록된 전화번호입니다. (회사 정보에 등록됨)' 
-      });
-    }
-
     // 비밀번호 해시
     const hashedPassword = await bcrypt.hash(password, 10);
 

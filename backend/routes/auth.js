@@ -656,7 +656,7 @@ router.get('/all-users', authenticate, authorizeRole(['admin', 'super_admin']), 
     const params = [];
 
     if (search) {
-      sql += ` AND (u.username ILIKE $${params.length + 1} OR u.name ILIKE $${params.length + 1} OR u.email ILIKE $${params.length + 1})`;
+      sql += ` AND (u.username ILIKE $${params.length + 1} OR u.name ILIKE $${params.length + 1} OR u.email ILIKE $${params.length + 1} OR u.phone ILIKE $${params.length + 1})`;
       params.push(`%${search}%`);
     }
     if (filterRole && filterRole !== 'all') {

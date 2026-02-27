@@ -85,19 +85,6 @@ router.post('/signup', async (req, res) => {
       });
     }
 
-    // 전화번호 중복 체크 (users 테이블)
-    const existingPhone = await get(
-      'SELECT id FROM users WHERE phone = ?',
-      [phone]
-    );
-
-    if (existingPhone) {
-      return res.status(400).json({ 
-        success: false, 
-        message: '이미 등록된 전화번호입니다.' 
-      });
-    }
-
     // 비밀번호 해시
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -1343,16 +1330,16 @@ router.post('/employee/signup-with-invite', async (req, res) => {
       });
     }
 
-    // 중복 확인
+    // 아이디 중복 확인
     const existingUser = await get(
-      `SELECT id FROM users WHERE username = ? OR phone = ?`,
-      [username, phone]
+      `SELECT id FROM users WHERE username = ?`,
+      [username]
     );
 
     if (existingUser) {
       return res.status(400).json({ 
         success: false, 
-        message: '이미 사용 중인 아이디 또는 전화번호입니다.' 
+        message: '이미 사용 중인 아이디입니다.' 
       });
     }
 

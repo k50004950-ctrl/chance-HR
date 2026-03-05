@@ -312,9 +312,9 @@ router.get('/companies/search', async (req, res) => {
       FROM companies c
       LEFT JOIN company_admins ca ON c.id = ca.company_id AND ca.role = 'owner'
       LEFT JOIN users u ON ca.user_id = u.id
-      WHERE REPLACE(c.business_number, '-', '') = ? AND u.phone = ?
+      WHERE REPLACE(c.business_number, '-', '') = ? AND REPLACE(u.phone, '-', '') = ?
       LIMIT 1`,
-      [business_number, owner_phone]
+      [business_number, owner_phone.replace(/-/g, '')]
     );
 
     console.log(`🔍 검색 결과:`, company ? `✅ 찾음 (${company.company_name})` : '❌ 없음');

@@ -29,32 +29,19 @@
     <!-- Android/iOS Safe Area 자동 감지 -->
     <script>
       function updateSafeArea() {
-        // env(safe-area-inset-bottom) 실제 픽셀값 측정
-        var el = document.createElement('div');
-        el.style.cssText = 'position:fixed;bottom:0;left:0;width:1px;height:env(safe-area-inset-bottom,0px);pointer-events:none;visibility:hidden;';
-        document.documentElement.appendChild(el);
-        var envBottom = el.offsetHeight || 0;
-        document.documentElement.removeChild(el);
-
-        // visualViewport로 실제 가려진 영역 계산
-        var vpBottom = 0;
-        if (window.visualViewport) {
-          vpBottom = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
-          if (vpBottom < 0) vpBottom = 0;
+        // screen.height - window.innerHeight = 상태바 + 하단 nav bar 높이
+        var screenDiff = window.screen.height - window.innerHeight;
+        // 상태바만큼 제외 (일반적으로 24~48px)
+        // Capacitor는 상태바를 웹뷰 안에 포함시키므로 screenDiff ≈ 하단 nav 높이
+        var safeBottom = 0;
+        if (screenDiff > 20 && screenDiff < 200) {
+          safeBottom = screenDiff;
         }
-
-        var safeBottom = Math.max(envBottom, vpBottom);
-        // 아무것도 감지 안되면 Android 기본값 34px 사용
-        if (safeBottom < 8) safeBottom = 34;
-
         document.documentElement.style.setProperty('--safe-bottom', safeBottom + 'px');
       }
 
       document.addEventListener('DOMContentLoaded', updateSafeArea);
       window.addEventListener('resize', updateSafeArea);
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', updateSafeArea);
-      }
     </script>
   </head>
   <body>

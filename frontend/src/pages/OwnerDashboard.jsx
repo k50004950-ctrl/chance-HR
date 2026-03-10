@@ -554,6 +554,10 @@ const OwnerDashboard = () => {
         };
       }
       if (activeTab === 'salary' || activeTab === 'severance') {
+        // 월 변경 시 급여 단계/캐시 초기화
+        setSalaryFlowStep(1);
+        setSalaryDeductions({});
+        setSalaryConfirmed(false);
         loadSalary();
         // 급여 탭에서 사업장의 모든 급여명세서 로드
         salaryAPI.getWorkplaceSlips(selectedWorkplace, { month: selectedMonth })
@@ -5237,7 +5241,7 @@ const OwnerDashboard = () => {
                     {salaryData && salaryData.employees && salaryData.employees.length > 0 && (
                       <div style={{
                         position: 'fixed',
-                        bottom: 'calc(70px + env(safe-area-inset-bottom))',
+                        bottom: 'calc(72px + var(--safe-bottom, 34px))',
                         left: '0',
                         right: '0',
                         padding: '16px',

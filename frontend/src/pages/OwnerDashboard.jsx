@@ -2497,7 +2497,7 @@ const OwnerDashboard = () => {
         ...(isMobile && {
           padding: '0',
           maxWidth: '100%',
-          paddingBottom: 'calc(90px + env(safe-area-inset-bottom))'
+          paddingBottom: 'calc(90px + var(--safe-bottom, 34px))'
         })
       }}>
         {/* 모바일 헤더 */}

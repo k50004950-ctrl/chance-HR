@@ -25,6 +25,37 @@
     
     <!-- Daum 우편번호 서비스 -->
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+
+    <!-- Android/iOS Safe Area 자동 감지 -->
+    <script>
+      function updateSafeArea() {
+        // env(safe-area-inset-bottom) 실제 픽셀값 측정
+        var el = document.createElement('div');
+        el.style.cssText = 'position:fixed;bottom:0;left:0;width:1px;height:env(safe-area-inset-bottom,0px);pointer-events:none;visibility:hidden;';
+        document.documentElement.appendChild(el);
+        var envBottom = el.offsetHeight || 0;
+        document.documentElement.removeChild(el);
+
+        // visualViewport로 실제 가려진 영역 계산
+        var vpBottom = 0;
+        if (window.visualViewport) {
+          vpBottom = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+          if (vpBottom < 0) vpBottom = 0;
+        }
+
+        var safeBottom = Math.max(envBottom, vpBottom);
+        // 아무것도 감지 안되면 Android 기본값 34px 사용
+        if (safeBottom < 8) safeBottom = 34;
+
+        document.documentElement.style.setProperty('--safe-bottom', safeBottom + 'px');
+      }
+
+      document.addEventListener('DOMContentLoaded', updateSafeArea);
+      window.addEventListener('resize', updateSafeArea);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateSafeArea);
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

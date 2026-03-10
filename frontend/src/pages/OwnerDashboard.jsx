@@ -5596,9 +5596,24 @@ const OwnerDashboard = () => {
                                     <td style={{ fontWeight: '700', color: '#667eea' }}>
                                       {salaryFlowStep === 2 ? (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                          <span style={{ fontSize: '14px', fontWeight: '700' }}>
-                                            {formatCurrency(totalPay)}
-                                          </span>
+                                          <input
+                                            type="number"
+                                            value={editedSalaries[emp.employeeId] ?? totalPay}
+                                            onChange={(e) => {
+                                              const value = parseInt(e.target.value) || 0;
+                                              setEditedSalaries(prev => ({ ...prev, [emp.employeeId]: value }));
+                                            }}
+                                            style={{
+                                              width: '120px',
+                                              padding: '4px 8px',
+                                              fontSize: '13px',
+                                              fontWeight: '700',
+                                              border: '1px solid #d1d5db',
+                                              borderRadius: '4px',
+                                              color: '#667eea',
+                                              textAlign: 'right'
+                                            }}
+                                          />
                                           <button
                                             className="btn btn-sm"
                                             style={{
@@ -5608,13 +5623,15 @@ const OwnerDashboard = () => {
                                               color: 'white',
                                               border: 'none',
                                               borderRadius: '4px',
-                                              cursor: 'pointer'
+                                              cursor: 'pointer',
+                                              whiteSpace: 'nowrap'
                                             }}
                                             onClick={async () => {
                                               try {
                                                 const taxType = emp.taxType || '4대보험';
+                                                const currentPay = editedSalaries[emp.employeeId] ?? totalPay;
                                                 const response = await salaryAPI.calculateInsurance({
-                                                  basePay: totalPay,
+                                                  basePay: currentPay,
                                                   payrollMonth: selectedMonth,
                                                   taxType: taxType
                                                 });
@@ -5622,7 +5639,7 @@ const OwnerDashboard = () => {
                                                 setSalaryDeductions(prev => ({
                                                   ...prev,
                                                   [emp.employeeId]: {
-                                                    basePay: totalPay,
+                                                    basePay: currentPay,
                                                     taxType: taxType,
                                                     deductions: response.data.deductions,
                                                     totalDeductions: response.data.totalDeductions,

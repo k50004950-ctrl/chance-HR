@@ -177,8 +177,8 @@ h4 {
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+  opacity: 0.92;
 }
 
 .btn-success {
@@ -187,8 +187,8 @@ h4 {
 }
 
 .btn-success:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5);
+  opacity: 0.92;
 }
 
 .btn-danger {
@@ -197,8 +197,8 @@ h4 {
 }
 
 .btn-danger:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+  opacity: 0.92;
 }
 
 .btn-secondary {
@@ -207,8 +207,8 @@ h4 {
 }
 
 .btn-secondary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(107, 114, 128, 0.4);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.4);
+  opacity: 0.92;
 }
 
 .btn:disabled {

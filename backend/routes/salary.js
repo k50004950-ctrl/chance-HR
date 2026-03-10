@@ -826,8 +826,8 @@ router.get('/slips/employee/:userId', authenticate, async (req, res) => {
 router.post('/calculate-tax', authenticate, async (req, res) => {
   try {
     const { basePay, dependentsCount } = req.body;
-    
-    if (!basePay || basePay < 0) {
+
+    if (basePay === undefined || basePay === null || basePay < 0) {
       return res.status(400).json({ message: '과세대상 급여액을 입력해주세요.' });
     }
     
@@ -857,8 +857,8 @@ router.post('/calculate-tax', authenticate, async (req, res) => {
 router.post('/calculate-insurance', authenticate, async (req, res) => {
   try {
     const { basePay, payrollMonth, taxType } = req.body;
-    
-    if (!basePay || basePay < 0) {
+
+    if (basePay === undefined || basePay === null || basePay < 0) {
       return res.status(400).json({ message: '과세대상 급여액을 입력해주세요.' });
     }
     

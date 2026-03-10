@@ -5812,8 +5812,8 @@ const OwnerDashboard = () => {
                                   // 누락된 직원의 공제액 즉시 계산
                                   const updatedDeductions = { ...salaryDeductions };
                                   
-                                  for (const emp of salaryData.employees.filter(e => e.attendance > 0)) {
-                                    if (!updatedDeductions[emp.id] || !updatedDeductions[emp.id].deductions || Object.keys(updatedDeductions[emp.id].deductions).length === 0) {
+                                  for (const emp of salaryData.employees) {
+                                    if (!updatedDeductions[emp.employeeId] || !updatedDeductions[emp.employeeId].deductions || Object.keys(updatedDeductions[emp.employeeId].deductions).length === 0) {
                                       // 총 지급액 (세전) = 기본급여 + 주휴수당
                                       const baseSalary = emp.baseSalaryAmount || emp.baseSalary || emp.calculatedSalary || 0;
                                       const weeklyHolidayPay = emp.weeklyHolidayPayAmount || 0;
@@ -5847,7 +5847,7 @@ const OwnerDashboard = () => {
                                           taxType: taxType
                                         });
                                         
-                                        updatedDeductions[emp.id] = {
+                                        updatedDeductions[emp.employeeId] = {
                                           basePay: totalPay,
                                           taxType: taxType,
                                           deductions: response.data.deductions,
@@ -5870,9 +5870,6 @@ const OwnerDashboard = () => {
                                   // 모든 직원 데이터 준비 (급여액이 있고 공제액이 계산된 직원만)
                                   const employees = salaryData.employees
                                     .filter(emp => {
-                                      // 근태 기록이 있는 직원
-                                      if (emp.attendance <= 0) return false;
-                                      
                                       // 급여액이 있는 직원
                                       // 총 지급액 (세전) = 기본급여 + 주휴수당
                                       const baseSalary = emp.baseSalaryAmount || emp.baseSalary || emp.calculatedSalary || 0;
@@ -5885,16 +5882,16 @@ const OwnerDashboard = () => {
                                       }
                                       
                                       // 공제액이 계산된 직원
-                                      const empDeductions = updatedDeductions[emp.id];
+                                      const empDeductions = updatedDeductions[emp.employeeId];
                                       if (!empDeductions || !empDeductions.deductions || Object.keys(empDeductions.deductions).length === 0) {
                                         console.error(`❌ ${emp.employeeName}: 공제액 데이터 누락`);
                                         return false;
                                       }
-                                      
+
                                       return true;
                                     })
                                     .map(emp => {
-                                      const empDeductions = updatedDeductions[emp.id];
+                                      const empDeductions = updatedDeductions[emp.employeeId];
                                       
                                       console.log(`✅ ${emp.employeeName} 확정 데이터:`, {
                                         employeeId: emp.employeeId,

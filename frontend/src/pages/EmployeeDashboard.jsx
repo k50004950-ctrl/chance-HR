@@ -48,6 +48,12 @@ const EmployeeDashboard = () => {
   const [showCommunityModal, setShowCommunityModal] = useState(false);
   const [communityModalType, setCommunityModalType] = useState('create');
   const [communityFormData, setCommunityFormData] = useState({ id: null, title: '', content: '' });
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [postComments, setPostComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentContent, setEditingCommentContent] = useState('');
+  const [postLiked, setPostLiked] = useState(false);
 
   useEffect(() => {
     // V1 직원만 동의 확인 (V2 근로자는 매칭 후에만)
@@ -591,6 +597,10 @@ const EmployeeDashboard = () => {
   };
 
   const openCommunityModal = (type, post = null) => {
+    if (type === 'view' && post) {
+      openPostDetail(post.id);
+      return;
+    }
     setCommunityModalType(type);
     if (post) {
       setCommunityFormData({ id: post.id, title: post.title, content: post.content });
@@ -598,6 +608,94 @@ const EmployeeDashboard = () => {
       setCommunityFormData({ id: null, title: '', content: '' });
     }
     setShowCommunityModal(true);
+  };
+
+  const openPostDetail = async (postId) => {
+    try {
+      setCommunityLoading(true);
+      const postResponse = await communityAPI.getPost(postId);
+      setSelectedPost(postResponse.data);
+      const commentsResponse = await communityAPI.getComments(postId);
+      setPostComments(commentsResponse.data);
+      const likeResponse = await communityAPI.getLikeStatus(postId);
+      setPostLiked(likeResponse.data.liked);
+      setShowCommunityModal(true);
+      setCommunityModalType('view');
+    } catch (error) {
+      console.error('게시글 상세 조회 오류:', error);
+      setMessage({ type: 'error', text: '게시글을 불러오는데 실패했습니다.' });
+    } finally {
+      setCommunityLoading(false);
+    }
+  };
+
+  const handleToggleLike = async () => {
+    if (!selectedPost) return;
+    try {
+      const response = await communityAPI.toggleLike(selectedPost.id);
+      setPostLiked(response.data.liked);
+      setSelectedPost({ ...selectedPost, like_count: response.data.like_count });
+      setCommunityPosts(communityPosts.map(post =>
+        post.id === selectedPost.id ? { ...post, like_count: response.data.like_count } : post
+      ));
+    } catch (error) {
+      console.error('추천 처리 오류:', error);
+      setMessage({ type: 'error', text: '추천 처리에 실패했습니다.' });
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!selectedPost || !newComment.trim()) return;
+    try {
+      setCommunityLoading(true);
+      await communityAPI.createComment(selectedPost.id, { content: newComment });
+      setNewComment('');
+      const commentsResponse = await communityAPI.getComments(selectedPost.id);
+      setPostComments(commentsResponse.data);
+      const postResponse = await communityAPI.getPost(selectedPost.id);
+      setSelectedPost(postResponse.data);
+      loadCommunityPosts();
+    } catch (error) {
+      console.error('댓글 작성 오류:', error);
+      setMessage({ type: 'error', text: '댓글 작성에 실패했습니다.' });
+    } finally {
+      setCommunityLoading(false);
+    }
+  };
+
+  const handleUpdateComment = async (commentId) => {
+    if (!editingCommentContent.trim()) return;
+    try {
+      setCommunityLoading(true);
+      await communityAPI.updateComment(commentId, { content: editingCommentContent });
+      setEditingCommentId(null);
+      setEditingCommentContent('');
+      const commentsResponse = await communityAPI.getComments(selectedPost.id);
+      setPostComments(commentsResponse.data);
+    } catch (error) {
+      console.error('댓글 수정 오류:', error);
+      setMessage({ type: 'error', text: '댓글 수정에 실패했습니다.' });
+    } finally {
+      setCommunityLoading(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!confirm('댓글을 삭제하시겠습니까?')) return;
+    try {
+      setCommunityLoading(true);
+      await communityAPI.deleteComment(commentId);
+      const commentsResponse = await communityAPI.getComments(selectedPost.id);
+      setPostComments(commentsResponse.data);
+      const postResponse = await communityAPI.getPost(selectedPost.id);
+      setSelectedPost(postResponse.data);
+      loadCommunityPosts();
+    } catch (error) {
+      console.error('댓글 삭제 오류:', error);
+      setMessage({ type: 'error', text: '댓글 삭제에 실패했습니다.' });
+    } finally {
+      setCommunityLoading(false);
+    }
   };
 
   const handleSaveCommunityPost = async (e) => {
@@ -1717,17 +1815,113 @@ const EmployeeDashboard = () => {
                 </div>
               )}
 
-              {communityModalType === 'view' ? (
+              {communityModalType === 'view' && selectedPost ? (
                 <div>
-                  <h3 style={{ marginBottom: '16px', color: '#111827' }}>{communityFormData.title}</h3>
-                  <div style={{ fontSize: '14px', color: '#374151', whiteSpace: 'pre-wrap', lineHeight: '1.6', marginBottom: '20px' }}>
-                    {communityFormData.content}
+                  {/* 게시글 헤더 */}
+                  <div style={{ borderBottom: '2px solid #e5e7eb', paddingBottom: '16px', marginBottom: '16px' }}>
+                    <h3 style={{ marginBottom: '12px', color: '#111827', fontSize: '20px', fontWeight: '700' }}>
+                      {selectedPost.title}
+                    </h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#6b7280' }}>
+                      <div style={{ display: 'flex', gap: '16px' }}>
+                        <span>작성자: {selectedPost.author_name}</span>
+                        <span>조회수: {selectedPost.view_count || 0}</span>
+                      </div>
+                      <span>{new Date(selectedPost.created_at).toLocaleString('ko-KR')}</span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+
+                  {/* 게시글 내용 */}
+                  <div style={{ fontSize: '15px', color: '#374151', whiteSpace: 'pre-wrap', lineHeight: '1.8', marginBottom: '24px', padding: '20px', backgroundColor: '#f9fafb', borderRadius: '8px', minHeight: '150px' }}>
+                    {selectedPost.content}
+                  </div>
+
+                  {/* 추천 버튼 */}
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid #e5e7eb' }}>
+                    <button
+                      onClick={handleToggleLike}
+                      disabled={communityLoading}
+                      style={{ padding: '12px 32px', backgroundColor: postLiked ? '#667eea' : '#fff', color: postLiked ? '#fff' : '#667eea', border: '2px solid #667eea', borderRadius: '25px', fontSize: '16px', fontWeight: '600', cursor: communityLoading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
+                    >
+                      <span style={{ fontSize: '20px' }}>👍</span>
+                      <span>추천 {selectedPost.like_count || 0}</span>
+                    </button>
+                  </div>
+
+                  {/* 댓글 섹션 */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#374151', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>💬</span>
+                      <span>댓글 {postComments.length}개</span>
+                    </h4>
+
+                    <div style={{ marginBottom: '20px', maxHeight: '300px', overflowY: 'auto' }}>
+                      {postComments.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                          첫 댓글을 작성해보세요!
+                        </div>
+                      ) : (
+                        postComments.map((comment) => (
+                          <div key={comment.id} style={{ padding: '16px', marginBottom: '12px', backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
+                              <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>{comment.author_name}</div>
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <span style={{ fontSize: '12px', color: '#9ca3af' }}>
+                                  {new Date(comment.created_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                {comment.user_id === user?.id && (
+                                  <div style={{ display: 'flex', gap: '4px' }}>
+                                    {editingCommentId === comment.id ? (
+                                      <>
+                                        <button onClick={() => handleUpdateComment(comment.id)} disabled={communityLoading} style={{ padding: '2px 8px', fontSize: '11px', backgroundColor: '#667eea', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>저장</button>
+                                        <button onClick={() => { setEditingCommentId(null); setEditingCommentContent(''); }} style={{ padding: '2px 8px', fontSize: '11px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>취소</button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <button onClick={() => { setEditingCommentId(comment.id); setEditingCommentContent(comment.content); }} style={{ padding: '2px 8px', fontSize: '11px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>수정</button>
+                                        <button onClick={() => handleDeleteComment(comment.id)} disabled={communityLoading} style={{ padding: '2px 8px', fontSize: '11px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>삭제</button>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            {editingCommentId === comment.id ? (
+                              <textarea value={editingCommentContent} onChange={(e) => setEditingCommentContent(e.target.value)} style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px', resize: 'vertical', minHeight: '60px' }} />
+                            ) : (
+                              <div style={{ fontSize: '14px', color: '#374151', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{comment.content}</div>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* 댓글 작성 */}
+                    <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                      <textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="댓글을 입력하세요..."
+                        style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', resize: 'vertical', minHeight: '80px', marginBottom: '12px' }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                          onClick={handleAddComment}
+                          disabled={communityLoading || !newComment.trim()}
+                          style={{ padding: '8px 20px', backgroundColor: newComment.trim() ? '#667eea' : '#d1d5db', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: newComment.trim() && !communityLoading ? 'pointer' : 'not-allowed' }}
+                        >
+                          {communityLoading ? '작성 중...' : '댓글 작성'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 닫기 버튼 */}
+                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e5e7eb' }}>
                     <button
                       type="button"
                       className="btn btn-secondary"
-                      onClick={() => setShowCommunityModal(false)}
+                      onClick={() => { setShowCommunityModal(false); setSelectedPost(null); setPostComments([]); setNewComment(''); setEditingCommentId(null); setEditingCommentContent(''); }}
                     >
                       닫기
                     </button>

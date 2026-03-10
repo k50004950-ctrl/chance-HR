@@ -59,6 +59,7 @@ const OwnerDashboard = () => {
   const [notifications, setNotifications] = useState([]); // 알림 목록
   const [workplaces, setWorkplaces] = useState([]);
   const [selectedWorkplace, setSelectedWorkplace] = useState(null);
+  const [workplacesLoading, setWorkplacesLoading] = useState(true);
   const [ownerCompanyId, setOwnerCompanyId] = useState(null); // V2: 사업주의 company_id
   const [showWorkplaceForm, setShowWorkplaceForm] = useState(false); // 사업장 등록 폼 표시 여부
   const [showInviteManager, setShowInviteManager] = useState(false); // 초대 링크 관리 모달 표시 여부
@@ -682,6 +683,7 @@ const OwnerDashboard = () => {
   }, [activeTab, selectedWorkplace, payrollLedgerMonth]);
 
   const loadWorkplaces = async () => {
+    setWorkplacesLoading(true);
     try {
       const response = await workplaceAPI.getMy();
       setWorkplaces(response.data);
@@ -690,6 +692,8 @@ const OwnerDashboard = () => {
       }
     } catch (error) {
       console.error('사업장 조회 오류:', error);
+    } finally {
+      setWorkplacesLoading(false);
     }
   };
 
@@ -2583,7 +2587,12 @@ const OwnerDashboard = () => {
 
         {!selectedWorkplace ? (
           <div className="card">
-            {!showWorkplaceForm ? (
+            {workplacesLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
+                <div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div>
+                <p>사업장 정보를 불러오는 중...</p>
+              </div>
+            ) : !showWorkplaceForm ? (
               <div style={{ textAlign: 'center', padding: '40px 20px' }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏢</div>
                 <h3 style={{ color: '#374151', marginBottom: '8px' }}>등록된 사업장이 없습니다</h3>
@@ -4470,13 +4479,9 @@ const OwnerDashboard = () => {
                                   }}
                                   onMouseEnter={(e) => {
                                     e.currentTarget.style.background = '#f9fafb';
-                                    e.currentTarget.style.transform = 'scale(1.01)';
-                                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
                                   }}
                                   onMouseLeave={(e) => {
                                     e.currentTarget.style.background = '';
-                                    e.currentTarget.style.transform = 'scale(1)';
-                                    e.currentTarget.style.boxShadow = '';
                                   }}
                                 >
                                   <td style={{ fontWeight: '600' }}>{record.employee_name}</td>

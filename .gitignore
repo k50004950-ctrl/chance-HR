@@ -50,3 +50,11 @@ backend/uploads/*
 *.pem
 .cache
 .temp
+
+# Capacitor build outputs
+frontend/android/app/build/
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/ios/App/Pods/
+frontend/ios/App/App.xcworkspace/xcuserdata/
+frontend/ios/.build/

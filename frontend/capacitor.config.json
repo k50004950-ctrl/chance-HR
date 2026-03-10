@@ -1,0 +1,32 @@
+{
+  "appId": "com.chancehr.app",
+  "appName": "찬스HR",
+  "webDir": "dist",
+  "server": {
+    "url": "https://charming-creation-production.up.railway.app",
+    "cleartext": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#667eea",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "Light",
+      "backgroundColor": "#667eea"
+    },
+    "Keyboard": {
+      "resize": "body",
+      "resizeOnFullScreen": true
+    }
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#667eea"
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#667eea"
+  }
+}

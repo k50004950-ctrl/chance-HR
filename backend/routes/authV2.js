@@ -2,9 +2,10 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { run, get, all } from '../config/database.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production-2026';
 
 // ============================================
 // 1. 독립 회원가입 (사업주 / 근로자 공통)
@@ -235,9 +236,10 @@ router.post('/login', async (req, res) => {
     console.log(`✅ 비밀번호 확인 완료: ${username}`);
 
     const token = jwt.sign(
-      { 
-        userId: user.id, 
-        username: user.username, 
+      {
+        id: user.id,
+        userId: user.id,
+        username: user.username,
         role: user.role,
         businessNumber: user.business_number || null
       },
@@ -651,7 +653,7 @@ router.post('/employee/resign', async (req, res) => {
 // ============================================
 // 8. 내 고용 이력 조회 (근로자용)
 // ============================================
-router.get('/employee/my-employment/:userId', async (req, res) => {
+router.get('/employee/my-employment/:userId', authenticate, async (req, res) => {
   const { userId } = req.params;
 
   try {
@@ -695,7 +697,7 @@ router.get('/employee/my-employment/:userId', async (req, res) => {
 // ============================================
 // 9. 내 급여명세서 조회 (근로자용, 모든 회사의 과거 이력 포함)
 // ============================================
-router.get('/employee/my-payslips/:userId', async (req, res) => {
+router.get('/employee/my-payslips/:userId', authenticate, async (req, res) => {
   const { userId } = req.params;
 
   try {
@@ -736,7 +738,7 @@ router.get('/employee/my-payslips/:userId', async (req, res) => {
 // ============================================
 // 10. 사업주의 회사 정보 조회
 // ============================================
-router.get('/owner/my-companies/:userId', async (req, res) => {
+router.get('/owner/my-companies/:userId', authenticate, async (req, res) => {
   const { userId } = req.params;
 
   try {
@@ -1384,6 +1386,7 @@ router.post('/employee/signup-with-invite', async (req, res) => {
     // JWT 토큰 발급
     const token = jwt.sign(
       {
+        id: userId,
         userId: userId,
         username: username,
         role: 'employee',

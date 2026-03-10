@@ -2496,7 +2496,8 @@ const OwnerDashboard = () => {
       <div className={!isMobile ? 'erp-main' : 'container'} style={{
         ...(isMobile && {
           padding: '0',
-          maxWidth: '100%'
+          maxWidth: '100%',
+          paddingBottom: 'calc(90px + env(safe-area-inset-bottom))'
         })
       }}>
         {/* 모바일 헤더 */}

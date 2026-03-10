@@ -187,6 +187,7 @@ const OwnerDashboard = () => {
   const [editingCommentId, setEditingCommentId] = useState(null); // 수정 중인 댓글 ID
   const [editingCommentContent, setEditingCommentContent] = useState(''); // 수정 중인 댓글 내용
   const [postLiked, setPostLiked] = useState(false); // 현재 게시글 추천 여부
+  const [showMobileMore, setShowMobileMore] = useState(false); // 모바일 더보기 메뉴
   
   const uploadBaseUrl =
     import.meta.env.VITE_API_URL?.replace('/api', '') ||
@@ -9841,58 +9842,98 @@ const OwnerDashboard = () => {
 
       {/* 모바일 하단 네비게이션 */}
       {isMobile && (
-        <nav className="mobile-bottom-nav">
-          <button
-            className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => handleTabChange('dashboard')}
-          >
-            <div className="mobile-nav-icon">🏠</div>
-            <div className="mobile-nav-label">홈</div>
-          </button>
-
-          <button
-            className={`mobile-nav-item ${activeTab === 'attendance' ? 'active' : ''}`}
-            onClick={() => handleTabChange('attendance')}
-          >
-            <div className="mobile-nav-icon">📊</div>
-            <div className="mobile-nav-label">출근</div>
-          </button>
-
-          <button
-            className={`mobile-nav-item ${activeTab === 'salary' ? 'active' : ''}`}
-            onClick={() => handleTabChange('salary')}
-          >
-            <div className="mobile-nav-icon">💸</div>
-            <div className="mobile-nav-label">급여</div>
-          </button>
-
-          <button
-            className={`mobile-nav-item ${activeTab === 'roster' ? 'active' : ''}`}
-            onClick={() => handleTabChange('roster')}
-          >
-            <div className="mobile-nav-icon">👥</div>
-            <div className="mobile-nav-label">직원</div>
-          </button>
-
-          {/* V2: 매칭 요청 (사업주가 company를 가지고 있을 때만 표시) */}
-          {ownerCompanyId && (
+        <>
+          <nav className="mobile-bottom-nav">
             <button
-              className={`mobile-nav-item ${activeTab === 'matching' ? 'active' : ''}`}
-              onClick={() => handleTabChange('matching')}
+              className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => handleTabChange('dashboard')}
             >
-              <div className="mobile-nav-icon">🔔</div>
-              <div className="mobile-nav-label">매칭</div>
+              <div className="mobile-nav-icon">🏠</div>
+              <div className="mobile-nav-label">홈</div>
             </button>
-          )}
 
-          <button
-            className={`mobile-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => handleTabChange('settings')}
-          >
-            <div className="mobile-nav-icon">⚙️</div>
-            <div className="mobile-nav-label">설정</div>
-          </button>
-        </nav>
+            <button
+              className={`mobile-nav-item ${activeTab === 'attendance' ? 'active' : ''}`}
+              onClick={() => handleTabChange('attendance')}
+            >
+              <div className="mobile-nav-icon">📊</div>
+              <div className="mobile-nav-label">출근</div>
+            </button>
+
+            <button
+              className={`mobile-nav-item ${activeTab === 'salary' ? 'active' : ''}`}
+              onClick={() => handleTabChange('salary')}
+            >
+              <div className="mobile-nav-icon">💸</div>
+              <div className="mobile-nav-label">급여</div>
+            </button>
+
+            <button
+              className={`mobile-nav-item ${activeTab === 'roster' ? 'active' : ''}`}
+              onClick={() => handleTabChange('roster')}
+            >
+              <div className="mobile-nav-icon">👥</div>
+              <div className="mobile-nav-label">직원</div>
+            </button>
+
+            <button
+              className={`mobile-nav-item ${activeTab === 'community' ? 'active' : ''}`}
+              onClick={() => handleTabChange('community')}
+            >
+              <div className="mobile-nav-icon">💬</div>
+              <div className="mobile-nav-label">소통방</div>
+            </button>
+
+            <button
+              className={`mobile-nav-item ${showMobileMore ? 'active' : ''}`}
+              onClick={() => setShowMobileMore(v => !v)}
+            >
+              <div className="mobile-nav-icon">⋯</div>
+              <div className="mobile-nav-label">더보기</div>
+            </button>
+          </nav>
+
+          {/* 더보기 메뉴 */}
+          {showMobileMore && (
+            <>
+              <div
+                style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.4)' }}
+                onClick={() => setShowMobileMore(false)}
+              />
+              <div style={{
+                position: 'fixed', bottom: 'calc(65px + env(safe-area-inset-bottom))', left: 0, right: 0,
+                background: 'white', borderRadius: '20px 20px 0 0', zIndex: 1000,
+                padding: '20px 16px', boxShadow: '0 -4px 20px rgba(0,0,0,0.15)'
+              }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                  {[
+                    { tab: 'calendar', icon: '📅', label: '출근달력' },
+                    { tab: 'salary-slips', icon: '📄', label: '급여명세서' },
+                    { tab: 'severance', icon: '🧮', label: '퇴직금' },
+                    { tab: 'past-employees', icon: '📁', label: '서류보관함' },
+                    ...(ownerCompanyId ? [{ tab: 'matching', icon: '🔔', label: '매칭승인' }] : []),
+                    { tab: 'settings', icon: '⚙️', label: '설정' },
+                  ].map(({ tab, icon, label }) => (
+                    <button
+                      key={tab}
+                      onClick={() => { handleTabChange(tab); setShowMobileMore(false); }}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                        padding: '12px 8px', border: 'none', borderRadius: '12px',
+                        background: activeTab === tab ? '#ede9fe' : '#f9fafb',
+                        color: activeTab === tab ? '#667eea' : '#374151',
+                        cursor: 'pointer', fontSize: '12px', fontWeight: '600'
+                      }}
+                    >
+                      <span style={{ fontSize: '24px' }}>{icon}</span>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </>
       )}
 
       {/* Toast 알림 */}

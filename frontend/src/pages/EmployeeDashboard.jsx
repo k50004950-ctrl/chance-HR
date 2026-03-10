@@ -7,10 +7,12 @@ import AnnouncementModal from '../components/AnnouncementModal';
 import Footer from '../components/Footer';
 import { Html5Qrcode } from 'html5-qrcode';
 import html2canvas from 'html2canvas';
+import useIsMobile from '../hooks/useIsMobile';
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [todayStatus, setTodayStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -841,28 +843,58 @@ const EmployeeDashboard = () => {
 
   return (
     <div>
-      <Header />
-      <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-          <h2 style={{ margin: 0, color: '#374151' }}>직원 대시보드</h2>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button
-              className="btn btn-success"
-              onClick={() => navigate('/employee/match-request')}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              🏢 회사 찾기
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={handleGetCertificate}
-              disabled={loading}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              📄 재직증명서 발급
-            </button>
+      {/* 모바일: 상단 헤더 / PC: 기존 헤더 */}
+      {isMobile ? (
+        <div style={{
+          position: 'sticky', top: 0,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white', padding: '12px 16px 16px', zIndex: 100,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: '48px' }}>
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>
+              {activeTab === 'attendance' ? '출퇴근' :
+               activeTab === 'slips' ? '급여명세서' :
+               activeTab === 'employer' ? '사업주 정보' : '소통방'}
+            </h2>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => navigate('/employee/match-request')}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', color: 'white', padding: '8px 12px', fontSize: '13px', cursor: 'pointer' }}
+              >
+                🏢 회사찾기
+              </button>
+            </div>
           </div>
         </div>
+      ) : (
+        <Header />
+      )}
+
+      <div className="container" style={{ ...(isMobile && { padding: '12px 16px', paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }) }}>
+        {/* PC 전용: 제목 + 버튼 */}
+        {!isMobile && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+            <h2 style={{ margin: 0, color: '#374151' }}>직원 대시보드</h2>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                className="btn btn-success"
+                onClick={() => navigate('/employee/match-request')}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                🏢 회사 찾기
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleGetCertificate}
+                disabled={loading}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                📄 재직증명서 발급
+              </button>
+            </div>
+          </div>
+        )}
 
         {message.text && (
           <div className={`alert alert-${message.type}`}>
@@ -870,33 +902,35 @@ const EmployeeDashboard = () => {
           </div>
         )}
 
-        {/* 탭 메뉴 */}
-        <div className="nav-tabs" style={{ marginBottom: '24px' }}>
-          <button
-            className={`nav-tab ${activeTab === 'attendance' ? 'active' : ''}`}
-            onClick={() => setActiveTab('attendance')}
-          >
-            📊 출퇴근
-          </button>
-          <button
-            className={`nav-tab ${activeTab === 'slips' ? 'active' : ''}`}
-            onClick={() => setActiveTab('slips')}
-          >
-            📝 급여명세서
-          </button>
-          <button
-            className={`nav-tab ${activeTab === 'employer' ? 'active' : ''}`}
-            onClick={() => setActiveTab('employer')}
-          >
-            🏢 사업주
-          </button>
-          <button
-            className={`nav-tab ${activeTab === 'community' ? 'active' : ''}`}
-            onClick={() => setActiveTab('community')}
-          >
-            💬 커뮤니티
-          </button>
-        </div>
+        {/* PC 전용: 탭 메뉴 */}
+        {!isMobile && (
+          <div className="nav-tabs" style={{ marginBottom: '24px' }}>
+            <button
+              className={`nav-tab ${activeTab === 'attendance' ? 'active' : ''}`}
+              onClick={() => setActiveTab('attendance')}
+            >
+              📊 출퇴근
+            </button>
+            <button
+              className={`nav-tab ${activeTab === 'slips' ? 'active' : ''}`}
+              onClick={() => setActiveTab('slips')}
+            >
+              📝 급여명세서
+            </button>
+            <button
+              className={`nav-tab ${activeTab === 'employer' ? 'active' : ''}`}
+              onClick={() => setActiveTab('employer')}
+            >
+              🏢 사업주
+            </button>
+            <button
+              className={`nav-tab ${activeTab === 'community' ? 'active' : ''}`}
+              onClick={() => setActiveTab('community')}
+            >
+              💬 커뮤니티
+            </button>
+          </div>
+        )}
 
         {/* 출퇴근 탭 */}
         {activeTab === 'attendance' && (
@@ -2288,7 +2322,41 @@ const EmployeeDashboard = () => {
         />
       )}
 
-      <Footer />
+      {/* 모바일 하단 네비게이션 */}
+      {isMobile && (
+        <nav className="mobile-bottom-nav">
+          <button
+            className={`mobile-nav-item ${activeTab === 'attendance' ? 'active' : ''}`}
+            onClick={() => setActiveTab('attendance')}
+          >
+            <div className="mobile-nav-icon">📊</div>
+            <div className="mobile-nav-label">출퇴근</div>
+          </button>
+          <button
+            className={`mobile-nav-item ${activeTab === 'slips' ? 'active' : ''}`}
+            onClick={() => setActiveTab('slips')}
+          >
+            <div className="mobile-nav-icon">📝</div>
+            <div className="mobile-nav-label">급여</div>
+          </button>
+          <button
+            className={`mobile-nav-item ${activeTab === 'employer' ? 'active' : ''}`}
+            onClick={() => setActiveTab('employer')}
+          >
+            <div className="mobile-nav-icon">🏢</div>
+            <div className="mobile-nav-label">사업주</div>
+          </button>
+          <button
+            className={`mobile-nav-item ${activeTab === 'community' ? 'active' : ''}`}
+            onClick={() => setActiveTab('community')}
+          >
+            <div className="mobile-nav-icon">💬</div>
+            <div className="mobile-nav-label">소통방</div>
+          </button>
+        </nav>
+      )}
+
+      {!isMobile && <Footer />}
     </div>
   );
 };

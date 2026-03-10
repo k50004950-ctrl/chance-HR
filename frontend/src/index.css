@@ -1588,6 +1588,19 @@ button:active {
   font-weight: 700;
 }
 
+/* 모바일: 테이블 가로 스크롤 */
+@media (max-width: 768px) {
+  .table-container, .card table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    display: block;
+    width: 100%;
+  }
+  table {
+    min-width: 500px;
+  }
+}
+
 /* 모바일 헤더 */
 .mobile-header {
   background: white;

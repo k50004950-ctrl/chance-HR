@@ -3672,204 +3672,105 @@ const OwnerDashboard = () => {
                 )}
                 
                 {/* 모바일 홈 화면 "정보 우선순위" 재배치 */}
-                {isMobile && (
-                  <div>
-                    {(() => {
-                      const today = new Date().toISOString().split('T')[0];
-                      
-                      // 날짜 비교 함수 (date 필드가 다양한 형식일 수 있음)
-                      const isSameDate = (dateStr, targetDate) => {
-                        if (!dateStr) return false;
-                        // date 필드에서 날짜 부분만 추출 (YYYY-MM-DD)
-                        const dateOnly = dateStr.split('T')[0];
-                        return dateOnly === targetDate;
-                      };
-                      
-                      const todayAttendance = attendance.filter(a => isSameDate(a.date, today));
-                      const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
-                      
-                      // 모바일 대시보드 디버깅
-                      console.log('📱 [모바일 대시보드] 출근 통계:');
-                      console.log('  - 오늘:', today);
-                      console.log('  - 전체 출근기록:', attendance.length, '건');
-                      console.log('  - 오늘 출근기록:', todayAttendance.length, '건');
-                      console.log('  - 활성 직원:', activeEmployees.length, '명');
-                      if (attendance.length > 0) {
-                        console.log('  - 첫 번째 출근기록 샘플:', attendance[0]);
-                      }
-                      if (todayAttendance.length > 0) {
-                        console.log('  - 오늘 출근기록 상세:', todayAttendance.map(a => ({
-                          name: a.employee_name,
-                          date: a.date,
-                          checkIn: a.check_in_time
-                        })));
-                      }
-                      
-                      const notCheckedOut = todayAttendance.filter(a => a.check_in_time && !a.check_out_time).length;
-                      const checkedInToday = todayAttendance.filter(a => a.check_in_time).length;
-                      
-                      console.log('  ✅ 출근:', checkedInToday, '명');
-                      console.log('  ⚠️ 미퇴근:', notCheckedOut, '명');
-                      const lateToday = todayAttendance.filter(a => {
-                        if (!a.check_in_time || !a.employee_work_start_time) return false;
-                        const checkIn = new Date(a.check_in_time);
-                        const [hours, minutes] = a.employee_work_start_time.split(':');
-                        const workStart = new Date(checkIn);
-                        workStart.setHours(parseInt(hours), parseInt(minutes), 0);
-                        return checkIn > workStart;
-                      }).length;
-                      const notCheckedIn = activeEmployees.length - checkedInToday;
-                      
-                      // 이번 달 급여 현황 데이터
-                      const currentMonth = new Date().toISOString().slice(0, 7);
-                      const currentMonthSalaryData = salaryData && salaryData.month === currentMonth ? salaryData : null;
-                      
-                      // 급여 계산 (amount 필드 사용, 문자열 -> 숫자 변환)
-                      const totalMonthlyCost = currentMonthSalaryData 
-                        ? currentMonthSalaryData.employees.reduce((sum, emp) => sum + (emp.totalPay || emp.calculatedSalary || 0), 0)
-                        : activeEmployees.reduce((sum, emp) => sum + (parseFloat(emp.amount) || 0), 0);
-                      const unconfirmedEmployees = currentMonthSalaryData 
-                        ? currentMonthSalaryData.employees.filter(emp => !emp.confirmed).length
-                        : activeEmployees.length;
-                      
-                      // 급여 현황 디버깅
-                      console.log('💰 [모바일] 급여 현황:');
-                      console.log('  - salaryData:', salaryData ? '있음' : '없음');
-                      console.log('  - 활성 직원:', activeEmployees.length, '명');
-                      if (activeEmployees.length > 0) {
-                        console.log('  - 첫 번째 직원 급여 샘플:', {
-                          name: activeEmployees[0].name,
-                          amount: activeEmployees[0].amount,
-                          salary_type: activeEmployees[0].salary_type
-                        });
-                      }
-                      console.log('  - 예상 총 인건비:', totalMonthlyCost.toLocaleString(), '원');
-                      
-                      // 리스크 카운트 (generateNotifications 결과 재사용)
-                      const riskCount = notifications.length;
-                      const urgentRiskCount = notifications.filter(n => n.urgent).length;
-                      
-                      return (
-                        <>
-                          {/* 1. 오늘 출근 상황 카드 */}
-                          <div className="mobile-home-summary" onClick={() => handleTabChange('attendance')} style={{ cursor: 'pointer' }}>
-                            <div className="mobile-home-summary-title">
-                              📊 오늘 출근 상황
+                {isMobile && (() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  const todayAttendance = attendance.filter(a => a.date && a.date.split('T')[0] === today);
+                  const activeEmployees = employees.filter(emp => emp.employment_status === 'active');
+                  const checkedInToday = todayAttendance.filter(a => a.check_in_time).length;
+                  const notCheckedOut = todayAttendance.filter(a => a.check_in_time && !a.check_out_time).length;
+                  const notCheckedIn = Math.max(0, activeEmployees.length - checkedInToday);
+                  const lateToday = todayAttendance.filter(a => {
+                    if (!a.check_in_time || !a.employee_work_start_time) return false;
+                    const checkIn = new Date(a.check_in_time);
+                    const [h, m] = a.employee_work_start_time.split(':');
+                    const workStart = new Date(checkIn);
+                    workStart.setHours(parseInt(h), parseInt(m), 0);
+                    return checkIn > workStart;
+                  }).length;
+                  const totalMonthlyCost = activeEmployees.reduce((sum, emp) => sum + (parseFloat(emp.amount) || 0), 0);
+                  const urgentCount = notifications.filter(n => n.urgent).length;
+
+                  return (
+                    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+                      {/* 긴급 알림 배너 */}
+                      {urgentCount > 0 && (
+                        <div onClick={() => navigate('/notifications')} style={{
+                          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                          borderRadius: '14px', padding: '14px 16px', cursor: 'pointer',
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          boxShadow: '0 4px 12px rgba(239,68,68,0.3)'
+                        }}>
+                          <span style={{ color: 'white', fontWeight: '700', fontSize: '15px' }}>🚨 긴급 알림 {urgentCount}건</span>
+                          <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px' }}>확인 →</span>
+                        </div>
+                      )}
+
+                      {/* 오늘 출근 현황 */}
+                      <div onClick={() => handleTabChange('attendance')} style={{
+                        background: 'white', borderRadius: '16px', padding: '20px',
+                        boxShadow: '0 2px 12px rgba(0,0,0,0.08)', cursor: 'pointer',
+                        border: notCheckedIn > 0 ? '2px solid #fde68a' : '1px solid #f3f4f6'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                          <span style={{ fontWeight: '700', fontSize: '16px', color: '#111827' }}>📊 오늘 출근 현황</span>
+                          <span style={{ fontSize: '12px', color: '#9ca3af' }}>탭하여 상세보기 →</span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', textAlign: 'center' }}>
+                          {[
+                            { label: '출근', value: checkedInToday, color: '#059669' },
+                            { label: '지각', value: lateToday, color: '#f59e0b' },
+                            { label: '미출근', value: notCheckedIn, color: notCheckedIn > 0 ? '#ef4444' : '#9ca3af' },
+                            { label: '미퇴근', value: notCheckedOut, color: notCheckedOut > 0 ? '#ef4444' : '#9ca3af' },
+                          ].map(({ label, value, color }) => (
+                            <div key={label} style={{ background: '#f9fafb', borderRadius: '10px', padding: '10px 4px' }}>
+                              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>{label}</div>
+                              <div style={{ fontSize: '22px', fontWeight: '800', color }}>{value}</div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
-                              <div className="mobile-summary-stat">
-                                <div className="mobile-summary-stat-label">출근</div>
-                                <div className="mobile-summary-stat-value success">{checkedInToday}명</div>
-                              </div>
-                              <div className="mobile-summary-stat">
-                                <div className="mobile-summary-stat-label">지각</div>
-                                <div className="mobile-summary-stat-value warning">{lateToday}명</div>
-                              </div>
-                              <div className="mobile-summary-stat">
-                                <div className="mobile-summary-stat-label">미출근</div>
-                                <div className={`mobile-summary-stat-value ${notCheckedIn > 0 ? 'urgent' : ''}`}>
-                                  {notCheckedIn}명 {notCheckedIn > 0 && '⚠️'}
-                                </div>
-                              </div>
-                              <div className="mobile-summary-stat">
-                                <div className="mobile-summary-stat-label">미퇴근</div>
-                                <div className={`mobile-summary-stat-value ${notCheckedOut > 0 ? 'urgent' : ''}`}>
-                                  {notCheckedOut}명 {notCheckedOut > 0 && '⚠️'}
-                                </div>
-                              </div>
-                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 이번달 급여 */}
+                      <div onClick={() => handleTabChange('salary')} style={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        borderRadius: '16px', padding: '20px', cursor: 'pointer',
+                        boxShadow: '0 4px 16px rgba(102,126,234,0.3)'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', marginBottom: '6px' }}>💰 이번 달 예상 인건비</div>
+                            <div style={{ color: 'white', fontSize: '26px', fontWeight: '800' }}>{totalMonthlyCost.toLocaleString()}원</div>
+                            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', marginTop: '4px' }}>직원 {activeEmployees.length}명</div>
                           </div>
-                          
-                          {/* 2. 이번 달 급여 현황 카드 */}
-                          <div className="mobile-home-summary">
-                            <div className="mobile-home-summary-title">
-                              💰 이번 달 급여 현황
-                            </div>
-                            <div style={{ marginTop: '12px' }}>
-                              <div className="mobile-summary-row">
-                                <div className="mobile-summary-label">예상 총 인건비</div>
-                                <div className="mobile-summary-value" style={{ fontSize: '18px', fontWeight: '700' }}>
-                                  {totalMonthlyCost.toLocaleString()}원
-                                </div>
-                              </div>
-                              <div className="mobile-summary-row">
-                                <div className="mobile-summary-label">미확정 직원</div>
-                                <div className="mobile-summary-value">{unconfirmedEmployees}명</div>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => handleTabChange('salary')}
-                              style={{
-                                width: '100%',
-                                marginTop: '12px',
-                                padding: '12px',
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontSize: '14px',
-                                fontWeight: '600',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              급여 관리로 이동 →
-                            </button>
+                          <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '10px', padding: '8px 12px', color: 'white', fontSize: '13px', fontWeight: '600' }}>
+                            급여처리 →
                           </div>
-                          
-                          {/* 3. 리스크 센터 카드 */}
-                          {riskCount > 0 && (
-                            <div className="mobile-home-summary" style={{ 
-                              background: urgentRiskCount > 0 ? 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)' : '#f9fafb',
-                              border: urgentRiskCount > 0 ? '2px solid #fca5a5' : '1px solid #e5e7eb'
-                            }}>
-                              <div className="mobile-home-summary-title" style={{ color: urgentRiskCount > 0 ? '#dc2626' : '#374151' }}>
-                                {urgentRiskCount > 0 ? '🚨' : '📋'} 리스크 센터
-                              </div>
-                              <div style={{ marginTop: '12px' }}>
-                                <div className="mobile-summary-row">
-                                  <div className="mobile-summary-label">총 알림</div>
-                                  <div className="mobile-summary-value">{riskCount}건</div>
-                                </div>
-                                {urgentRiskCount > 0 && (
-                                  <div className="mobile-summary-row">
-                                    <div className="mobile-summary-label">긴급 알림</div>
-                                    <div className="mobile-summary-value urgent">{urgentRiskCount}건 ⚠️</div>
-                                  </div>
-                                )}
-                                {notifications.slice(0, 3).map((notif, idx) => (
-                                  <div key={idx} className="mobile-summary-row" style={{ fontSize: '13px', color: '#6b7280' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <span>{notif.icon}</span>
-                                      <span>{notif.title}</span>
-                                    </div>
-                                    <span style={{ fontSize: '12px' }}>{notif.message}</span>
-                                  </div>
-                                ))}
-                              </div>
-                              <button
-                                onClick={() => navigate('/notifications')}
-                                style={{
-                                  width: '100%',
-                                  marginTop: '12px',
-                                  padding: '12px',
-                                  background: urgentRiskCount > 0 ? '#dc2626' : '#6b7280',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '8px',
-                                  fontSize: '14px',
-                                  fontWeight: '600',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                알림 센터로 이동 →
-                              </button>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
-                )}
+                        </div>
+                      </div>
+
+                      {/* 빠른 메뉴 */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                        {[
+                          { label: '직원관리', icon: '👥', tab: 'roster' },
+                          { label: '소통방', icon: '💬', tab: 'community' },
+                          { label: '서류보관함', icon: '📁', tab: 'past-employees' },
+                        ].map(({ label, icon, tab }) => (
+                          <button key={tab} onClick={() => handleTabChange(tab)} style={{
+                            background: 'white', border: '1px solid #e5e7eb', borderRadius: '14px',
+                            padding: '16px 8px', display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', gap: '6px', cursor: 'pointer',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
+                          }}>
+                            <span style={{ fontSize: '26px' }}>{icon}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '600', color: '#374151' }}>{label}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                    </div>
+                  );
+                })()}
 
                 {/* 데스크톱 홈 화면: ERP KPI + 요약 카드 */}
                 {!isMobile && (

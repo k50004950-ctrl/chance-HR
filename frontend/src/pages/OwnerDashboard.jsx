@@ -33,7 +33,7 @@ import { createEmployeeRiskMap, countEmployeesWithRisks } from '../utils/employe
 import { getAttendanceStatus as getAttendanceStatusUtil } from '../utils/attendanceStatus';
 
 const OwnerDashboard = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -188,6 +188,8 @@ const OwnerDashboard = () => {
   const [editingCommentContent, setEditingCommentContent] = useState(''); // 수정 중인 댓글 내용
   const [postLiked, setPostLiked] = useState(false); // 현재 게시글 추천 여부
   const [showMobileMore, setShowMobileMore] = useState(false); // 모바일 더보기 메뉴
+  const [sidebarOpen, setSidebarOpen] = useState(false); // 모바일 사이드바
+  const [showAttendanceDetail, setShowAttendanceDetail] = useState(null); // 홈 출근 상세 (출근/지각/미출근/미퇴근)
   
   const uploadBaseUrl =
     import.meta.env.VITE_API_URL?.replace('/api', '') ||
@@ -2501,7 +2503,7 @@ const OwnerDashboard = () => {
         ...(isMobile && {
           padding: '0',
           maxWidth: '100%',
-          paddingBottom: 'calc(90px + var(--safe-bottom, 34px))'
+          paddingBottom: '20px'
         })
       }}>
         {/* 모바일 헤더 */}
@@ -2512,37 +2514,57 @@ const OwnerDashboard = () => {
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             color: 'white',
             padding: '12px 16px 16px',
-            zIndex: 100,
+            zIndex: 200,
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
           }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               marginBottom: '12px',
               minHeight: '48px'
             }}>
-              <h2 style={{ 
-                margin: 0, 
-                fontSize: '20px', 
-                fontWeight: '700',
-                flex: 1,
-                minWidth: 0,
-                paddingRight: '12px'
-              }}>
-                {activeTab === 'dashboard' ? '홈' : 
-                 activeTab === 'attendance' ? '출근 현황' :
-                 activeTab === 'salary' ? '급여 관리' :
-                 activeTab === 'roster' ? '직원 관리' :
-                 activeTab === 'salary-slips' ? '급여명세서' :
-                 activeTab === 'calendar' ? '출근 달력' :
-                 activeTab === 'severance' ? '퇴직금 계산' :
-                 activeTab === 'past-employees' ? '서류 보관함' :
-                 activeTab === 'matching' ? '매칭 요청' :
-                 activeTab === 'community' ? '소통방' :
-                 activeTab === 'settings' ? '설정' : '더보기'}
-              </h2>
-              <NotificationCenter 
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontSize: '22px',
+                    padding: '6px 10px',
+                    cursor: 'pointer',
+                    lineHeight: 1,
+                    flexShrink: 0
+                  }}
+                >
+                  ☰
+                </button>
+                <h2 style={{
+                  margin: 0,
+                  fontSize: '20px',
+                  fontWeight: '700',
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {activeTab === 'dashboard' ? '홈' :
+                   activeTab === 'attendance' ? '출근 현황' :
+                   activeTab === 'salary' ? '급여 관리' :
+                   activeTab === 'roster' ? '직원 관리' :
+                   activeTab === 'salary-slips' ? '급여명세서' :
+                   activeTab === 'calendar' ? '출근 달력' :
+                   activeTab === 'severance' ? '퇴직금 계산' :
+                   activeTab === 'past-employees' ? '서류 보관함' :
+                   activeTab === 'matching' ? '매칭 요청' :
+                   activeTab === 'community' ? '소통방' :
+                   activeTab === 'settings' ? '설정' : '더보기'}
+                </h2>
+              </div>
+              <NotificationCenter
                 notifications={notifications}
                 onActionClick={handleNotificationAction}
               />
@@ -3707,29 +3729,108 @@ const OwnerDashboard = () => {
                       )}
 
                       {/* 오늘 출근 현황 */}
-                      <div onClick={() => handleTabChange('attendance')} style={{
-                        background: 'white', borderRadius: '16px', padding: '20px',
-                        boxShadow: '0 2px 12px rgba(0,0,0,0.08)', cursor: 'pointer',
-                        border: notCheckedIn > 0 ? '2px solid #fde68a' : '1px solid #f3f4f6'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                          <span style={{ fontWeight: '700', fontSize: '16px', color: '#111827' }}>📊 오늘 출근 현황</span>
-                          <span style={{ fontSize: '12px', color: '#9ca3af' }}>탭하여 상세보기 →</span>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', textAlign: 'center' }}>
-                          {[
-                            { label: '출근', value: checkedInToday, color: '#059669' },
-                            { label: '지각', value: lateToday, color: '#f59e0b' },
-                            { label: '미출근', value: notCheckedIn, color: notCheckedIn > 0 ? '#ef4444' : '#9ca3af' },
-                            { label: '미퇴근', value: notCheckedOut, color: notCheckedOut > 0 ? '#ef4444' : '#9ca3af' },
-                          ].map(({ label, value, color }) => (
-                            <div key={label} style={{ background: '#f9fafb', borderRadius: '10px', padding: '10px 4px' }}>
-                              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>{label}</div>
-                              <div style={{ fontSize: '22px', fontWeight: '800', color }}>{value}</div>
+                      {(() => {
+                        // 상세 데이터 준비
+                        const checkedInRecords = todayAttendance.filter(a => a.check_in_time);
+                        const lateRecords = todayAttendance.filter(a => {
+                          if (!a.check_in_time || !a.employee_work_start_time) return false;
+                          const checkIn = new Date(a.check_in_time);
+                          const [hh, mm] = a.employee_work_start_time.split(':');
+                          const ws = new Date(checkIn);
+                          ws.setHours(parseInt(hh), parseInt(mm), 0);
+                          return checkIn > ws;
+                        });
+                        const notCheckedInEmps = activeEmployees.filter(emp =>
+                          !todayAttendance.some(a => a.user_id === emp.id)
+                        );
+                        const notCheckedOutRecords = todayAttendance.filter(a => a.check_in_time && !a.check_out_time);
+
+                        const formatTime = (t) => {
+                          if (!t) return '-';
+                          const d = new Date(t);
+                          return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+                        };
+                        const getEmpName = (userId) => {
+                          const emp = employees.find(e => e.id === userId);
+                          return emp ? emp.name : '알수없음';
+                        };
+
+                        return (
+                          <div style={{
+                            background: 'white', borderRadius: '16px', padding: '20px',
+                            boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                            border: notCheckedIn > 0 ? '2px solid #fde68a' : '1px solid #f3f4f6'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                              <span style={{ fontWeight: '700', fontSize: '16px', color: '#111827' }}>📊 오늘 출근 현황</span>
+                              <span onClick={() => handleTabChange('attendance')} style={{ fontSize: '12px', color: '#667eea', cursor: 'pointer', fontWeight: '600' }}>전체보기 →</span>
                             </div>
-                          ))}
-                        </div>
-                      </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', textAlign: 'center' }}>
+                              {[
+                                { key: 'checkedIn', label: '출근', value: checkedInToday, color: '#059669' },
+                                { key: 'late', label: '지각', value: lateToday, color: '#f59e0b' },
+                                { key: 'notIn', label: '미출근', value: notCheckedIn, color: notCheckedIn > 0 ? '#ef4444' : '#9ca3af' },
+                                { key: 'notOut', label: '미퇴근', value: notCheckedOut, color: notCheckedOut > 0 ? '#ef4444' : '#9ca3af' },
+                              ].map(({ key, label, value, color }) => (
+                                <div
+                                  key={key}
+                                  onClick={(e) => { e.stopPropagation(); setShowAttendanceDetail(showAttendanceDetail === key ? null : key); }}
+                                  style={{
+                                    background: showAttendanceDetail === key ? '#ede9fe' : '#f9fafb',
+                                    borderRadius: '10px', padding: '10px 4px', cursor: 'pointer',
+                                    border: showAttendanceDetail === key ? '2px solid #667eea' : '2px solid transparent',
+                                    transition: 'all 0.2s'
+                                  }}
+                                >
+                                  <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>{label}</div>
+                                  <div style={{ fontSize: '22px', fontWeight: '800', color }}>{value}</div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* 상세 리스트 */}
+                            {showAttendanceDetail && (
+                              <div style={{
+                                marginTop: '14px', background: '#f9fafb', borderRadius: '12px',
+                                padding: '14px', maxHeight: '200px', overflowY: 'auto'
+                              }}>
+                                {showAttendanceDetail === 'checkedIn' && (
+                                  checkedInRecords.length > 0 ? checkedInRecords.map((r, i) => (
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 4px', borderBottom: i < checkedInRecords.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                                      <span style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>{getEmpName(r.user_id)}</span>
+                                      <span style={{ fontSize: '14px', color: '#059669', fontWeight: '600' }}>출근 {formatTime(r.check_in_time)}</span>
+                                    </div>
+                                  )) : <div style={{ color: '#9ca3af', textAlign: 'center', padding: '8px', fontSize: '13px' }}>출근 기록 없음</div>
+                                )}
+                                {showAttendanceDetail === 'late' && (
+                                  lateRecords.length > 0 ? lateRecords.map((r, i) => (
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 4px', borderBottom: i < lateRecords.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                                      <span style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>{getEmpName(r.user_id)}</span>
+                                      <span style={{ fontSize: '14px', color: '#f59e0b', fontWeight: '600' }}>출근 {formatTime(r.check_in_time)} (지각)</span>
+                                    </div>
+                                  )) : <div style={{ color: '#9ca3af', textAlign: 'center', padding: '8px', fontSize: '13px' }}>지각 없음</div>
+                                )}
+                                {showAttendanceDetail === 'notIn' && (
+                                  notCheckedInEmps.length > 0 ? notCheckedInEmps.map((emp, i) => (
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 4px', borderBottom: i < notCheckedInEmps.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                                      <span style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>{emp.name}</span>
+                                      <span style={{ fontSize: '13px', color: '#ef4444' }}>미출근</span>
+                                    </div>
+                                  )) : <div style={{ color: '#9ca3af', textAlign: 'center', padding: '8px', fontSize: '13px' }}>모두 출근 완료</div>
+                                )}
+                                {showAttendanceDetail === 'notOut' && (
+                                  notCheckedOutRecords.length > 0 ? notCheckedOutRecords.map((r, i) => (
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 4px', borderBottom: i < notCheckedOutRecords.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                                      <span style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>{getEmpName(r.user_id)}</span>
+                                      <span style={{ fontSize: '14px', color: '#ef4444', fontWeight: '600' }}>출근 {formatTime(r.check_in_time)} · 미퇴근</span>
+                                    </div>
+                                  )) : <div style={{ color: '#9ca3af', textAlign: 'center', padding: '8px', fontSize: '13px' }}>미퇴근 없음</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* 이번달 급여 */}
                       <div onClick={() => handleTabChange('salary')} style={{
@@ -9746,99 +9847,79 @@ const OwnerDashboard = () => {
         </div>
       )}
 
-      {/* 모바일 하단 네비게이션 */}
+      {/* 모바일 사이드바 메뉴 */}
       {isMobile && (
         <>
-          <nav className="mobile-bottom-nav">
-            <button
-              className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-              onClick={() => handleTabChange('dashboard')}
-            >
-              <div className="mobile-nav-icon">🏠</div>
-              <div className="mobile-nav-label">홈</div>
-            </button>
-
-            <button
-              className={`mobile-nav-item ${activeTab === 'attendance' ? 'active' : ''}`}
-              onClick={() => handleTabChange('attendance')}
-            >
-              <div className="mobile-nav-icon">📊</div>
-              <div className="mobile-nav-label">출근</div>
-            </button>
-
-            <button
-              className={`mobile-nav-item ${activeTab === 'salary' ? 'active' : ''}`}
-              onClick={() => handleTabChange('salary')}
-            >
-              <div className="mobile-nav-icon">💸</div>
-              <div className="mobile-nav-label">급여</div>
-            </button>
-
-            <button
-              className={`mobile-nav-item ${activeTab === 'roster' ? 'active' : ''}`}
-              onClick={() => handleTabChange('roster')}
-            >
-              <div className="mobile-nav-icon">👥</div>
-              <div className="mobile-nav-label">직원</div>
-            </button>
-
-            <button
-              className={`mobile-nav-item ${activeTab === 'community' ? 'active' : ''}`}
-              onClick={() => handleTabChange('community')}
-            >
-              <div className="mobile-nav-icon">💬</div>
-              <div className="mobile-nav-label">소통방</div>
-            </button>
-
-            <button
-              className={`mobile-nav-item ${showMobileMore ? 'active' : ''}`}
-              onClick={() => setShowMobileMore(v => !v)}
-            >
-              <div className="mobile-nav-icon">⋯</div>
-              <div className="mobile-nav-label">더보기</div>
-            </button>
+          <div
+            className={`mobile-sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+            onClick={() => setSidebarOpen(false)}
+          />
+          <nav className={`mobile-sidebar ${sidebarOpen ? 'open' : ''}`}>
+            <div className="mobile-sidebar-header">
+              <h3>찬스HR</h3>
+              <p>{user?.name} ({user?.role === 'owner' ? '사업주' : ''})</p>
+            </div>
+            <div className="mobile-sidebar-menu">
+              {[
+                { tab: 'dashboard', icon: '🏠', label: '홈' },
+                { tab: 'attendance', icon: '📊', label: '출근 현황' },
+                { tab: 'salary', icon: '💸', label: '급여 관리' },
+                { tab: 'roster', icon: '👥', label: '직원 관리' },
+                { tab: 'community', icon: '💬', label: '소통방' },
+              ].map(({ tab, icon, label }) => (
+                <button
+                  key={tab}
+                  className={`mobile-sidebar-item ${activeTab === tab ? 'active' : ''}`}
+                  onClick={() => { handleTabChange(tab); setSidebarOpen(false); }}
+                >
+                  <span className="sidebar-icon">{icon}</span>
+                  {label}
+                </button>
+              ))}
+              <div className="mobile-sidebar-divider" />
+              {[
+                { tab: 'calendar', icon: '📅', label: '출근 달력' },
+                { tab: 'salary-slips', icon: '📄', label: '급여명세서' },
+                { tab: 'severance', icon: '🧮', label: '퇴직금 계산' },
+                { tab: 'past-employees', icon: '📁', label: '서류 보관함' },
+                ...(ownerCompanyId ? [{ tab: 'matching', icon: '🔔', label: '매칭 승인' }] : []),
+                { tab: 'settings', icon: '⚙️', label: '설정' },
+              ].map(({ tab, icon, label }) => (
+                <button
+                  key={tab}
+                  className={`mobile-sidebar-item ${activeTab === tab ? 'active' : ''}`}
+                  onClick={() => { handleTabChange(tab); setSidebarOpen(false); }}
+                >
+                  <span className="sidebar-icon">{icon}</span>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="mobile-sidebar-footer">
+              <button
+                className="mobile-sidebar-item"
+                onClick={() => { setSidebarOpen(false); navigate('/guide'); }}
+              >
+                <span className="sidebar-icon">📘</span>
+                사용방법
+              </button>
+              <button
+                className="mobile-sidebar-item"
+                onClick={() => { setSidebarOpen(false); setShowERPChangePassword(true); }}
+              >
+                <span className="sidebar-icon">🔐</span>
+                비밀번호 변경
+              </button>
+              <button
+                className="mobile-sidebar-item"
+                onClick={() => { setSidebarOpen(false); logout(); }}
+                style={{ color: '#dc2626' }}
+              >
+                <span className="sidebar-icon">🚪</span>
+                로그아웃
+              </button>
+            </div>
           </nav>
-
-          {/* 더보기 메뉴 */}
-          {showMobileMore && (
-            <>
-              <div
-                style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.4)' }}
-                onClick={() => setShowMobileMore(false)}
-              />
-              <div style={{
-                position: 'fixed', bottom: 'calc(65px + env(safe-area-inset-bottom))', left: 0, right: 0,
-                background: 'white', borderRadius: '20px 20px 0 0', zIndex: 1000,
-                padding: '20px 16px', boxShadow: '0 -4px 20px rgba(0,0,0,0.15)'
-              }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-                  {[
-                    { tab: 'calendar', icon: '📅', label: '출근달력' },
-                    { tab: 'salary-slips', icon: '📄', label: '급여명세서' },
-                    { tab: 'severance', icon: '🧮', label: '퇴직금' },
-                    { tab: 'past-employees', icon: '📁', label: '서류보관함' },
-                    ...(ownerCompanyId ? [{ tab: 'matching', icon: '🔔', label: '매칭승인' }] : []),
-                    { tab: 'settings', icon: '⚙️', label: '설정' },
-                  ].map(({ tab, icon, label }) => (
-                    <button
-                      key={tab}
-                      onClick={() => { handleTabChange(tab); setShowMobileMore(false); }}
-                      style={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-                        padding: '12px 8px', border: 'none', borderRadius: '12px',
-                        background: activeTab === tab ? '#ede9fe' : '#f9fafb',
-                        color: activeTab === tab ? '#667eea' : '#374151',
-                        cursor: 'pointer', fontSize: '12px', fontWeight: '600'
-                      }}
-                    >
-                      <span style={{ fontSize: '24px' }}>{icon}</span>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
         </>
       )}
 

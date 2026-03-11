@@ -10,9 +10,10 @@ import html2canvas from 'html2canvas';
 import useIsMobile from '../hooks/useIsMobile';
 
 const EmployeeDashboard = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [todayStatus, setTodayStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -848,22 +849,32 @@ const EmployeeDashboard = () => {
         <div style={{
           position: 'sticky', top: 0,
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white', padding: '12px 16px 16px', zIndex: 100,
+          color: 'white', padding: '12px 16px 16px', zIndex: 200,
           boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: '48px' }}>
-            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>
-              {activeTab === 'attendance' ? '출퇴근' :
-               activeTab === 'slips' ? '급여명세서' :
-               activeTab === 'employer' ? '사업주 정보' : '소통방'}
-            </h2>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
               <button
-                onClick={() => navigate('/employee/match-request')}
-                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', color: 'white', padding: '8px 12px', fontSize: '13px', cursor: 'pointer' }}
+                onClick={() => setSidebarOpen(true)}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontSize: '22px',
+                  padding: '6px 10px',
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                  flexShrink: 0
+                }}
               >
-                🏢 회사찾기
+                ☰
               </button>
+              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>
+                {activeTab === 'attendance' ? '출퇴근' :
+                 activeTab === 'slips' ? '급여명세서' :
+                 activeTab === 'employer' ? '사업주 정보' : '소통방'}
+              </h2>
             </div>
           </div>
         </div>
@@ -871,7 +882,7 @@ const EmployeeDashboard = () => {
         <Header />
       )}
 
-      <div className="container" style={{ ...(isMobile && { padding: '12px 16px', paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }) }}>
+      <div className="container" style={{ ...(isMobile && { padding: '12px 16px', paddingBottom: '20px' }) }}>
         {/* PC 전용: 제목 + 버튼 */}
         {!isMobile && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
@@ -2322,38 +2333,54 @@ const EmployeeDashboard = () => {
         />
       )}
 
-      {/* 모바일 하단 네비게이션 */}
+      {/* 모바일 사이드바 메뉴 */}
       {isMobile && (
-        <nav className="mobile-bottom-nav">
-          <button
-            className={`mobile-nav-item ${activeTab === 'attendance' ? 'active' : ''}`}
-            onClick={() => setActiveTab('attendance')}
-          >
-            <div className="mobile-nav-icon">📊</div>
-            <div className="mobile-nav-label">출퇴근</div>
-          </button>
-          <button
-            className={`mobile-nav-item ${activeTab === 'slips' ? 'active' : ''}`}
-            onClick={() => setActiveTab('slips')}
-          >
-            <div className="mobile-nav-icon">📝</div>
-            <div className="mobile-nav-label">급여</div>
-          </button>
-          <button
-            className={`mobile-nav-item ${activeTab === 'employer' ? 'active' : ''}`}
-            onClick={() => setActiveTab('employer')}
-          >
-            <div className="mobile-nav-icon">🏢</div>
-            <div className="mobile-nav-label">사업주</div>
-          </button>
-          <button
-            className={`mobile-nav-item ${activeTab === 'community' ? 'active' : ''}`}
-            onClick={() => setActiveTab('community')}
-          >
-            <div className="mobile-nav-icon">💬</div>
-            <div className="mobile-nav-label">소통방</div>
-          </button>
-        </nav>
+        <>
+          <div
+            className={`mobile-sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+            onClick={() => setSidebarOpen(false)}
+          />
+          <nav className={`mobile-sidebar ${sidebarOpen ? 'open' : ''}`}>
+            <div className="mobile-sidebar-header">
+              <h3>찬스HR</h3>
+              <p>{user?.name} (직원)</p>
+            </div>
+            <div className="mobile-sidebar-menu">
+              {[
+                { tab: 'attendance', icon: '📊', label: '출퇴근' },
+                { tab: 'slips', icon: '📝', label: '급여명세서' },
+                { tab: 'employer', icon: '🏢', label: '사업주 정보' },
+                { tab: 'community', icon: '💬', label: '소통방' },
+              ].map(({ tab, icon, label }) => (
+                <button
+                  key={tab}
+                  className={`mobile-sidebar-item ${activeTab === tab ? 'active' : ''}`}
+                  onClick={() => { setActiveTab(tab); setSidebarOpen(false); }}
+                >
+                  <span className="sidebar-icon">{icon}</span>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="mobile-sidebar-footer">
+              <button
+                className="mobile-sidebar-item"
+                onClick={() => { setSidebarOpen(false); navigate('/employee/match-request'); }}
+              >
+                <span className="sidebar-icon">🏢</span>
+                회사 찾기
+              </button>
+              <button
+                className="mobile-sidebar-item"
+                onClick={() => { setSidebarOpen(false); logout(); }}
+                style={{ color: '#dc2626' }}
+              >
+                <span className="sidebar-icon">🚪</span>
+                로그아웃
+              </button>
+            </div>
+          </nav>
+        </>
       )}
 
       {!isMobile && <Footer />}

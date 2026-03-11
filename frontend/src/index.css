@@ -58,7 +58,7 @@ body {
 @media (max-width: 768px) {
   .container {
     padding: 12px;
-    padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important; /* 하단 네비게이션 + safe-area */
+    padding-bottom: 20px !important;
   }
 
   /* 제목 크기 조정 */
@@ -1487,7 +1487,7 @@ button:active {
 /* 모바일 콘텐츠 영역 */
 .mobile-content {
   flex: 1;
-  padding-bottom: calc(80px + env(safe-area-inset-bottom)); /* 하단 네비게이션 + iOS safe-area */
+  padding-bottom: 20px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -1532,7 +1532,122 @@ button:active {
   }
 }
 
-/* 하단 네비게이션 바 */
+/* ========================================
+   모바일 사이드바 드로어 메뉴
+   ======================================== */
+
+/* 사이드바 오버레이 */
+.mobile-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1200;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.mobile-sidebar-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 사이드바 패널 */
+.mobile-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 80vw;
+  background: white;
+  z-index: 1300;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.mobile-sidebar.open {
+  transform: translateX(0);
+}
+
+/* 사이드바 헤더 */
+.mobile-sidebar-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 24px 20px;
+  color: white;
+}
+
+.mobile-sidebar-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+}
+
+.mobile-sidebar-header p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: rgba(255,255,255,0.8);
+}
+
+/* 사이드바 메뉴 아이템 */
+.mobile-sidebar-menu {
+  flex: 1;
+  padding: 12px 0;
+}
+
+.mobile-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  color: #374151;
+  transition: background 0.2s;
+  text-align: left;
+}
+
+.mobile-sidebar-item:active {
+  background: #f3f4f6;
+}
+
+.mobile-sidebar-item.active {
+  background: #ede9fe;
+  color: #667eea;
+  font-weight: 700;
+}
+
+.mobile-sidebar-item .sidebar-icon {
+  font-size: 22px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.mobile-sidebar-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 8px 16px;
+}
+
+/* 사이드바 푸터 (로그아웃 등) */
+.mobile-sidebar-footer {
+  border-top: 1px solid #e5e7eb;
+  padding: 12px 0;
+  padding-bottom: max(env(safe-area-inset-bottom), 12px);
+}
+
+/* 하단 네비게이션 바 (하위 호환 유지) */
 .mobile-bottom-nav {
   position: fixed;
   bottom: 0;

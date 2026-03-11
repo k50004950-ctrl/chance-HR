@@ -18,7 +18,7 @@ const NotificationsPage = () => {
 
   return (
     <div style={{ 
-      minHeight: '100vh',
+      minHeight: '100dvh',
       paddingBottom: isMobile ? 'calc(70px + env(safe-area-inset-bottom))' : '0',
       background: '#f9fafb'
     }}>

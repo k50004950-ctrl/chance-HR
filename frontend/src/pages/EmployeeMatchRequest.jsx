@@ -126,7 +126,7 @@ function EmployeeMatchRequest() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '20px' }}>
+    <div style={{ minHeight: '100dvh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '20px' }}>
       <div style={{ maxWidth: '600px', margin: '0 auto', paddingTop: '40px' }}>
         
         {/* 헤더 */}

@@ -81,7 +81,7 @@ const Header = () => {
         <div 
           style={{
             position: 'fixed',
-            top: '60px',
+            top: 'calc(60px + env(safe-area-inset-top, 0px))',
             right: '0',
             width: '250px',
             backgroundColor: 'white',

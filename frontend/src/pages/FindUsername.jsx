@@ -48,8 +48,7 @@ const FindUsername = () => {
 
   return (
     <div style={{
-      minHeight: '100vh',
-      minHeight: '100dvh', // 모바일 뷰포트 높이
+      minHeight: '100dvh',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       display: 'flex',
       alignItems: 'center',

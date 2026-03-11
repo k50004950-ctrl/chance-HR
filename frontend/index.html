@@ -29,13 +29,21 @@
     <!-- Android/iOS Safe Area 자동 감지 -->
     <script>
       function updateSafeArea() {
-        // screen.height - window.innerHeight = 상태바 + 하단 nav bar 높이
-        var screenDiff = window.screen.height - window.innerHeight;
-        // 상태바만큼 제외 (일반적으로 24~48px)
-        // Capacitor는 상태바를 웹뷰 안에 포함시키므로 screenDiff ≈ 하단 nav 높이
-        var safeBottom = 0;
-        if (screenDiff > 20 && screenDiff < 200) {
-          safeBottom = screenDiff;
+        // 1) env(safe-area-inset-bottom)을 CSS로 읽어서 사용 (iOS/Android 표준)
+        var testEl = document.createElement('div');
+        testEl.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom);pointer-events:none;visibility:hidden;';
+        document.documentElement.appendChild(testEl);
+        var envBottom = testEl.offsetHeight || 0;
+        document.documentElement.removeChild(testEl);
+
+        // 2) env() 값이 있으면 사용, 없으면 Capacitor/Android fallback
+        var safeBottom = envBottom;
+        if (safeBottom === 0) {
+          // Capacitor 웹뷰: screen.height - window.innerHeight 로 하단 nav bar 추정
+          var screenDiff = window.screen.height - window.innerHeight;
+          if (screenDiff > 40 && screenDiff < 150) {
+            safeBottom = Math.min(screenDiff, 48);
+          }
         }
         document.documentElement.style.setProperty('--safe-bottom', safeBottom + 'px');
       }

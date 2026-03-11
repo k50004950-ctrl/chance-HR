@@ -26,10 +26,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* 컨테이너 */
@@ -56,7 +58,7 @@ body {
 @media (max-width: 768px) {
   .container {
     padding: 12px;
-    padding-bottom: calc(85px + env(safe-area-inset-bottom)) !important; /* 하단 네비게이션(65px) + 여유(20px) + safe-area */
+    padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important; /* 하단 네비게이션 + safe-area */
   }
 
   /* 제목 크기 조정 */
@@ -1305,7 +1307,7 @@ button:active {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1100; /* 하단 네비(1000)보다 위에 표시 */
   padding: 16px;
 }
 
@@ -1316,6 +1318,7 @@ button:active {
   max-width: 500px;
   width: 90%;
   max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
 }
 
@@ -1338,6 +1341,7 @@ button:active {
     width: 95%;
     padding: 16px;
     max-height: 85vh;
+    max-height: 85dvh;
   }
 
   .modal-header {
@@ -1476,6 +1480,7 @@ button:active {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
   background: #f5f7fa;
 }
 
@@ -1515,7 +1520,7 @@ button:active {
     margin-bottom: 12px;
     background: white;
     border: 1px solid #e5e7eb;
-    borderRadius: 12px;
+    border-radius: 12px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     transition: all 0.2s;
     word-break: keep-all;

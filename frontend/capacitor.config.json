@@ -3,7 +3,7 @@
   "appName": "찬스HR",
   "webDir": "dist",
   "server": {
-    "url": "https://charming-creation-production.up.railway.app",
+    "url": "https://chance-hr-production.up.railway.app",
     "cleartext": false
   },
   "plugins": {

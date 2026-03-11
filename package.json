@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "npm start --prefix backend",
-    "build": "npm run build --prefix frontend && cp -r frontend/dist backend/",
+    "build": "npm run build --prefix frontend && cp -r frontend/dist backend/ && cp -r frontend/dist .",
     "install-all": "npm install --prefix frontend && npm install --prefix backend",
     "postinstall": "npm install --prefix frontend && npm install --prefix backend && npm run build"
   },

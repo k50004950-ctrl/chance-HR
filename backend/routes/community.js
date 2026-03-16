@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticate, authorizeRole } from '../middleware/auth.js';
 import { query, get, run } from '../config/database.js';
+import { validateCommunityPost } from '../middleware/validate.js';
 
 const router = express.Router();
 
@@ -94,7 +95,7 @@ router.get('/posts/:id', authenticate, async (req, res) => {
 });
 
 // 게시글 작성
-router.post('/posts', authenticate, authorizeRole(['owner', 'employee']), async (req, res) => {
+router.post('/posts', authenticate, authorizeRole(['owner', 'employee']), validateCommunityPost, async (req, res) => {
   try {
     const { title, content } = req.body;
     const userId = req.user.id;

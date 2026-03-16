@@ -6,6 +6,8 @@ import { dirname } from 'path';
 import { query, run, get } from '../config/database.js';
 import { authenticate, authorizeRole } from '../middleware/auth.js';
 import bcrypt from 'bcryptjs';
+import { encryptSSN, decryptSSN } from '../utils/crypto.js';
+import { validateEmployeeCreate, validateIdParam } from '../middleware/validate.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -55,12 +57,12 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
     if (req.user.role === 'owner') {
       const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [workplaceId]);
       if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ message: '권한이 없습니다.' });
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
     }
 
   const employees = await query(`
-    SELECT 
+    SELECT
       u.id, u.username, u.name, u.phone, u.email, u.ssn, u.address,
       u.emergency_contact, u.emergency_phone, u.employment_status,
       ed.hire_date, ed.gender, ed.birth_date, ed.career, ed.job_type,
@@ -79,10 +81,16 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
     ORDER BY u.created_at DESC
   `, [workplaceId]);
 
-    res.json(employees);
+    // Decrypt SSN for each employee
+    const decryptedEmployees = employees.map(emp => ({
+      ...emp,
+      ssn: decryptSSN(emp.ssn)
+    }));
+
+    res.json({ success: true, data: decryptedEmployees });
   } catch (error) {
     console.error('직원 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -109,21 +117,24 @@ router.get('/:id', authenticate, async (req, res) => {
     `, [req.params.id]);
 
     if (!employee) {
-      return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '직원을 찾을 수 없습니다.' });
     }
 
     // 권한 확인
     if (req.user.role === 'owner') {
       const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [employee.workplace_id]);
       if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ message: '권한이 없습니다.' });
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
     }
 
-    res.json(employee);
+    // Decrypt SSN
+    employee.ssn = decryptSSN(employee.ssn);
+
+    res.json({ success: true, data: employee });
   } catch (error) {
     console.error('직원 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -133,7 +144,7 @@ router.put('/:id/consent', authenticate, async (req, res) => {
     const employeeId = req.params.id;
 
     if (req.user.role !== 'employee' || req.user.id !== parseInt(employeeId, 10)) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const { privacy_consent, privacy_consent_date, location_consent, location_consent_date } = req.body;
@@ -142,7 +153,7 @@ router.put('/:id/consent', authenticate, async (req, res) => {
     const locationConsentValue = location_consent === true || location_consent === '1' || location_consent === 1;
 
     if (!privacyConsentValue || !locationConsentValue) {
-      return res.status(400).json({ message: '모든 동의 항목이 필요합니다.' });
+      return res.status(400).json({ success: false, message: '모든 동의 항목이 필요합니다.' });
     }
 
     await run(
@@ -158,10 +169,10 @@ router.put('/:id/consent', authenticate, async (req, res) => {
       ]
     );
 
-    res.json({ message: '동의 기록이 저장되었습니다.' });
+    res.json({ success: true, message: '동의 기록이 저장되었습니다.' });
   } catch (error) {
     console.error('동의 업데이트 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -193,23 +204,24 @@ router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']),
     }
 
     if (!username || !password || !name || !workplace_id) {
-      return res.status(400).json({ message: '필수 정보를 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '필수 정보를 입력해주세요.' });
     }
 
     // 권한 확인
     if (req.user.role === 'owner') {
       const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [workplace_id]);
       if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ message: '권한이 없습니다.' });
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const encryptedSSN = encryptSSN(ssn);
 
     // 사용자 등록
     const userResult = await run(
       'INSERT INTO users (username, password, name, role, phone, email, ssn, address, emergency_contact, emergency_phone, workplace_id, employment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [username, hashedPassword, name, 'employee', phone, email, ssn, address, emergency_contact, emergency_phone, workplace_id, employment_status || 'active']
+      [username, hashedPassword, name, 'employee', phone, email, encryptedSSN, address, emergency_contact, emergency_phone, workplace_id, employment_status || 'active']
     );
 
     const userId = userResult.id;
@@ -260,6 +272,7 @@ router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']),
     }
 
     res.status(201).json({
+      success: true,
       message: '직원이 등록되었습니다.',
       employeeId: userId
     });
@@ -268,10 +281,10 @@ router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']),
       error.message.includes('UNIQUE constraint failed') ||
       error.message.includes('duplicate key value')
     ) {
-      return res.status(400).json({ message: '이미 사용 중인 아이디입니다. 다른 아이디를 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '이미 사용 중인 아이디입니다. 다른 아이디를 입력해주세요.' });
     }
     console.error('직원 등록 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -313,13 +326,13 @@ router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']
     // 권한 확인
     const employee = await get("SELECT workplace_id FROM users WHERE id = ? AND role = 'employee'", [employeeId]);
     if (!employee) {
-      return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '직원을 찾을 수 없습니다.' });
     }
 
     if (req.user.role === 'owner') {
       const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [employee.workplace_id]);
       if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ message: '권한이 없습니다.' });
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
     }
 
@@ -342,7 +355,7 @@ router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']
     }
     if (ssn !== undefined) {
       userUpdateFields.push(' ssn = ?');
-      userUpdateParams.push(ssn);
+      userUpdateParams.push(encryptSSN(ssn));
     }
     if (address !== undefined) {
       userUpdateFields.push(' address = ?');
@@ -549,10 +562,10 @@ router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']
       );
     }
 
-    res.json({ message: '직원 정보가 수정되었습니다.' });
+    res.json({ success: true, message: '직원 정보가 수정되었습니다.' });
   } catch (error) {
     console.error('직원 수정 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -564,13 +577,13 @@ router.delete('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owne
     // 권한 확인
     const employee = await get("SELECT workplace_id FROM users WHERE id = ? AND role = 'employee'", [employeeId]);
     if (!employee) {
-      return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '직원을 찾을 수 없습니다.' });
     }
 
     if (req.user.role === 'owner') {
       const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [employee.workplace_id]);
       if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ message: '권한이 없습니다.' });
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
     }
 
@@ -584,10 +597,10 @@ router.delete('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owne
     await run('DELETE FROM employee_details WHERE user_id = ?', [employeeId]);
     await run('DELETE FROM users WHERE id = ?', [employeeId]);
 
-    res.json({ message: '직원이 삭제되었습니다.' });
+    res.json({ success: true, message: '직원이 삭제되었습니다.' });
   } catch (error) {
     console.error('직원 삭제 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -598,7 +611,7 @@ router.get('/:id/employment-certificate', authenticate, async (req, res) => {
 
     // 권한 확인 - 본인 또는 사업주만 조회 가능
     if (req.user.role === 'employee' && req.user.id !== parseInt(employeeId)) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     // 직원 정보 조회
@@ -618,19 +631,20 @@ router.get('/:id/employment-certificate', authenticate, async (req, res) => {
     );
 
     if (!employeeInfo) {
-      return res.status(404).json({ message: '직원 정보를 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '직원 정보를 찾을 수 없습니다.' });
     }
 
     // 사업주 권한 확인
     if (req.user.role === 'owner') {
       const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [employeeInfo.workplace_id]);
       if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ message: '권한이 없습니다.' });
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
     }
 
-    // 주민등록번호 마스킹 (뒤 7자리)
-    let maskedSSN = employeeInfo.ssn ? String(employeeInfo.ssn) : null;
+    // 주민등록번호 복호화 후 마스킹 (뒤 7자리)
+    const rawSSN = decryptSSN(employeeInfo.ssn);
+    let maskedSSN = rawSSN ? String(rawSSN) : null;
     if (maskedSSN && maskedSSN.length >= 7) {
       maskedSSN = maskedSSN.substring(0, maskedSSN.length - 7) + '*******';
     }
@@ -658,23 +672,26 @@ router.get('/:id/employment-certificate', authenticate, async (req, res) => {
     const issueDate = formatDateKorean(new Date());
 
     res.json({
-      employeeName: employeeInfo.name,
-      ssn: maskedSSN,
-      hireDate,
-      position: employeeInfo.position || '직원',
-      department: employeeInfo.department || '-',
-      address: employeeInfo.address || '-',
-      workplaceName: employeeInfo.workplace_name,
-      workplaceAddress: employeeInfo.workplace_address,
-      businessNumber: employeeInfo.business_number,
-      salaryType: employeeInfo.salary_type,
-      amount: employeeInfo.amount,
-      ownerName: employeeInfo.owner_name || null,
-      issueDate
+      success: true,
+      data: {
+        employeeName: employeeInfo.name,
+        ssn: maskedSSN,
+        hireDate,
+        position: employeeInfo.position || '직원',
+        department: employeeInfo.department || '-',
+        address: employeeInfo.address || '-',
+        workplaceName: employeeInfo.workplace_name,
+        workplaceAddress: employeeInfo.workplace_address,
+        businessNumber: employeeInfo.business_number,
+        salaryType: employeeInfo.salary_type,
+        amount: employeeInfo.amount,
+        ownerName: employeeInfo.owner_name || null,
+        issueDate
+      }
     });
   } catch (error) {
     console.error('재직증명서 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 

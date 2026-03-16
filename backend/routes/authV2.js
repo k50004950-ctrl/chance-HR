@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { run, get, all } from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
+import { encryptSSN } from '../utils/crypto.js';
+import { loginLimiter, signupLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production-2026';
@@ -10,7 +12,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-pro
 // ============================================
 // 1. 독립 회원가입 (사업주 / 근로자 공통)
 // ============================================
-router.post('/signup', async (req, res) => {
+router.post('/signup', signupLimiter, async (req, res) => {
   const {
     username,
     password,
@@ -89,19 +91,20 @@ router.post('/signup', async (req, res) => {
     // 비밀번호 해시
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 사용자 생성 (근로자는 ssn, email, address 포함)
+    // 사용자 생성 (근로자는 ssn, email, address 포함 - SSN은 암호화)
+    const encryptedSSN = encryptSSN(ssn);
     const result = await run(
       `INSERT INTO users (
         username, password, name, phone, role, business_number, ssn, email, address, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       [
-        username, 
-        hashedPassword, 
-        name, 
-        phone, 
-        role, 
+        username,
+        hashedPassword,
+        name,
+        phone,
+        role,
         business_number || null,
-        ssn || null,
+        encryptedSSN,
         email || null,
         address || null
       ]
@@ -197,7 +200,7 @@ router.post('/signup', async (req, res) => {
 // ============================================
 // 2. 로그인 (기존과 동일)
 // ============================================
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
 
   try {
@@ -258,7 +261,8 @@ router.post('/login', async (req, res) => {
         name: user.name,
         phone: user.phone,
         role: user.role,
-        workplace_id: user.workplace_id || null
+        workplace_id: user.workplace_id || null,
+        must_change_password: !!user.must_change_password
       }
     });
 
@@ -1347,13 +1351,14 @@ router.post('/employee/signup-with-invite', async (req, res) => {
 
     // 비밀번호 해시
     const hashedPassword = await bcrypt.hash(password, 10);
+    const encryptedSSN = encryptSSN(ssn);
 
-    // 사용자 생성 (주민번호, 주소 포함)
+    // 사용자 생성 (주민번호 암호화, 주소 포함)
     const userResult = await run(
       `INSERT INTO users (
         username, password, name, phone, ssn, address, role, workplace_id, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, 'employee', ?, CURRENT_TIMESTAMP)`,
-      [username, hashedPassword, name, phone, ssn, address, invitation.workplace_id]
+      [username, hashedPassword, name, phone, encryptedSSN, address, invitation.workplace_id]
     );
     const userId = userResult.id || userResult.lastID; // PostgreSQL은 id, SQLite는 lastID
 

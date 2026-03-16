@@ -149,23 +149,23 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
     const employeeId = req.params.employeeId;
 
     if (!startDate || !endDate) {
-      return res.status(400).json({ message: '시작일과 종료일을 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '시작일과 종료일을 입력해주세요.' });
     }
 
     // 권한 확인
     const employee = await get('SELECT workplace_id FROM users WHERE id = ?', [employeeId]);
     if (!employee) {
-      return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '직원을 찾을 수 없습니다.' });
     }
 
     if (req.user.role === 'employee' && req.user.id !== parseInt(employeeId)) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     if (req.user.role === 'owner') {
       const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [employee.workplace_id]);
       if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ message: '권한이 없습니다.' });
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
     }
 
@@ -176,7 +176,7 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
     );
 
     if (!salaryInfo) {
-      return res.status(404).json({ message: '급여 정보가 등록되지 않았습니다.' });
+      return res.status(404).json({ success: false, message: '급여 정보가 등록되지 않았습니다.' });
     }
 
     // 출퇴근 기록 조회
@@ -282,6 +282,7 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
     }
 
     res.json({
+      success: true,
       employee: employeeInfo,
       salaryInfo: {
         type: salaryInfo.salary_type,
@@ -307,7 +308,7 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('급여 계산 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -318,14 +319,14 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
     const workplaceId = req.params.workplaceId;
 
     if (!startDate || !endDate) {
-      return res.status(400).json({ message: '시작일과 종료일을 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '시작일과 종료일을 입력해주세요.' });
     }
 
     // 권한 확인
     if (req.user.role === 'owner') {
       const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [workplaceId]);
       if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ message: '권한이 없습니다.' });
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
     }
 
@@ -513,6 +514,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
     }
 
     res.json({
+      success: true,
       workplaceId,
       period: {
         startDate,
@@ -523,7 +525,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('사업장 급여 계산 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -542,23 +544,23 @@ router.get('/severance/:employeeId', authenticate, async (req, res) => {
     );
 
     if (!employee) {
-      return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '직원을 찾을 수 없습니다.' });
     }
 
     if (req.user.role === 'employee' && req.user.id !== parseInt(employeeId)) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     if (req.user.role === 'owner') {
       const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [employee.workplace_id]);
       if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ message: '권한이 없습니다.' });
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
     }
 
     // 입사일 확인
     if (!employee.hire_date) {
-      return res.status(400).json({ message: '입사일 정보가 없습니다.' });
+      return res.status(400).json({ success: false, message: '입사일 정보가 없습니다.' });
     }
 
     const hireDate = new Date(employee.hire_date);
@@ -571,6 +573,7 @@ router.get('/severance/:employeeId', authenticate, async (req, res) => {
     // 1년 미만 근무자는 퇴직금 없음
     if (yearsWorked < 1) {
       return res.json({
+        success: true,
         eligible: false,
         yearsWorked: yearsWorked.toFixed(2),
         message: '1년 이상 근무해야 퇴직금이 발생합니다.'
@@ -584,7 +587,7 @@ router.get('/severance/:employeeId', authenticate, async (req, res) => {
     );
 
     if (!salaryInfo) {
-      return res.status(404).json({ message: '급여 정보가 등록되지 않았습니다.' });
+      return res.status(404).json({ success: false, message: '급여 정보가 등록되지 않았습니다.' });
     }
 
     // 최근 3개월 급여 계산
@@ -620,6 +623,7 @@ router.get('/severance/:employeeId', authenticate, async (req, res) => {
     const severancePay = (averageDailyWage * daysWorked / 365) * 30;
 
     res.json({
+      success: true,
       eligible: true,
       employeeName: employee.name,
       hireDate: employee.hire_date,
@@ -631,7 +635,7 @@ router.get('/severance/:employeeId', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('퇴직금 계산 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -639,22 +643,22 @@ router.get('/severance/:employeeId', authenticate, async (req, res) => {
 router.post('/ledger/import', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const { workplaceId, text } = req.body;
     if (!workplaceId || !text) {
-      return res.status(400).json({ message: '사업장과 급여대장 텍스트를 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '사업장과 급여대장 텍스트를 입력해주세요.' });
     }
 
     const workplace = await get('SELECT id, owner_id FROM workplaces WHERE id = ?', [workplaceId]);
     if (!workplace || workplace.owner_id !== req.user.id) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const parsed = parsePayrollLedger(text);
     if (!parsed.payrollMonth || parsed.employees.length === 0) {
-      return res.status(400).json({ message: '급여대장 내용을 인식하지 못했습니다. 텍스트를 확인해주세요.' });
+      return res.status(400).json({ success: false, message: '급여대장 내용을 인식하지 못했습니다. 텍스트를 확인해주세요.' });
     }
 
     const unmatched = [];
@@ -714,6 +718,7 @@ router.post('/ledger/import', authenticate, async (req, res) => {
     }
 
     res.json({
+      success: true,
       month: parsed.payrollMonth,
       payDate: parsed.payDate,
       imported,
@@ -721,7 +726,7 @@ router.post('/ledger/import', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('급여대장 가져오기 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -729,7 +734,7 @@ router.post('/ledger/import', authenticate, async (req, res) => {
 router.get('/slips/my', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'employee') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const { month } = req.query;
@@ -743,10 +748,10 @@ router.get('/slips/my', authenticate, async (req, res) => {
     sql += ' ORDER BY payroll_month DESC, pay_date DESC';
 
     const slips = await query(sql, params);
-    res.json(slips);
+    res.json({ success: true, data: slips });
   } catch (error) {
     console.error('급여명세서 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -758,13 +763,13 @@ router.get('/slips/workplace/:workplaceId', authenticate, async (req, res) => {
 
     // 사업주 권한 확인
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     // 사업주의 사업장 확인
     const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, req.user.id]);
     if (!workplace) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const params = [workplaceId];
@@ -776,10 +781,10 @@ router.get('/slips/workplace/:workplaceId', authenticate, async (req, res) => {
     sql += ' ORDER BY payroll_month DESC, pay_date DESC';
 
     const slips = await query(sql, params);
-    res.json(slips);
+    res.json({ success: true, data: slips });
   } catch (error) {
     console.error('사업장 급여명세서 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -791,19 +796,19 @@ router.get('/slips/employee/:userId', authenticate, async (req, res) => {
 
     // 사업주 권한 확인
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     // 직원의 workplace 확인
     const employee = await get('SELECT workplace_id FROM users WHERE id = ?', [userId]);
     if (!employee) {
-      return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '직원을 찾을 수 없습니다.' });
     }
 
     // 사업주의 사업장 확인
     const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [employee.workplace_id, req.user.id]);
     if (!workplace) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const params = [userId];
@@ -815,10 +820,10 @@ router.get('/slips/employee/:userId', authenticate, async (req, res) => {
     sql += ' ORDER BY payroll_month DESC, pay_date DESC';
 
     const slips = await query(sql, params);
-    res.json(slips);
+    res.json({ success: true, data: slips });
   } catch (error) {
     console.error('급여명세서 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -828,7 +833,7 @@ router.post('/calculate-tax', authenticate, async (req, res) => {
     const { basePay, dependentsCount } = req.body;
 
     if (basePay === undefined || basePay === null || basePay < 0) {
-      return res.status(400).json({ message: '과세대상 급여액을 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '과세대상 급여액을 입력해주세요.' });
     }
     
     // 부양가족 수 (기본값 1)
@@ -841,6 +846,7 @@ router.post('/calculate-tax', authenticate, async (req, res) => {
     const localIncomeTax = Math.floor(incomeTax * 0.1);
     
     res.json({
+      success: true,
       basePay,
       dependentsCount: dependents,
       incomeTax,
@@ -849,7 +855,7 @@ router.post('/calculate-tax', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('세액 계산 오류:', error);
-    res.status(500).json({ message: '세액 계산 중 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '세액 계산 중 오류가 발생했습니다.' });
   }
 });
 
@@ -859,7 +865,7 @@ router.post('/calculate-insurance', authenticate, async (req, res) => {
     const { basePay, payrollMonth, taxType } = req.body;
 
     if (basePay === undefined || basePay === null || basePay < 0) {
-      return res.status(400).json({ message: '과세대상 급여액을 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '과세대상 급여액을 입력해주세요.' });
     }
     
     // 귀속월을 YYYYMM 형식으로 변환 (예: "2026-01" -> "202601")
@@ -879,8 +885,9 @@ router.post('/calculate-insurance', authenticate, async (req, res) => {
     `, [targetYyyyMm]);
     
     if (!rates) {
-      return res.status(404).json({ 
-        message: `적용 가능한 요율을 찾을 수 없습니다. (귀속월: ${targetYyyyMm})` 
+      return res.status(404).json({
+        success: false,
+        message: `적용 가능한 요율을 찾을 수 없습니다. (귀속월: ${targetYyyyMm})`
       });
     }
     
@@ -893,6 +900,7 @@ router.post('/calculate-insurance', authenticate, async (req, res) => {
       const netPay = basePay - withholding;
       
       return res.json({
+        success: true,
         basePay,
         appliedRateMonth: rates.effective_yyyymm,
         taxType: '3.3%',
@@ -952,6 +960,7 @@ router.post('/calculate-insurance', authenticate, async (req, res) => {
     const netPay = basePay - totalDeductions;
     
     res.json({
+      success: true,
       basePay,
       appliedRateMonth: rates.effective_yyyymm,
       taxType: '4대보험',
@@ -990,7 +999,7 @@ router.post('/calculate-insurance', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('4대보험료 계산 오류:', error);
-    res.status(500).json({ message: '4대보험료 계산 중 오류가 발생했습니다.', error: error.message });
+    res.status(500).json({ success: false, message: '4대보험료 계산 중 오류가 발생했습니다.' });
   }
 });
 
@@ -998,7 +1007,7 @@ router.post('/calculate-insurance', authenticate, async (req, res) => {
 router.post('/slips', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const {
@@ -1024,13 +1033,13 @@ router.post('/slips', authenticate, async (req, res) => {
     // 사업장 권한 확인
     const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, req.user.id]);
     if (!workplace) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     // 직원 확인
     const employee = await get('SELECT * FROM users WHERE id = ? AND workplace_id = ?', [userId, workplaceId]);
     if (!employee) {
-      return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '직원을 찾을 수 없습니다.' });
     }
 
     // 총 공제액 및 실수령액 계산
@@ -1079,12 +1088,13 @@ router.post('/slips', authenticate, async (req, res) => {
     );
 
     res.json({
+      success: true,
       message: '급여명세서가 저장되었습니다.',
       slipId: result.lastID || result.insertId
     });
   } catch (error) {
     console.error('급여명세서 저장 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -1092,7 +1102,7 @@ router.post('/slips', authenticate, async (req, res) => {
 router.put('/slips/:id', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const { id } = req.params;
@@ -1117,13 +1127,13 @@ router.put('/slips/:id', authenticate, async (req, res) => {
     // 급여명세서 존재 확인
     const slip = await get('SELECT * FROM salary_slips WHERE id = ?', [id]);
     if (!slip) {
-      return res.status(404).json({ message: '급여명세서를 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '급여명세서를 찾을 수 없습니다.' });
     }
 
     // 사업장 권한 확인
     const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [slip.workplace_id, req.user.id]);
     if (!workplace) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     // 총 공제액 및 실수령액 계산
@@ -1173,10 +1183,10 @@ router.put('/slips/:id', authenticate, async (req, res) => {
       ]
     );
 
-    res.json({ message: '급여명세서가 수정되었습니다.' });
+    res.json({ success: true, message: '급여명세서가 수정되었습니다.' });
   } catch (error) {
     console.error('급여명세서 수정 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -1184,7 +1194,7 @@ router.put('/slips/:id', authenticate, async (req, res) => {
 router.delete('/slips/:id', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const { id } = req.params;
@@ -1192,21 +1202,21 @@ router.delete('/slips/:id', authenticate, async (req, res) => {
     // 급여명세서 존재 확인
     const slip = await get('SELECT * FROM salary_slips WHERE id = ?', [id]);
     if (!slip) {
-      return res.status(404).json({ message: '급여명세서를 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '급여명세서를 찾을 수 없습니다.' });
     }
 
     // 사업장 권한 확인
     const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [slip.workplace_id, req.user.id]);
     if (!workplace) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     await run('DELETE FROM salary_slips WHERE id = ?', [id]);
 
-    res.json({ message: '급여명세서가 삭제되었습니다.' });
+    res.json({ success: true, message: '급여명세서가 삭제되었습니다.' });
   } catch (error) {
     console.error('급여명세서 삭제 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -1214,15 +1224,16 @@ router.delete('/slips/:id', authenticate, async (req, res) => {
 router.get('/payroll-ledger/:workplaceId/:payrollMonth', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const { workplaceId, payrollMonth } = req.params;
     
     // payrollMonth 형식 검증 (YYYY-MM)
     if (!payrollMonth || !/^\d{4}-\d{2}$/.test(payrollMonth)) {
-      return res.status(400).json({ 
-        message: '급여 월 형식이 올바르지 않습니다. (예: 2026-01)' 
+      return res.status(400).json({
+        success: false,
+        message: '급여 월 형식이 올바르지 않습니다. (예: 2026-01)'
       });
     }
     
@@ -1231,7 +1242,7 @@ router.get('/payroll-ledger/:workplaceId/:payrollMonth', authenticate, async (re
     // 사업장 권한 확인
     const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, req.user.id]);
     if (!workplace) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     // 해당 월의 급여명세서 조회 (간단히 조회만)
@@ -1285,13 +1296,13 @@ router.get('/payroll-ledger/:workplaceId/:payrollMonth', authenticate, async (re
       totals.total_employer_burden += parseFloat(slip.total_employer_burden) || 0;
     });
 
-    res.json({ slips, totals });
+    res.json({ success: true, slips, totals });
   } catch (error) {
     console.error('급여대장 조회 오류:', error);
     console.error('오류 상세:', error.message, error.stack);
-    res.status(500).json({ 
-      message: '서버 오류가 발생했습니다.',
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
     });
   }
 });
@@ -1300,7 +1311,7 @@ router.get('/payroll-ledger/:workplaceId/:payrollMonth', authenticate, async (re
 router.put('/slips/:id/publish', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const { id } = req.params;
@@ -1308,21 +1319,21 @@ router.put('/slips/:id/publish', authenticate, async (req, res) => {
     // 급여명세서 존재 확인
     const slip = await get('SELECT * FROM salary_slips WHERE id = ?', [id]);
     if (!slip) {
-      return res.status(404).json({ message: '급여명세서를 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '급여명세서를 찾을 수 없습니다.' });
     }
 
     // 사업장 권한 확인
     const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [slip.workplace_id, req.user.id]);
     if (!workplace) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     await run('UPDATE salary_slips SET published = ? WHERE id = ?', [true, id]);
 
-    res.json({ message: '급여명세서가 배포되었습니다.' });
+    res.json({ success: true, message: '급여명세서가 배포되었습니다.' });
   } catch (error) {
     console.error('급여명세서 배포 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -1330,20 +1341,20 @@ router.put('/slips/:id/publish', authenticate, async (req, res) => {
 router.post('/slips/generate/:workplaceId', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const { workplaceId } = req.params;
     const { payrollMonth, payDate } = req.body;
 
     if (!payrollMonth) {
-      return res.status(400).json({ message: '귀속월을 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '귀속월을 입력해주세요.' });
     }
 
     // 사업장 권한 확인
     const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, req.user.id]);
     if (!workplace) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     // 해당 월의 시작일과 종료일 계산
@@ -1442,13 +1453,14 @@ router.post('/slips/generate/:workplaceId', authenticate, async (req, res) => {
     }
 
     res.json({
+      success: true,
       message: '급여명세서가 생성되었습니다.',
       created,
       skipped
     });
   } catch (error) {
     console.error('급여명세서 자동 생성 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -1456,7 +1468,7 @@ router.post('/slips/generate/:workplaceId', authenticate, async (req, res) => {
 router.post('/slips/generate-history/:userId', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const { userId } = req.params;
@@ -1472,21 +1484,21 @@ router.post('/slips/generate-history/:userId', authenticate, async (req, res) =>
     );
 
     if (!employee) {
-      return res.status(404).json({ message: '직원을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '직원을 찾을 수 없습니다.' });
     }
 
     // 사업장 권한 확인
     const workplace = await get('SELECT * FROM workplaces WHERE id = ? AND owner_id = ?', [employee.workplace_id, req.user.id]);
     if (!workplace) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     if (!employee.hire_date) {
-      return res.status(400).json({ message: '입사일 정보가 없습니다.' });
+      return res.status(400).json({ success: false, message: '입사일 정보가 없습니다.' });
     }
 
     if (!employee.salary_type) {
-      return res.status(400).json({ message: '급여 정보가 없습니다.' });
+      return res.status(400).json({ success: false, message: '급여 정보가 없습니다.' });
     }
 
     // 입사일부터 현재까지 월 목록 생성
@@ -1576,6 +1588,7 @@ router.post('/slips/generate-history/:userId', authenticate, async (req, res) =>
     }
 
     res.json({
+      success: true,
       message: '과거 급여명세서가 생성되었습니다.',
       created,
       skipped,
@@ -1586,7 +1599,7 @@ router.post('/slips/generate-history/:userId', authenticate, async (req, res) =>
     });
   } catch (error) {
     console.error('과거 급여명세서 일괄 생성 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -1594,13 +1607,13 @@ router.post('/slips/generate-history/:userId', authenticate, async (req, res) =>
 router.post('/finalize', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
     
     const { workplaceId, payrollMonth, employees } = req.body;
     
     if (!workplaceId || !payrollMonth || !employees || employees.length === 0) {
-      return res.status(400).json({ message: '필수 데이터가 누락되었습니다.' });
+      return res.status(400).json({ success: false, message: '필수 데이터가 누락되었습니다.' });
     }
     
     // 귀속월을 YYYYMM 형식으로 변환
@@ -1615,7 +1628,7 @@ router.post('/finalize', authenticate, async (req, res) => {
     `, [targetYyyyMm]);
     
     if (!rates) {
-      return res.status(404).json({ message: '적용 가능한 요율을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '적용 가능한 요율을 찾을 수 없습니다.' });
     }
     
     // 모든 직원의 급여 확정 스냅샷 저장
@@ -1716,8 +1729,9 @@ router.post('/finalize', authenticate, async (req, res) => {
         }
       }
       
-      res.json({ 
-        message: '급여가 확정되었습니다.', 
+      res.json({
+        success: true,
+        message: '급여가 확정되었습니다.',
         appliedRateMonth: rates.effective_yyyymm,
         finalizedCount: employees.length
       });
@@ -1727,7 +1741,7 @@ router.post('/finalize', authenticate, async (req, res) => {
     }
   } catch (error) {
     console.error('급여 확정 오류:', error);
-    res.status(500).json({ message: '급여 확정 중 오류가 발생했습니다.', error: error.message });
+    res.status(500).json({ success: false, message: '급여 확정 중 오류가 발생했습니다.' });
   }
 });
 

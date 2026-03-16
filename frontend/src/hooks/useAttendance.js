@@ -22,11 +22,11 @@ export const useAttendance = () => {
       setError(null);
 
       const response = await attendanceAPI.getByWorkplace(workplaceId, params);
-      setAttendanceRecords(response.data);
+      setAttendanceRecords(response.data.data || response.data);
 
       return {
         success: true,
-        data: response.data
+        data: response.data.data || response.data
       };
     } catch (err) {
       console.error('출퇴근 기록 조회 오류:', err);

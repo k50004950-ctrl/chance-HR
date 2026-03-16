@@ -11,7 +11,7 @@ router.post('/', authenticate, authorizeRole(['super_admin']), async (req, res) 
     const createdBy = req.user.id;
 
     if (!title || !content) {
-      return res.status(400).json({ message: '제목과 내용은 필수입니다.' });
+      return res.status(400).json({ success: false, message: '제목과 내용은 필수입니다.' });
     }
 
     const result = await run(
@@ -20,12 +20,13 @@ router.post('/', authenticate, authorizeRole(['super_admin']), async (req, res) 
     );
 
     res.status(201).json({
+      success: true,
       message: '공지사항이 생성되었습니다.',
       announcementId: result.id
     });
   } catch (error) {
     console.error('공지사항 생성 오류:', error);
-    res.status(500).json({ message: '공지사항 생성에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '공지사항 생성에 실패했습니다.' });
   }
 });
 
@@ -39,10 +40,10 @@ router.get('/all', authenticate, authorizeRole(['super_admin']), async (req, res
        ORDER BY a.created_at DESC`
     );
 
-    res.json(announcements);
+    res.json({ success: true, data: announcements });
   } catch (error) {
     console.error('공지사항 조회 오류:', error);
-    res.status(500).json({ message: '공지사항 조회에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '공지사항 조회에 실패했습니다.' });
   }
 });
 
@@ -65,10 +66,10 @@ router.get('/active', authenticate, async (req, res) => {
       [true, userId, true]
     );
 
-    res.json(announcements);
+    res.json({ success: true, data: announcements });
   } catch (error) {
     console.error('활성 공지사항 조회 오류:', error);
-    res.status(500).json({ message: '공지사항 조회에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '공지사항 조회에 실패했습니다.' });
   }
 });
 
@@ -96,10 +97,10 @@ router.post('/:id/read', authenticate, async (req, res) => {
       );
     }
 
-    res.json({ message: '공지사항을 읽음 처리했습니다.' });
+    res.json({ success: true, message: '공지사항을 읽음 처리했습니다.' });
   } catch (error) {
     console.error('공지사항 읽음 처리 오류:', error);
-    res.status(500).json({ message: '읽음 처리에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '읽음 처리에 실패했습니다.' });
   }
 });
 
@@ -113,10 +114,10 @@ router.put('/:id/deactivate', authenticate, authorizeRole(['super_admin']), asyn
       [false, announcementId]
     );
 
-    res.json({ message: '공지사항이 비활성화되었습니다.' });
+    res.json({ success: true, message: '공지사항이 비활성화되었습니다.' });
   } catch (error) {
     console.error('공지사항 비활성화 오류:', error);
-    res.status(500).json({ message: '비활성화에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '비활성화에 실패했습니다.' });
   }
 });
 
@@ -127,10 +128,10 @@ router.delete('/:id', authenticate, authorizeRole(['super_admin']), async (req, 
 
     await run('DELETE FROM announcements WHERE id = ?', [announcementId]);
 
-    res.json({ message: '공지사항이 삭제되었습니다.' });
+    res.json({ success: true, message: '공지사항이 삭제되었습니다.' });
   } catch (error) {
     console.error('공지사항 삭제 오류:', error);
-    res.status(500).json({ message: '삭제에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '삭제에 실패했습니다.' });
   }
 });
 

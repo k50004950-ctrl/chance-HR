@@ -244,6 +244,14 @@ export const accountRecoveryAPI = {
   resetPassword: (token, newPassword) => api.post('/account/reset-password', { token, newPassword })
 };
 
+export const notificationsAPI = {
+  getAll: (params) => api.get('/notifications', { params }),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+  markRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllRead: () => api.put('/notifications/read-all'),
+  delete: (id) => api.delete(`/notifications/${id}`)
+};
+
 // V2 API를 위한 직접 axios 인스턴스 export
 export const apiClient = api;
 

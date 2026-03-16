@@ -29,14 +29,17 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
+      // V2 통합 로그인 엔드포인트 사용
       const response = await authAPI.login(credentials);
-      const { token, user } = response.data;
-      
+      const data = response.data;
+      const token = data.token;
+      const userData = data.user;
+
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      setUser(user);
-      
-      return { success: true };
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+
+      return { success: true, user: userData };
     } catch (error) {
       return {
         success: false,

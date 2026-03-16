@@ -31,8 +31,11 @@ import ratesMasterRoutes from './routes/ratesMaster.js';
 import smsRoutes from './routes/sms.js';
 import emailVerificationRoutes from './routes/email-verification.js';
 import accountRecoveryRoutes from './routes/account-recovery.js';
+import notificationsRoutes from './routes/notifications.js';
 import { startPaydayScheduler } from './services/payrollSchedule.js';
 import { startAttendanceScheduler } from './services/attendanceScheduler.js';
+import jwt from 'jsonwebtoken';
+import { apiLimiter } from './middleware/rateLimiter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -99,8 +102,23 @@ app.get('/api/_ping', cors(corsOptions), (req, res) => {
 });
 console.log('✅ Registered: /api/_ping');
 
-// 업로드 파일용 정적 폴더
-app.use('/uploads', express.static(uploadsDir));
+// 업로드 파일 접근 보안 - JWT 인증 필수
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production-2026';
+app.use('/uploads', (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1] || req.query.token;
+  if (!token) {
+    return res.status(401).json({ message: '파일 접근 권한이 없습니다.' });
+  }
+  try {
+    jwt.verify(token, JWT_SECRET);
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: '유효하지 않은 인증입니다.' });
+  }
+}, express.static(uploadsDir));
+
+// 전역 API Rate Limiting
+app.use('/api/', apiLimiter);
 
 // API 라우트들 (CORS 적용)
 app.use('/api/auth', cors(corsOptions), authRoutes);
@@ -121,6 +139,7 @@ app.use('/api/community', cors(corsOptions), communityRoutes);
 app.use('/api/sms', cors(corsOptions), smsRoutes);
 app.use('/api/email', cors(corsOptions), emailVerificationRoutes);
 app.use('/api/account', cors(corsOptions), accountRecoveryRoutes);
+app.use('/api/notifications', cors(corsOptions), notificationsRoutes);
 
 // ratesMaster 라우트 - 상세 로깅
 console.log('🔧 Importing ratesMaster routes from:', './routes/ratesMaster.js');

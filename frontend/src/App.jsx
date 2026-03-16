@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import ForceChangePassword from './components/ForceChangePassword';
 
 // Pages
 import Login from './pages/Login';
@@ -47,13 +48,23 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 // Main App Router
 const AppRouter = () => {
   const { user } = useAuth();
+  const [forceChanged, setForceChanged] = useState(false);
+
+  const handleForcePasswordChanged = useCallback(() => {
+    setForceChanged(true);
+  }, []);
+
+  // Show force password change modal if user must change password
+  if (user && user.must_change_password && !forceChanged) {
+    return <ForceChangePassword onSuccess={handleForcePasswordChanged} />;
+  }
 
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
       <Route path="/signup" element={user ? <Navigate to="/" /> : <Signup />} />
-      <Route path="/login-v2" element={user ? <Navigate to="/" /> : <LoginV2 />} />
-      <Route path="/signup-v2" element={user ? <Navigate to="/" /> : <SignupV2 />} />
+      <Route path="/login-v2" element={<Navigate to="/login" />} />
+      <Route path="/signup-v2" element={<Navigate to="/signup" />} />
       <Route path="/find-username" element={user ? <Navigate to="/" /> : <FindUsername />} />
       <Route path="/reset-password" element={user ? <Navigate to="/" /> : <ResetPassword />} />
       <Route path="/invite/:token" element={<InviteSignup />} />

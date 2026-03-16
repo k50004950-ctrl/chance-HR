@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { get, run, query } from '../config/database.js';
 import { authenticate, authorizeRole } from '../middleware/auth.js';
+import { validateLogin, validateSignup, validateChangePassword } from '../middleware/validate.js';
+import { loginLimiter, signupLimiter, passwordResetLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production-2026';
@@ -11,10 +13,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-pro
 router.get('/owner/check-employee-account', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner' && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
     const { username } = req.query;
-    if (!username) return res.status(400).json({ message: '아이디를 입력해주세요.' });
+    if (!username) return res.status(400).json({ success: false, message: '아이디를 입력해주세요.' });
 
     const user = await get(
       `SELECT id, username, name, role, created_at,
@@ -24,9 +26,10 @@ router.get('/owner/check-employee-account', authenticate, async (req, res) => {
       [username]
     );
 
-    if (!user) return res.status(404).json({ message: '해당 아이디의 계정을 찾을 수 없습니다.' });
+    if (!user) return res.status(404).json({ success: false, message: '해당 아이디의 계정을 찾을 수 없습니다.' });
 
     res.json({
+      success: true,
       username: user.username,
       name: user.name,
       role: user.role,
@@ -38,7 +41,7 @@ router.get('/owner/check-employee-account', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('계정 확인 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -47,24 +50,24 @@ router.get('/username-check', async (req, res) => {
   try {
     const username = (req.query.username || '').trim();
     if (!username) {
-      return res.status(400).json({ message: '사용자명을 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '사용자명을 입력해주세요.' });
     }
 
     const user = await get('SELECT id FROM users WHERE username = ?', [username]);
-    return res.json({ available: !user });
+    return res.json({ success: true, available: !user });
   } catch (error) {
     console.error('사용자명 확인 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
 // 로그인
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, validateLogin, async (req, res) => {
   try {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({ message: '사용자명과 비밀번호를 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '사용자명과 비밀번호를 입력해주세요.' });
     }
 
     const user = await get(
@@ -73,26 +76,26 @@ router.post('/login', async (req, res) => {
     );
 
     if (!user) {
-      return res.status(401).json({ message: '사용자명 또는 비밀번호가 올바르지 않습니다.' });
+      return res.status(401).json({ success: false, message: '사용자명 또는 비밀번호가 올바르지 않습니다.' });
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
-      return res.status(401).json({ message: '사용자명 또는 비밀번호가 올바르지 않습니다.' });
+      return res.status(401).json({ success: false, message: '사용자명 또는 비밀번호가 올바르지 않습니다.' });
     }
 
     // 승인 상태 확인 (관리자/총관리자는 제외)
     if (user.role !== 'admin' && user.role !== 'super_admin' && user.approval_status === 'pending') {
-      return res.status(403).json({ message: '관리자 승인 대기 중입니다. 승인 후 로그인하실 수 있습니다.' });
+      return res.status(403).json({ success: false, message: '관리자 승인 대기 중입니다. 승인 후 로그인하실 수 있습니다.' });
     }
 
     if (user.role !== 'admin' && user.role !== 'super_admin' && user.approval_status === 'rejected') {
-      return res.status(403).json({ message: '가입이 거부되었습니다. 관리자에게 문의하세요.' });
+      return res.status(403).json({ success: false, message: '가입이 거부되었습니다. 관리자에게 문의하세요.' });
     }
 
     if (user.role !== 'admin' && user.role !== 'super_admin' && user.approval_status === 'suspended') {
-      return res.status(403).json({ message: '계정이 일시 중지되었습니다. 관리자에게 문의하세요.' });
+      return res.status(403).json({ success: false, message: '계정이 일시 중지되었습니다. 관리자에게 문의하세요.' });
     }
 
     const token = jwt.sign(
@@ -104,27 +107,29 @@ router.post('/login', async (req, res) => {
         workplace_id: user.workplace_id
       },
       JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: '7d' }
     );
 
     res.json({
+      success: true,
       token,
       user: {
         id: user.id,
         username: user.username,
         name: user.name,
         role: user.role,
-        workplace_id: user.workplace_id
+        workplace_id: user.workplace_id,
+        must_change_password: !!user.must_change_password
       }
     });
   } catch (error) {
     console.error('로그인 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
 // 대표자 회원가입 (누구나 접근 가능)
-router.post('/signup', async (req, res) => {
+router.post('/signup', signupLimiter, async (req, res) => {
   try {
     const { 
       username, password, name, phone, email, address,
@@ -133,13 +138,13 @@ router.post('/signup', async (req, res) => {
     } = req.body;
 
     if (!username || !password || !name || !business_name || !business_number || !phone) {
-      return res.status(400).json({ message: '필수 정보를 모두 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '필수 정보를 모두 입력해주세요.' });
     }
     if (!address || !latitude || !longitude) {
-      return res.status(400).json({ message: '사업장 주소와 좌표를 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '사업장 주소와 좌표를 입력해주세요.' });
     }
     if (!service_consent) {
-      return res.status(400).json({ message: '서비스 이용 동의가 필요합니다.' });
+      return res.status(400).json({ success: false, message: '서비스 이용 동의가 필요합니다.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -167,15 +172,16 @@ router.post('/signup', async (req, res) => {
     }
 
     res.status(201).json({
+      success: true,
       message: '회원가입이 완료되었습니다.',
       userId: result.id
     });
   } catch (error) {
     if (error.message.includes('UNIQUE constraint failed')) {
-      return res.status(400).json({ message: '이미 존재하는 사용자명입니다.' });
+      return res.status(400).json({ success: false, message: '이미 존재하는 사용자명입니다.' });
     }
     console.error('회원가입 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -185,7 +191,7 @@ router.post('/register', async (req, res) => {
     const { username, password, name, role, phone, email, workplace_id } = req.body;
 
     if (!username || !password || !name || !role) {
-      return res.status(400).json({ message: '필수 정보를 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '필수 정보를 입력해주세요.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -196,15 +202,16 @@ router.post('/register', async (req, res) => {
     );
 
     res.status(201).json({
+      success: true,
       message: '사용자가 등록되었습니다.',
       userId: result.id
     });
   } catch (error) {
     if (error.message.includes('UNIQUE constraint failed')) {
-      return res.status(400).json({ message: '이미 존재하는 사용자명입니다.' });
+      return res.status(400).json({ success: false, message: '이미 존재하는 사용자명입니다.' });
     }
     console.error('사용자 등록 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -225,10 +232,10 @@ router.get('/owners', authenticate, authorizeRole(['admin', 'super_admin']), asy
       GROUP BY u.id
       ORDER BY u.created_at DESC
     `);
-    res.json(owners);
+    res.json({ success: true, data: owners });
   } catch (error) {
     console.error('사업주 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -243,10 +250,10 @@ router.get('/pending-owners', authenticate, authorizeRole(['admin', 'super_admin
       WHERE role = 'owner' AND approval_status = 'pending'
       ORDER BY created_at DESC
     `);
-    res.json(pendingOwners);
+    res.json({ success: true, data: pendingOwners });
   } catch (error) {
     console.error('승인 대기 목록 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -257,7 +264,7 @@ router.post('/approve-owner/:id', authenticate, authorizeRole(['admin', 'super_a
     const { action } = req.body; // 'approve' or 'reject'
 
     if (!action || !['approve', 'reject'].includes(action)) {
-      return res.status(400).json({ message: '유효하지 않은 액션입니다.' });
+      return res.status(400).json({ success: false, message: '유효하지 않은 액션입니다.' });
     }
 
     const status = action === 'approve' ? 'approved' : 'rejected';
@@ -267,12 +274,13 @@ router.post('/approve-owner/:id', authenticate, authorizeRole(['admin', 'super_a
       [status, ownerId, 'owner']
     );
 
-    res.json({ 
-      message: action === 'approve' ? '승인되었습니다.' : '거부되었습니다.' 
+    res.json({
+      success: true,
+      message: action === 'approve' ? '승인되었습니다.' : '거부되었습니다.'
     });
   } catch (error) {
     console.error('승인/거부 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -285,7 +293,7 @@ router.put('/owners/:id/toggle-status', authenticate, authorizeRole(['admin', 's
     const owner = await get('SELECT approval_status FROM users WHERE id = ? AND role = ?', [ownerId, 'owner']);
 
     if (!owner) {
-      return res.status(404).json({ message: '사업주를 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '사업주를 찾을 수 없습니다.' });
     }
 
     // 상태 토글
@@ -300,10 +308,10 @@ router.put('/owners/:id/toggle-status', authenticate, authorizeRole(['admin', 's
       ? '사업주 계정이 일시 중지되었습니다.' 
       : '사업주 계정이 활성화되었습니다.';
 
-    res.json({ message, newStatus });
+    res.json({ success: true, message, newStatus });
   } catch (error) {
     console.error('계정 상태 변경 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -314,7 +322,7 @@ router.delete('/owners/:id', authenticate, authorizeRole(['admin', 'super_admin'
 
     const owner = await get('SELECT id FROM users WHERE id = ? AND role = ?', [ownerId, 'owner']);
     if (!owner) {
-      return res.status(404).json({ message: '사업주를 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '사업주를 찾을 수 없습니다.' });
     }
 
     const workplaces = await query('SELECT id FROM workplaces WHERE owner_id = ?', [ownerId]);
@@ -347,51 +355,51 @@ router.delete('/owners/:id', authenticate, authorizeRole(['admin', 'super_admin'
 
     await run('DELETE FROM users WHERE id = ? AND role = ?', [ownerId, 'owner']);
 
-    res.json({ message: '사업주 계정과 관련 데이터가 삭제되었습니다.' });
+    res.json({ success: true, message: '사업주 계정과 관련 데이터가 삭제되었습니다.' });
   } catch (error) {
     console.error('사업주 삭제 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
 // 비밀번호 변경
-router.put('/change-password', authenticate, async (req, res) => {
+router.put('/change-password', authenticate, validateChangePassword, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.id;
 
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ message: '현재 비밀번호와 새 비밀번호를 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '현재 비밀번호와 새 비밀번호를 입력해주세요.' });
     }
 
     if (newPassword.length < 6) {
-      return res.status(400).json({ message: '새 비밀번호는 최소 6자 이상이어야 합니다.' });
+      return res.status(400).json({ success: false, message: '새 비밀번호는 최소 6자 이상이어야 합니다.' });
     }
 
     // 현재 사용자 정보 조회
     const user = await get('SELECT * FROM users WHERE id = ?', [userId]);
 
     if (!user) {
-      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
     }
 
     // 현재 비밀번호 확인
     const isValidPassword = await bcrypt.compare(currentPassword, user.password);
 
     if (!isValidPassword) {
-      return res.status(401).json({ message: '현재 비밀번호가 올바르지 않습니다.' });
+      return res.status(401).json({ success: false, message: '현재 비밀번호가 올바르지 않습니다.' });
     }
 
     // 새 비밀번호 해시화
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // 비밀번호 업데이트
-    await run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, userId]);
+    // 비밀번호 업데이트 + 강제 변경 플래그 해제
+    await run('UPDATE users SET password = ?, must_change_password = ? WHERE id = ?', [hashedPassword, false, userId]);
 
-    res.json({ message: '비밀번호가 성공적으로 변경되었습니다.' });
+    res.json({ success: true, message: '비밀번호가 성공적으로 변경되었습니다.' });
   } catch (error) {
     console.error('비밀번호 변경 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -399,17 +407,17 @@ router.put('/change-password', authenticate, async (req, res) => {
 router.put('/owner/reset-employee-password', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner' && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const { username, newPassword } = req.body;
 
     if (!username || !newPassword) {
-      return res.status(400).json({ message: '아이디와 새 비밀번호를 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '아이디와 새 비밀번호를 입력해주세요.' });
     }
 
     if (newPassword.length < 4) {
-      return res.status(400).json({ message: '새 비밀번호는 최소 4자 이상이어야 합니다.' });
+      return res.status(400).json({ success: false, message: '새 비밀번호는 최소 4자 이상이어야 합니다.' });
     }
 
     // 직원이 사업주의 사업장에 소속되어 있는지 확인
@@ -419,21 +427,21 @@ router.put('/owner/reset-employee-password', authenticate, async (req, res) => {
     );
 
     if (!employee) {
-      return res.status(404).json({ message: '해당 아이디의 근로자를 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '해당 아이디의 근로자를 찾을 수 없습니다.' });
     }
 
     // 사업주 본인 사업장 소속 확인
     if (req.user.role === 'owner' && employee.workplace_id !== req.user.workplace_id) {
-      return res.status(403).json({ message: '본인 사업장 소속 직원만 초기화할 수 있습니다.' });
+      return res.status(403).json({ success: false, message: '본인 사업장 소속 직원만 초기화할 수 있습니다.' });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, employee.id]);
 
-    res.json({ message: `${username} 직원의 비밀번호가 초기화되었습니다.` });
+    res.json({ success: true, message: `${username} 직원의 비밀번호가 초기화되었습니다.` });
   } catch (error) {
     console.error('직원 비밀번호 초기화 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -443,25 +451,25 @@ router.put('/reset-password', authenticate, authorizeRole(['admin', 'super_admin
     const { username, newPassword } = req.body;
 
     if (!username || !newPassword) {
-      return res.status(400).json({ message: '사용자명과 새 비밀번호를 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '사용자명과 새 비밀번호를 입력해주세요.' });
     }
 
     if (newPassword.length < 4) {
-      return res.status(400).json({ message: '새 비밀번호는 최소 4자 이상이어야 합니다.' });
+      return res.status(400).json({ success: false, message: '새 비밀번호는 최소 4자 이상이어야 합니다.' });
     }
 
     const user = await get('SELECT id FROM users WHERE username = ?', [username]);
     if (!user) {
-      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, user.id]);
 
-    res.json({ message: '비밀번호가 초기화되었습니다.' });
+    res.json({ success: true, message: '비밀번호가 초기화되었습니다.' });
   } catch (error) {
     console.error('비밀번호 초기화 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -469,7 +477,7 @@ router.put('/reset-password', authenticate, authorizeRole(['admin', 'super_admin
 router.post('/create-test-workers', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const workplaceId = req.user.workplace_id;
@@ -614,6 +622,7 @@ router.post('/create-test-workers', authenticate, async (req, res) => {
     }
 
     res.json({
+      success: true,
       message: '테스트 계정이 생성되었습니다.',
       accounts: results,
       info: {
@@ -633,7 +642,7 @@ router.post('/create-test-workers', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('테스트 계정 생성 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.', error: error.message });
   }
 });
 
@@ -666,10 +675,10 @@ router.get('/all-users', authenticate, authorizeRole(['admin', 'super_admin']), 
     sql += ` ORDER BY u.created_at DESC LIMIT 200`;
 
     const users = await query(sql, params);
-    res.json({ users, total: users.length });
+    res.json({ success: true, users, total: users.length });
   } catch (error) {
     console.error('사용자 목록 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -677,20 +686,20 @@ router.get('/all-users', authenticate, authorizeRole(['admin', 'super_admin']), 
 router.put('/admin/reset-user-password', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const { userId, newPassword } = req.body;
-    if (!userId || !newPassword) return res.status(400).json({ message: '필수 정보가 누락되었습니다.' });
-    if (newPassword.length < 4) return res.status(400).json({ message: '비밀번호는 4자 이상이어야 합니다.' });
+    if (!userId || !newPassword) return res.status(400).json({ success: false, message: '필수 정보가 누락되었습니다.' });
+    if (newPassword.length < 4) return res.status(400).json({ success: false, message: '비밀번호는 4자 이상이어야 합니다.' });
 
     const user = await get('SELECT id, username FROM users WHERE id = $1', [userId]);
-    if (!user) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+    if (!user) return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await run('UPDATE users SET password = $1 WHERE id = $2', [hashedPassword, userId]);
 
     console.log(`🔐 관리자 ${req.user.username}이 ${user.username}의 비밀번호를 초기화`);
-    res.json({ message: `${user.username}의 비밀번호가 초기화되었습니다.` });
+    res.json({ success: true, message: `${user.username}의 비밀번호가 초기화되었습니다.` });
   } catch (error) {
     console.error('비밀번호 초기화 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -703,14 +712,14 @@ router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin', 'sup
 
     // 자기 자신은 삭제 불가
     if (parseInt(userId) === req.user.id) {
-      return res.status(400).json({ message: '자신의 계정은 삭제할 수 없습니다.' });
+      return res.status(400).json({ success: false, message: '자신의 계정은 삭제할 수 없습니다.' });
     }
 
     // 삭제할 사용자 확인
     const userToDelete = await get('SELECT * FROM users WHERE id = ?', [userId]);
     
     if (!userToDelete) {
-      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
     }
 
     // 관련된 모든 데이터 삭제 (순서 중요: 외래키 제약조건 고려)
@@ -810,7 +819,8 @@ router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin', 'sup
 
     console.log(`🎉 사용자 삭제 완료: ${userToDelete.username}`);
 
-    res.json({ 
+    res.json({
+      success: true,
       message: '사용자가 완전히 삭제되었습니다.',
       deletedUser: {
         id: userToDelete.id,
@@ -821,7 +831,7 @@ router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin', 'sup
     });
   } catch (error) {
     console.error('사용자 삭제 오류:', error);
-    res.status(500).json({ message: '사용자 삭제 중 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '사용자 삭제 중 오류가 발생했습니다.' });
   }
 });
 

@@ -38,10 +38,10 @@ router.get('/', authenticate, authorizeRole(['admin', 'super_admin']), async (re
         u.phone
       ORDER BY w.created_at DESC
     `);
-    res.json(workplaces);
+    res.json({ success: true, data: workplaces });
   } catch (error) {
     console.error('사업장 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -52,10 +52,10 @@ router.get('/my', authenticate, authorizeRole(['owner']), async (req, res) => {
       'SELECT * FROM workplaces WHERE owner_id = ? ORDER BY created_at DESC',
       [req.user.id]
     );
-    res.json(workplaces);
+    res.json({ success: true, data: workplaces });
   } catch (error) {
     console.error('사업장 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -68,18 +68,18 @@ router.get('/:id', authenticate, async (req, res) => {
     );
 
     if (!workplace) {
-      return res.status(404).json({ message: '사업장을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '사업장을 찾을 수 없습니다.' });
     }
 
     // 권한 확인
     if (req.user.role === 'owner' && workplace.owner_id !== req.user.id) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
-    res.json(workplace);
+    res.json({ success: true, data: workplace });
   } catch (error) {
     console.error('사업장 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -89,7 +89,7 @@ router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']),
     const { name, address, latitude, longitude, radius, owner_id, default_off_days } = req.body;
 
     if (!name || !address || !latitude || !longitude) {
-      return res.status(400).json({ message: '필수 정보를 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '필수 정보를 입력해주세요.' });
     }
 
     const finalOwnerId = req.user.role === 'admin' ? owner_id : req.user.id;
@@ -100,12 +100,13 @@ router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']),
     );
 
     res.status(201).json({
+      success: true,
       message: '사업장이 등록되었습니다.',
       workplaceId: result.id
     });
   } catch (error) {
     console.error('사업장 등록 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -120,7 +121,7 @@ router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']
     if (req.user.role === 'owner') {
       const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [workplaceId]);
       if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ message: '권한이 없습니다.' });
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
       existingWorkplace = workplace;
     }
@@ -139,10 +140,10 @@ router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']
       [name, address, latitude, longitude, radius, default_off_days || '', nextQrMessage, workplaceId]
     );
 
-    res.json({ message: '사업장 정보가 수정되었습니다.' });
+    res.json({ success: true, message: '사업장 정보가 수정되었습니다.' });
   } catch (error) {
     console.error('사업장 수정 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -150,10 +151,10 @@ router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']
 router.delete('/:id', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {
     await run('DELETE FROM workplaces WHERE id = ?', [req.params.id]);
-    res.json({ message: '사업장이 삭제되었습니다.' });
+    res.json({ success: true, message: '사업장이 삭제되었습니다.' });
   } catch (error) {
     console.error('사업장 삭제 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 

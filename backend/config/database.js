@@ -169,6 +169,27 @@ export const initDatabase = async () => {
           marketing_consent_date TIMESTAMP,
           service_consent BOOLEAN DEFAULT false,
           service_consent_date TIMESTAMP,
+          must_change_password BOOLEAN DEFAULT false,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // must_change_password 컬럼 추가 (기존 DB 마이그레이션)
+      try {
+        await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false');
+      } catch (e) { /* 이미 존재 */ }
+
+      // Notifications 테이블
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS notifications (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          type VARCHAR(50) DEFAULT 'info',
+          title VARCHAR(255) NOT NULL,
+          message TEXT,
+          action_url TEXT,
+          urgent BOOLEAN DEFAULT false,
+          is_read BOOLEAN DEFAULT false,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
@@ -567,8 +588,8 @@ export const initDatabase = async () => {
         const bcrypt = await import('bcryptjs');
         const hashedPassword = await bcrypt.default.hash('admin123', 10);
         await pool.query(
-          "INSERT INTO users (username, password, name, role) VALUES ($1, $2, $3, $4)",
-          ['admin', hashedPassword, '관리자', 'admin']
+          "INSERT INTO users (username, password, name, role, must_change_password) VALUES ($1, $2, $3, $4, $5)",
+          ['admin', hashedPassword, '관리자', 'admin', true]
         );
         console.log('기본 관리자 계정이 생성되었습니다. (username: admin, password: admin123)');
       }
@@ -882,12 +903,32 @@ export const initDatabase = async () => {
           marketing_consent_date DATETIME,
           service_consent INTEGER DEFAULT 0,
           service_consent_date DATETIME,
+          must_change_password INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
 
+      // Notifications 테이블
+      await run(`
+        CREATE TABLE IF NOT EXISTS notifications (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          type TEXT DEFAULT 'info',
+          title TEXT NOT NULL,
+          message TEXT,
+          action_url TEXT,
+          urgent INTEGER DEFAULT 0,
+          is_read INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+
       // 기존 테이블에 새 컬럼 추가 (마이그레이션)
+      try {
+        await run(`ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0`);
+      } catch (e) {}
       try {
         await run(`ALTER TABLE users ADD COLUMN business_name TEXT`);
       } catch (e) {}
@@ -1488,8 +1529,8 @@ export const initDatabase = async () => {
         const bcrypt = await import('bcryptjs');
         const hashedPassword = await bcrypt.default.hash('admin123', 10);
         await run(
-          'INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)',
-          ['admin', hashedPassword, '관리자', 'admin']
+          'INSERT INTO users (username, password, name, role, must_change_password) VALUES (?, ?, ?, ?, ?)',
+          ['admin', hashedPassword, '관리자', 'admin', 1]
         );
         console.log('기본 관리자 계정이 생성되었습니다. (username: admin, password: admin123)');
       }

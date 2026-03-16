@@ -78,8 +78,9 @@ const EmployeeDashboard = () => {
   const checkAnnouncements = async () => {
     try {
       const response = await announcementsAPI.getActive();
-      if (response.data && response.data.length > 0) {
-        setCurrentAnnouncement(response.data[0]); // 첫 번째 공지만 표시
+      const announcements = response.data.data || response.data;
+      if (announcements?.length > 0) {
+        setCurrentAnnouncement(announcements[0]); // 첫 번째 공지만 표시
         setShowAnnouncementModal(true);
       }
     } catch (error) {
@@ -111,7 +112,7 @@ const EmployeeDashboard = () => {
       }
       
       const response = await employeeAPI.getById(user.id);
-      const employee = response.data;
+      const employee = response.data.data || response.data;
       setEmployeeProfile(employee);
       const workDays = employee.work_days
         ? employee.work_days.split(',').map((day) => day.trim()).filter(Boolean)
@@ -219,7 +220,7 @@ const EmployeeDashboard = () => {
       const startDate = `${selectedMonth}-01`;
       const endDate = `${selectedMonth}-${String(lastDay).padStart(2, '0')}`;
       const response = await attendanceAPI.getMy({ startDate, endDate });
-      setAttendanceRecords(response.data);
+      setAttendanceRecords(response.data.data || response.data);
     } catch (error) {
       console.error('출퇴근 기록 조회 오류:', error);
     }
@@ -243,7 +244,7 @@ const EmployeeDashboard = () => {
     try {
       setSalarySlipsLoading(true);
       const response = await salaryAPI.getMySlips({ month: selectedMonth });
-      setSalarySlips(Array.isArray(response.data) ? response.data : []);
+      setSalarySlips(Array.isArray(response.data.data) ? response.data.data : (Array.isArray(response.data) ? response.data : []));
     } catch (error) {
       console.error('급여명세서 조회 오류:', error);
       setSalarySlips([]);
@@ -826,7 +827,7 @@ const EmployeeDashboard = () => {
     try {
       setLoading(true);
       const response = await employeeAPI.getEmploymentCertificate(user.id);
-      setCertificateData(response.data);
+      setCertificateData(response.data.data || response.data);
       setShowCertificateModal(true);
     } catch (error) {
       console.error('재직증명서 조회 오류:', error);

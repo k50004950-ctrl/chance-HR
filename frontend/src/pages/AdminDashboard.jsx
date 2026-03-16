@@ -163,7 +163,7 @@ const AdminDashboard = () => {
   const loadWorkplaces = async () => {
     try {
       const response = await workplaceAPI.getAll();
-      setWorkplaces(response.data);
+      setWorkplaces(response.data.data || response.data);
     } catch (error) {
       console.error('사업장 조회 오류:', error);
     }
@@ -172,7 +172,7 @@ const AdminDashboard = () => {
   const loadOwners = async () => {
     try {
       const response = await authAPI.getOwners();
-      setOwners(response.data);
+      setOwners(response.data.data || response.data);
     } catch (error) {
       console.error('사업주 조회 오류:', error);
     }
@@ -181,7 +181,7 @@ const AdminDashboard = () => {
   const loadAnnouncements = async () => {
     try {
       const response = await announcementsAPI.getAll();
-      setAnnouncements(response.data);
+      setAnnouncements(response.data.data || response.data);
     } catch (error) {
       console.error('공지사항 조회 오류:', error);
     }

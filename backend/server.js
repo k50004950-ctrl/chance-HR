@@ -9,6 +9,9 @@ import { existsSync } from 'fs';
 // 환경 변수 로드
 dotenv.config();
 
+// Sentry 에러 모니터링 초기화
+initSentry();
+
 // 라우트 임포트
 import { initDatabase } from './config/database.js';
 import { runAutoMigration } from './config/autoMigrate.js';  // V2 자동 마이그레이션
@@ -38,6 +41,7 @@ import { startPaydayScheduler } from './services/payrollSchedule.js';
 import { startAttendanceScheduler } from './services/attendanceScheduler.js';
 import jwt from 'jsonwebtoken';
 import { apiLimiter } from './middleware/rateLimiter.js';
+import { initSentry, Sentry } from './config/sentry.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -211,7 +215,9 @@ app.get('*', (req, res) => {
 // 에러 핸들러
 app.use((err, req, res, next) => {
   console.error('에러:', err);
+  Sentry.captureException(err);
   res.status(500).json({
+    success: false,
     message: '서버 오류가 발생했습니다.',
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });

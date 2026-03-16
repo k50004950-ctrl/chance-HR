@@ -145,7 +145,8 @@ export const salaryAPI = {
   generateEmployeeHistory: (userId) => api.post(`/salary/slips/generate-history/${userId}`),
   getPayrollLedger: (workplaceId, payrollMonth) => api.get(`/salary/payroll-ledger/${workplaceId}/${payrollMonth}`),
   calculateInsurance: (data) => api.post('/salary/calculate-insurance', data),
-  finalize: (data) => api.post('/salary/finalize', data)
+  finalize: (data) => api.post('/salary/finalize', data),
+  downloadSlipPDF: (slipId) => api.get(`/salary/slip/${slipId}/pdf`, { responseType: 'blob' })
 };
 
 // 과거 직원 API

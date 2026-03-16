@@ -2,6 +2,7 @@ import express from 'express';
 import { query, get, run } from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
 import { logAudit } from '../utils/auditLog.js';
+import { generatePayslipPDF } from '../utils/pdfGenerator.js';
 
 const router = express.Router();
 
@@ -1335,6 +1336,51 @@ router.put('/slips/:id/publish', authenticate, async (req, res) => {
   } catch (error) {
     console.error('급여명세서 배포 오류:', error);
     res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 급여명세서 PDF 다운로드
+router.get('/slip/:slipId/pdf', authenticate, async (req, res) => {
+  try {
+    const slipId = req.params.slipId;
+
+    // Get slip with employee, workplace, owner info
+    const slip = await get(
+      `SELECT ss.*, u.name as employee_name,
+              ed.position, ed.department,
+              w.name as workplace_name, w.address as workplace_address,
+              owner.name as owner_name, owner.business_number
+       FROM salary_slips ss
+       JOIN users u ON ss.user_id = u.id
+       LEFT JOIN employee_details ed ON u.id = ed.user_id
+       LEFT JOIN workplaces w ON ss.workplace_id = w.id
+       LEFT JOIN users owner ON w.owner_id = owner.id
+       WHERE ss.id = ?`,
+      [slipId]
+    );
+
+    if (!slip) {
+      return res.status(404).json({ success: false, message: '급여명세서를 찾을 수 없습니다.' });
+    }
+
+    // Authorization check
+    if (req.user.role === 'employee' && slip.user_id !== req.user.id) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+    }
+
+    const pdfBuffer = await generatePayslipPDF({
+      slip,
+      employee: { name: slip.employee_name, position: slip.position, department: slip.department },
+      workplace: { name: slip.workplace_name, address: slip.workplace_address },
+      owner: { name: slip.owner_name, business_number: slip.business_number }
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=payslip_${slip.payroll_month}_${slip.employee_name}.pdf`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('PDF 생성 오류:', error);
+    res.status(500).json({ success: false, message: 'PDF 생성에 실패했습니다.' });
   }
 });
 

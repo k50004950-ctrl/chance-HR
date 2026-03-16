@@ -25,11 +25,11 @@ export const useRatesManager = () => {
         `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
       );
 
-      setCurrentRates(response.data);
+      setCurrentRates(response.data.data || response.data);
 
       return {
         success: true,
-        data: response.data
+        data: response.data.data || response.data
       };
     } catch (err) {
       console.error('요율 조회 오류:', err);
@@ -52,11 +52,11 @@ export const useRatesManager = () => {
       setError(null);
 
       const response = await insuranceAPI.getRatesHistory();
-      setRatesHistory(response.data);
+      setRatesHistory(response.data.data || response.data);
 
       return {
         success: true,
-        data: response.data
+        data: response.data.data || response.data
       };
     } catch (err) {
       console.error('요율 이력 조회 오류:', err);

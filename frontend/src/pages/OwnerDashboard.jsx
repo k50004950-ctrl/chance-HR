@@ -1467,7 +1467,7 @@ const OwnerDashboard = () => {
   const loadPastEmployees = async () => {
     try {
       const response = await pastEmployeeAPI.getAll();
-      setPastEmployees(response.data);
+      setPastEmployees(response.data.data || response.data);
     } catch (error) {
       console.error('과거 직원 조회 오류:', error);
     }
@@ -1516,7 +1516,7 @@ const OwnerDashboard = () => {
   const loadPastPayroll = async (employeeId) => {
     try {
       const response = await pastPayrollAPI.getByEmployee(employeeId);
-      setPastPayrollRecords(response.data);
+      setPastPayrollRecords(response.data.data || response.data);
     } catch (error) {
       console.error('과거 급여 기록 조회 오류:', error);
       setPastPayrollRecords([]);
@@ -1964,7 +1964,7 @@ const OwnerDashboard = () => {
     try {
       setCommunityLoading(true);
       const response = await communityAPI.getPosts('owner');
-      setCommunityPosts(response.data);
+      setCommunityPosts(response.data.data || response.data);
     } catch (error) {
       console.error('커뮤니티 게시글 로드 오류:', error);
       setMessage({ type: 'error', text: '게시글을 불러오는데 실패했습니다.' });
@@ -1993,12 +1993,12 @@ const OwnerDashboard = () => {
       setCommunityLoading(true);
       // 게시글 상세 정보 가져오기 (조회수 증가)
       const postResponse = await communityAPI.getPost(postId);
-      setSelectedPost(postResponse.data);
-      
+      setSelectedPost(postResponse.data.data || postResponse.data);
+
       // 댓글 목록 가져오기
       const commentsResponse = await communityAPI.getComments(postId);
-      setPostComments(commentsResponse.data);
-      
+      setPostComments(commentsResponse.data.data || commentsResponse.data);
+
       // 추천 상태 가져오기
       const likeResponse = await communityAPI.getLikeStatus(postId);
       setPostLiked(likeResponse.data.liked);
@@ -2043,10 +2043,10 @@ const OwnerDashboard = () => {
       setNewComment('');
       // 댓글 목록 새로고침
       const commentsResponse = await communityAPI.getComments(selectedPost.id);
-      setPostComments(commentsResponse.data);
+      setPostComments(commentsResponse.data.data || commentsResponse.data);
       // 게시글 정보도 새로고침 (댓글 수 업데이트)
       const postResponse = await communityAPI.getPost(selectedPost.id);
-      setSelectedPost(postResponse.data);
+      setSelectedPost(postResponse.data.data || postResponse.data);
       // 목록도 업데이트
       loadCommunityPosts();
     } catch (error) {
@@ -2068,7 +2068,7 @@ const OwnerDashboard = () => {
       setEditingCommentContent('');
       // 댓글 목록 새로고침
       const commentsResponse = await communityAPI.getComments(selectedPost.id);
-      setPostComments(commentsResponse.data);
+      setPostComments(commentsResponse.data.data || commentsResponse.data);
     } catch (error) {
       console.error('댓글 수정 오류:', error);
       setMessage({ type: 'error', text: '댓글 수정에 실패했습니다.' });
@@ -2086,10 +2086,10 @@ const OwnerDashboard = () => {
       await communityAPI.deleteComment(commentId);
       // 댓글 목록 새로고침
       const commentsResponse = await communityAPI.getComments(selectedPost.id);
-      setPostComments(commentsResponse.data);
+      setPostComments(commentsResponse.data.data || commentsResponse.data);
       // 게시글 정보도 새로고침 (댓글 수 업데이트)
       const postResponse = await communityAPI.getPost(selectedPost.id);
-      setSelectedPost(postResponse.data);
+      setSelectedPost(postResponse.data.data || postResponse.data);
       // 목록도 업데이트
       loadCommunityPosts();
     } catch (error) {

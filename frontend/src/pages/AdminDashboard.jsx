@@ -190,7 +190,7 @@ const AdminDashboard = () => {
   const loadInsuranceRates = async () => {
     try {
       const response = await insuranceAPI.getAll();
-      setInsuranceRates(response.data);
+      setInsuranceRates(response.data.data || response.data);
     } catch (error) {
       console.error('보험 요율 조회 오류:', error);
     }
@@ -298,7 +298,7 @@ const AdminDashboard = () => {
     try {
       setCommunityLoading(true);
       const response = await communityAPI.getPosts(communityFilter === 'all' ? null : communityFilter);
-      setCommunityPosts(response.data);
+      setCommunityPosts(response.data.data || response.data);
     } catch (error) {
       console.error('커뮤니티 게시글 로드 오류:', error);
       setMessage({ type: 'error', text: '게시글을 불러오는데 실패했습니다.' });
@@ -373,7 +373,7 @@ const AdminDashboard = () => {
     try {
       setRatesLoading(true);
       const response = await ratesMasterAPI.getList();
-      setRatesList(response.data || []);
+      setRatesList(response.data.data || response.data || []);
     } catch (error) {
       console.error('요율 목록 로드 오류:', error);
       setMessage({ type: 'error', text: '요율 목록을 불러오는데 실패했습니다.' });

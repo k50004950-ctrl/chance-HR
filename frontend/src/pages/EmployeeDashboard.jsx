@@ -591,7 +591,7 @@ const EmployeeDashboard = () => {
     try {
       setCommunityLoading(true);
       const response = await communityAPI.getPosts('employee');
-      setCommunityPosts(response.data);
+      setCommunityPosts(response.data.data || response.data);
     } catch (error) {
       console.error('커뮤니티 게시글 로드 오류:', error);
       setMessage({ type: 'error', text: '게시글을 불러오는데 실패했습니다.' });
@@ -618,9 +618,9 @@ const EmployeeDashboard = () => {
     try {
       setCommunityLoading(true);
       const postResponse = await communityAPI.getPost(postId);
-      setSelectedPost(postResponse.data);
+      setSelectedPost(postResponse.data.data || postResponse.data);
       const commentsResponse = await communityAPI.getComments(postId);
-      setPostComments(commentsResponse.data);
+      setPostComments(commentsResponse.data.data || commentsResponse.data);
       const likeResponse = await communityAPI.getLikeStatus(postId);
       setPostLiked(likeResponse.data.liked);
       setShowCommunityModal(true);
@@ -655,9 +655,9 @@ const EmployeeDashboard = () => {
       await communityAPI.createComment(selectedPost.id, { content: newComment });
       setNewComment('');
       const commentsResponse = await communityAPI.getComments(selectedPost.id);
-      setPostComments(commentsResponse.data);
+      setPostComments(commentsResponse.data.data || commentsResponse.data);
       const postResponse = await communityAPI.getPost(selectedPost.id);
-      setSelectedPost(postResponse.data);
+      setSelectedPost(postResponse.data.data || postResponse.data);
       loadCommunityPosts();
     } catch (error) {
       console.error('댓글 작성 오류:', error);
@@ -675,7 +675,7 @@ const EmployeeDashboard = () => {
       setEditingCommentId(null);
       setEditingCommentContent('');
       const commentsResponse = await communityAPI.getComments(selectedPost.id);
-      setPostComments(commentsResponse.data);
+      setPostComments(commentsResponse.data.data || commentsResponse.data);
     } catch (error) {
       console.error('댓글 수정 오류:', error);
       setMessage({ type: 'error', text: '댓글 수정에 실패했습니다.' });
@@ -690,9 +690,9 @@ const EmployeeDashboard = () => {
       setCommunityLoading(true);
       await communityAPI.deleteComment(commentId);
       const commentsResponse = await communityAPI.getComments(selectedPost.id);
-      setPostComments(commentsResponse.data);
+      setPostComments(commentsResponse.data.data || commentsResponse.data);
       const postResponse = await communityAPI.getPost(selectedPost.id);
-      setSelectedPost(postResponse.data);
+      setSelectedPost(postResponse.data.data || postResponse.data);
       loadCommunityPosts();
     } catch (error) {
       console.error('댓글 삭제 오류:', error);

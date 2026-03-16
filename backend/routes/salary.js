@@ -1,6 +1,7 @@
 import express from 'express';
 import { query, get, run } from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
+import { logAudit } from '../utils/auditLog.js';
 
 const router = express.Router();
 
@@ -1452,6 +1453,8 @@ router.post('/slips/generate/:workplaceId', authenticate, async (req, res) => {
       created++;
     }
 
+    logAudit(req, { action: 'CREATE', entityType: 'salary_slip', details: { month: payrollMonth, employeeCount: created } });
+
     res.json({
       success: true,
       message: '급여명세서가 생성되었습니다.',
@@ -1729,6 +1732,8 @@ router.post('/finalize', authenticate, async (req, res) => {
         }
       }
       
+      logAudit(req, { action: 'FINALIZE', entityType: 'salary', details: { month: payrollMonth } });
+
       res.json({
         success: true,
         message: '급여가 확정되었습니다.',

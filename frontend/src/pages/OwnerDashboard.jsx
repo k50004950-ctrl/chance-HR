@@ -37,6 +37,7 @@ import RosterTab from '../components/owner/RosterTab';
 import SalarySlipsTab from '../components/owner/SalarySlipsTab';
 import SettingsTab from '../components/owner/SettingsTab';
 import CommunityTab from '../components/owner/CommunityTab';
+import DashboardCharts from '../components/owner/DashboardCharts';
 
 const OwnerDashboard = () => {
   const { user, logout } = useAuth();
@@ -3593,6 +3594,14 @@ const OwnerDashboard = () => {
                     })()}
                   </div>
                 )}
+
+                <DashboardCharts
+                  employees={employees}
+                  attendance={attendance}
+                  salaryData={salaryData}
+                  selectedMonth={selectedMonth}
+                  isMobile={isMobile}
+                />
 
                 {/* 확인 필요 알림 목록 (데스크톱 전용) */}
                 {!isMobile && notifications.filter(n => !n.urgent).length > 0 && (

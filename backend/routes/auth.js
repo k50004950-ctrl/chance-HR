@@ -5,6 +5,7 @@ import { get, run, query } from '../config/database.js';
 import { authenticate, authorizeRole } from '../middleware/auth.js';
 import { validateLogin, validateSignup, validateChangePassword } from '../middleware/validate.js';
 import { loginLimiter, signupLimiter, passwordResetLimiter } from '../middleware/rateLimiter.js';
+import { logAudit } from '../utils/auditLog.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production-2026';
@@ -109,6 +110,8 @@ router.post('/login', loginLimiter, validateLogin, async (req, res) => {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    logAudit({ ...req, user: { id: user.id, name: user.name, username: user.username } }, { action: 'LOGIN', entityType: 'user', entityId: user.id });
 
     res.json({
       success: true,
@@ -395,6 +398,8 @@ router.put('/change-password', authenticate, validateChangePassword, async (req,
 
     // 비밀번호 업데이트 + 강제 변경 플래그 해제
     await run('UPDATE users SET password = ?, must_change_password = ? WHERE id = ?', [hashedPassword, false, userId]);
+
+    logAudit(req, { action: 'CHANGE_PASSWORD', entityType: 'user', entityId: userId });
 
     res.json({ success: true, message: '비밀번호가 성공적으로 변경되었습니다.' });
   } catch (error) {
@@ -816,6 +821,8 @@ router.delete('/delete-user/:userId', authenticate, authorizeRole(['admin', 'sup
     // 11. 사용자 계정 삭제
     await run('DELETE FROM users WHERE id = ?', [userId]);
     console.log('  ✅ 사용자 계정 삭제 완료');
+
+    logAudit(req, { action: 'DELETE', entityType: 'user', entityId: parseInt(userId) });
 
     console.log(`🎉 사용자 삭제 완료: ${userToDelete.username}`);
 

@@ -252,6 +252,21 @@ export const notificationsAPI = {
   delete: (id) => api.delete(`/notifications/${id}`)
 };
 
+// 휴가 관리 API
+export const leavesAPI = {
+  create: (data) => api.post('/leaves', data),
+  getMy: (params) => api.get('/leaves/my', { params }),
+  getByWorkplace: (workplaceId, params) => api.get(`/leaves/workplace/${workplaceId}`, { params }),
+  approve: (id, data) => api.put(`/leaves/${id}/approve`, data),
+  cancel: (id) => api.delete(`/leaves/${id}`),
+  getAnnualSummary: (userId) => api.get(`/leaves/annual-summary/${userId}`)
+};
+
+// 감사 로그 API
+export const auditLogAPI = {
+  getAll: (params) => api.get('/audit-logs', { params })
+};
+
 // V2 API를 위한 직접 axios 인스턴스 export
 export const apiClient = api;
 

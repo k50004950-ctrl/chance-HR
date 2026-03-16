@@ -4,6 +4,7 @@ import { query, run, get } from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
 import { isWithinWorkplace } from '../utils/location.js';
 import { validateCheckIn } from '../middleware/validate.js';
+import { logAudit } from '../utils/auditLog.js';
 import { notifyAttendance } from '../services/kakaoTalk.js';
 import { sendPushToUser } from '../services/webPush.js';
 
@@ -571,6 +572,7 @@ router.put('/:id', authenticate, async (req, res) => {
         'UPDATE attendance SET check_in_time = ?, check_out_time = ?, work_hours = ?, status = ?, leave_type = ? WHERE id = ?',
         [null, null, null, 'leave', leave_type, attendanceId]
       );
+      logAudit(req, { action: 'UPDATE', entityType: 'attendance', entityId: req.params.id });
       return res.json({ success: true, message: '휴가 정보가 저장되었습니다.' });
     }
 
@@ -592,6 +594,8 @@ router.put('/:id', authenticate, async (req, res) => {
       'UPDATE attendance SET check_in_time = ?, check_out_time = ?, work_hours = ?, status = ?, leave_type = ? WHERE id = ?',
       [check_in_time, check_out_time, workHours ? workHours.toFixed(2) : null, status, null, attendanceId]
     );
+
+    logAudit(req, { action: 'UPDATE', entityType: 'attendance', entityId: req.params.id });
 
     res.json({
       success: true,

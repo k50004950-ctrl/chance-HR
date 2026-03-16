@@ -194,6 +194,21 @@ export const initDatabase = async () => {
         )
       `);
 
+      // Audit Logs 테이블
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS audit_logs (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER REFERENCES users(id),
+          user_name VARCHAR(255),
+          action VARCHAR(100) NOT NULL,
+          entity_type VARCHAR(50) NOT NULL,
+          entity_id INTEGER,
+          details TEXT,
+          ip_address VARCHAR(50),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       // Workplaces 테이블
       await pool.query(`
         CREATE TABLE IF NOT EXISTS workplaces (
@@ -874,6 +889,24 @@ export const initDatabase = async () => {
         console.log('✅ 2026-01 기본 요율이 등록되었습니다.');
       }
 
+      // Leaves 테이블 (휴가 관리)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS leaves (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          workplace_id INTEGER REFERENCES workplaces(id),
+          leave_type VARCHAR(50) NOT NULL DEFAULT 'annual',
+          start_date DATE NOT NULL,
+          end_date DATE NOT NULL,
+          days DECIMAL(4,1) NOT NULL DEFAULT 1,
+          reason TEXT,
+          status VARCHAR(20) NOT NULL DEFAULT 'pending',
+          approved_by INTEGER REFERENCES users(id),
+          approved_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       console.log('PostgreSQL 데이터베이스 초기화 완료');
     } else {
       // SQLite 초기화 (기존 코드)
@@ -922,6 +955,22 @@ export const initDatabase = async () => {
           is_read INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Audit Logs 테이블
+      await run(`
+        CREATE TABLE IF NOT EXISTS audit_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER,
+          user_name TEXT,
+          action TEXT NOT NULL,
+          entity_type TEXT NOT NULL,
+          entity_id INTEGER,
+          details TEXT,
+          ip_address TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id)
         )
       `);
 
@@ -1534,6 +1583,26 @@ export const initDatabase = async () => {
         );
         console.log('기본 관리자 계정이 생성되었습니다. (username: admin, password: admin123)');
       }
+
+      // Leaves 테이블 (휴가 관리)
+      await run(`
+        CREATE TABLE IF NOT EXISTS leaves (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          workplace_id INTEGER,
+          leave_type TEXT NOT NULL DEFAULT 'annual',
+          start_date TEXT NOT NULL,
+          end_date TEXT NOT NULL,
+          days REAL NOT NULL DEFAULT 1,
+          reason TEXT,
+          status TEXT NOT NULL DEFAULT 'pending',
+          approved_by INTEGER,
+          approved_at DATETIME,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
+        )
+      `);
 
       console.log('SQLite 데이터베이스 초기화 완료');
     }

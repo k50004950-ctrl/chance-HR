@@ -8,6 +8,7 @@ import { authenticate, authorizeRole } from '../middleware/auth.js';
 import bcrypt from 'bcryptjs';
 import { encryptSSN, decryptSSN } from '../utils/crypto.js';
 import { validateEmployeeCreate, validateIdParam } from '../middleware/validate.js';
+import { logAudit } from '../utils/auditLog.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -270,6 +271,8 @@ router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']),
         [userId, workplace_id, salary_type, amount, weeklyHolidayPayValue, weeklyHolidayTypeValue, overtime_pay || 0, tax_type || '4대보험']
       );
     }
+
+    logAudit(req, { action: 'CREATE', entityType: 'employee', entityId: userId, details: { name, workplace_id } });
 
     res.status(201).json({
       success: true,
@@ -562,6 +565,8 @@ router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']
       );
     }
 
+    logAudit(req, { action: 'UPDATE', entityType: 'employee', entityId: employeeId });
+
     res.json({ success: true, message: '직원 정보가 수정되었습니다.' });
   } catch (error) {
     console.error('직원 수정 오류:', error);
@@ -596,6 +601,8 @@ router.delete('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owne
     await run('DELETE FROM attendance WHERE user_id = ?', [employeeId]);
     await run('DELETE FROM employee_details WHERE user_id = ?', [employeeId]);
     await run('DELETE FROM users WHERE id = ?', [employeeId]);
+
+    logAudit(req, { action: 'DELETE', entityType: 'employee', entityId: employeeId });
 
     res.json({ success: true, message: '직원이 삭제되었습니다.' });
   } catch (error) {

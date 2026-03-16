@@ -32,6 +32,8 @@ import smsRoutes from './routes/sms.js';
 import emailVerificationRoutes from './routes/email-verification.js';
 import accountRecoveryRoutes from './routes/account-recovery.js';
 import notificationsRoutes from './routes/notifications.js';
+import auditLogRoutes from './routes/auditLog.js';
+import leavesRoutes from './routes/leaves.js';
 import { startPaydayScheduler } from './services/payrollSchedule.js';
 import { startAttendanceScheduler } from './services/attendanceScheduler.js';
 import jwt from 'jsonwebtoken';
@@ -140,6 +142,8 @@ app.use('/api/sms', cors(corsOptions), smsRoutes);
 app.use('/api/email', cors(corsOptions), emailVerificationRoutes);
 app.use('/api/account', cors(corsOptions), accountRecoveryRoutes);
 app.use('/api/notifications', cors(corsOptions), notificationsRoutes);
+app.use('/api/audit-logs', cors(corsOptions), auditLogRoutes);
+app.use('/api/leaves', cors(corsOptions), leavesRoutes);
 
 // ratesMaster 라우트 - 상세 로깅
 console.log('🔧 Importing ratesMaster routes from:', './routes/ratesMaster.js');

@@ -877,10 +877,17 @@ const OwnerDashboard = () => {
     const lastDay = new Date(year, month, 0).getDate();
     const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
+    const formatDateKey = (d) => {
+      if (!d) return '';
+      if (typeof d === 'string') return d.slice(0, 10);
+      if (d instanceof Date) return d.toISOString().slice(0, 10);
+      return String(d).slice(0, 10);
+    };
+
     const attendanceByKey = new Map();
     attendance.forEach((record) => {
       if (!record.user_id || !record.date) return;
-      attendanceByKey.set(`${record.user_id}-${record.date}`, record);
+      attendanceByKey.set(`${record.user_id}-${formatDateKey(record.date)}`, record);
     });
 
     const days = [];
@@ -5206,6 +5213,25 @@ const OwnerDashboard = () => {
                 </small>
               </div>
 
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    name="flexible_hours"
+                    checked={formData.flexible_hours === true || formData.flexible_hours === 1 || formData.flexible_hours === '1'}
+                    onChange={(e) => handleInputChange({ target: { name: 'flexible_hours', value: e.target.checked } })}
+                    style={{ width: '18px', height: '18px' }}
+                  />
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                    🔄 유동 근무 (출퇴근 시간 자율 - 아르바이트 등)
+                  </span>
+                </label>
+                <small style={{ color: '#6b7280', fontSize: '12px', marginLeft: '26px' }}>
+                  체크하면 고정 출퇴근 시간 없이 자유롭게 출퇴근합니다.
+                </small>
+              </div>
+
+              {!(formData.flexible_hours === true || formData.flexible_hours === 1 || formData.flexible_hours === '1') && (
               <div className="grid grid-2">
                 <div className="form-group">
                   <label className="form-label">근무 시작 시간</label>
@@ -5230,6 +5256,7 @@ const OwnerDashboard = () => {
                   />
                 </div>
               </div>
+              )}
 
               <h4 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
                 첨부 서류

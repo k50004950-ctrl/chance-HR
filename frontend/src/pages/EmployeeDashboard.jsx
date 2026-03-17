@@ -794,10 +794,17 @@ const EmployeeDashboard = () => {
     const lastDay = new Date(year, month, 0).getDate();
     const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
+    const formatDateKey = (d) => {
+      if (!d) return '';
+      if (typeof d === 'string') return d.slice(0, 10);
+      if (d instanceof Date) return d.toISOString().slice(0, 10);
+      return String(d).slice(0, 10);
+    };
+
     const attendanceByDate = new Map();
     attendanceRecords.forEach((record) => {
       if (record.date) {
-        attendanceByDate.set(record.date, record);
+        attendanceByDate.set(formatDateKey(record.date), record);
       }
     });
 
@@ -999,6 +1006,49 @@ const EmployeeDashboard = () => {
 
           {employeeProfile?.employment_status !== 'resigned' && (
             <>
+
+          {/* 오늘의 근무 시간 안내 */}
+          {employeeProfile?.work_start_time && employeeProfile?.work_end_time && !employeeProfile?.flexible_hours && (
+            <div style={{
+              marginBottom: '16px',
+              padding: '12px 16px',
+              background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%)',
+              borderRadius: '10px',
+              border: '1px solid #c7d2fe',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <span style={{ fontSize: '24px' }}>⏰</span>
+              <div>
+                <div style={{ fontSize: '13px', color: '#4338ca', fontWeight: '600', marginBottom: '2px' }}>
+                  오늘 근무 시간
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: '#312e81' }}>
+                  {employeeProfile.work_start_time} ~ {employeeProfile.work_end_time}
+                </div>
+              </div>
+            </div>
+          )}
+          {employeeProfile?.flexible_hours && (
+            <div style={{
+              marginBottom: '16px',
+              padding: '12px 16px',
+              background: '#fef3c7',
+              borderRadius: '10px',
+              border: '1px solid #fcd34d',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <span style={{ fontSize: '24px' }}>🔄</span>
+              <div>
+                <div style={{ fontSize: '13px', color: '#92400e', fontWeight: '600' }}>
+                  유동 근무 (출퇴근 시간 자율)
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 현재 위치 정보 */}
           {currentLocation && (

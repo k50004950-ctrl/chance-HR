@@ -79,9 +79,6 @@ export const validateEmployeeCreate = [
 // Attendance Validators
 // ============================================
 export const validateCheckIn = [
-  body('workplaceId')
-    .notEmpty().withMessage('사업장 정보가 필요합니다.')
-    .isInt({ min: 1 }).withMessage('유효하지 않은 사업장입니다.'),
   body('latitude')
     .notEmpty().withMessage('위치 정보가 필요합니다.')
     .isFloat({ min: -90, max: 90 }).withMessage('유효하지 않은 위도입니다.'),

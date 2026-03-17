@@ -1,5 +1,12 @@
 import React from 'react';
 
+const toDateStr = (d) => {
+  if (!d) return '';
+  if (typeof d === 'string') return d.slice(0, 10);
+  if (d instanceof Date) return d.toISOString().slice(0, 10);
+  return String(d).slice(0, 10);
+};
+
 /**
  * AttendanceTab - Extracted from OwnerDashboard.jsx (lines 4061-4670)
  *
@@ -65,7 +72,7 @@ const AttendanceTab = ({
                 {/* 오늘 출근 상황 요약 바 */}
                 {(() => {
                   const today = new Date().toISOString().split('T')[0];
-                  const todayRecords = attendance.filter(a => a.date === today);
+                  const todayRecords = attendance.filter(a => toDateStr(a.date) === today);
                   const completedToday = todayRecords.filter(a => {
                     const status = getAttendanceStatus(a);
                     return status.type === 'completed';
@@ -382,7 +389,7 @@ const AttendanceTab = ({
                 {/* 미퇴근 직원 Alert */}
                 {(() => {
                   const today = new Date().toISOString().split('T')[0];
-                  const todayRecords = attendance.filter(a => a.date === today);
+                  const todayRecords = attendance.filter(a => toDateStr(a.date) === today);
                   const notCheckedOut = todayRecords.filter(a => a.check_in_time && !a.check_out_time);
 
                   if (notCheckedOut.length > 0) {

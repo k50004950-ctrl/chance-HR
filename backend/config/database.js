@@ -309,6 +309,7 @@ export const initDatabase = async () => {
           notes TEXT,
           work_start_time VARCHAR(10),
           work_end_time VARCHAR(10),
+          flexible_hours BOOLEAN DEFAULT false,
           work_days VARCHAR(100),
           pay_schedule_type VARCHAR(30),
           pay_day INTEGER,
@@ -1099,6 +1100,7 @@ export const initDatabase = async () => {
             notes TEXT,
             work_start_time TEXT,
             work_end_time TEXT,
+            flexible_hours INTEGER DEFAULT 0,
             work_days TEXT,
           pay_schedule_type TEXT,
           pay_day INTEGER,
@@ -1119,6 +1121,9 @@ export const initDatabase = async () => {
       } catch (e) {}
       try {
         await run(`ALTER TABLE employee_details ADD COLUMN work_end_time TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN flexible_hours INTEGER DEFAULT 0`);
       } catch (e) {}
       try {
         await run(`ALTER TABLE employee_details ADD COLUMN work_days TEXT`);

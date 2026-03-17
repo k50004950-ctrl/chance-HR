@@ -565,6 +565,27 @@ router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']
       );
     }
 
+    // V2 호환: employment_status가 resigned로 변경되면 company_employee_relations도 동기화
+    if (employment_status === 'resigned') {
+      try {
+        await run(
+          `UPDATE company_employee_relations SET status = 'resigned', end_date = ?, updated_at = CURRENT_TIMESTAMP
+           WHERE user_id = ? AND status = 'active'`,
+          [resignation_date || new Date().toISOString().split('T')[0], employeeId]
+        );
+      } catch (e) { /* V2 테이블이 없으면 무시 */ }
+    }
+    // employment_status가 active로 변경되면 (재입사) company_employee_relations도 동기화
+    if (employment_status === 'active') {
+      try {
+        await run(
+          `UPDATE company_employee_relations SET status = 'active', end_date = NULL, updated_at = CURRENT_TIMESTAMP
+           WHERE user_id = ? AND status = 'resigned'`,
+          [employeeId]
+        );
+      } catch (e) { /* V2 테이블이 없으면 무시 */ }
+    }
+
     logAudit(req, { action: 'UPDATE', entityType: 'employee', entityId: employeeId });
 
     res.json({ success: true, message: '직원 정보가 수정되었습니다.' });

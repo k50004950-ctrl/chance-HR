@@ -4,7 +4,7 @@ export const logAudit = async (req, { action, entityType, entityId = null, detai
   try {
     const userId = req.user?.id || null;
     const userName = req.user?.name || req.user?.username || 'system';
-    const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '';
+    const ip = req?.headers?.['x-forwarded-for'] || req?.socket?.remoteAddress || req?.ip || '';
     const detailsStr = details ? (typeof details === 'string' ? details : JSON.stringify(details)) : null;
 
     await run(

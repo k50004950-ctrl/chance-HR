@@ -154,7 +154,7 @@ export const initDatabase = async () => {
           name VARCHAR(255) NOT NULL,
           email VARCHAR(255),
           phone VARCHAR(50),
-          ssn VARCHAR(50),
+          ssn VARCHAR(255),
           address TEXT,
           emergency_contact VARCHAR(255),
           emergency_phone VARCHAR(50),
@@ -178,6 +178,11 @@ export const initDatabase = async () => {
       try {
         await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false');
       } catch (e) { /* 이미 존재 */ }
+
+      // SSN 컬럼 크기 확장 (암호화 값 저장용)
+      try {
+        await pool.query('ALTER TABLE users ALTER COLUMN ssn TYPE VARCHAR(255)');
+      } catch (e) { /* 이미 변경됨 */ }
 
       // Notifications 테이블
       await pool.query(`

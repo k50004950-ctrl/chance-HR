@@ -49,6 +49,9 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Railway 등 리버스 프록시 환경에서 클라이언트 IP 정확하게 인식
+app.set('trust proxy', 1);
+
 console.log('🚀 Server starting...');
 console.log('📍 Entry file: backend/server.js');
 console.log('📅 Build timestamp:', new Date().toISOString());

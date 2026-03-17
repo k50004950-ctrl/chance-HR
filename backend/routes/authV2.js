@@ -303,9 +303,10 @@ router.get('/companies/search', async (req, res) => {
     console.log(`🔍 회사 검색 시도:`, { business_number, owner_phone });
 
     // 사업자등록번호와 사업주 핸드폰번호가 모두 일치하는 회사 검색
-    // 하이픈 제거 후 비교
+    // 하이픈 제거 후 비교 (users.phone 또는 companies.phone 매칭)
+    const cleanPhone = owner_phone.replace(/-/g, '');
     const company = await get(
-      `SELECT 
+      `SELECT
         c.id,
         c.business_number,
         c.company_name,
@@ -318,10 +319,27 @@ router.get('/companies/search', async (req, res) => {
       FROM companies c
       LEFT JOIN company_admins ca ON c.id = ca.company_id AND ca.role = 'owner'
       LEFT JOIN users u ON ca.user_id = u.id
-      WHERE REPLACE(c.business_number, '-', '') = ? AND REPLACE(u.phone, '-', '') = ?
+      WHERE REPLACE(c.business_number, '-', '') = ?
+        AND (REPLACE(u.phone, '-', '') = ? OR REPLACE(c.phone, '-', '') = ?)
       LIMIT 1`,
-      [business_number, owner_phone.replace(/-/g, '')]
+      [business_number, cleanPhone, cleanPhone]
     );
+
+    // 전화번호 매칭 성공 시, users.phone이 더미값이면 실제 번호로 업데이트
+    if (company && company.owner_phone && (company.owner_phone === '00000000000' || company.owner_phone === '')) {
+      try {
+        const adminUser = await get(
+          'SELECT user_id FROM company_admins WHERE company_id = ? AND role = ?',
+          [company.id, 'owner']
+        );
+        if (adminUser) {
+          await run('UPDATE users SET phone = ? WHERE id = ?', [cleanPhone, adminUser.user_id]);
+          console.log(`📱 사업주 전화번호 자동 업데이트: user ${adminUser.user_id} → ${cleanPhone}`);
+        }
+      } catch (e) {
+        console.error('전화번호 업데이트 실패:', e.message);
+      }
+    }
 
     console.log(`🔍 검색 결과:`, company ? `✅ 찾음 (${company.company_name})` : '❌ 없음');
 

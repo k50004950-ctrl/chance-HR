@@ -861,7 +861,7 @@ const SalaryTab = ({
                       </div>
                     </div>
 
-                    {salaryData.employees.length === 0 ? (
+                    {(!salaryData.employees || salaryData.employees.length === 0) ? (
                       <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
                         급여 데이터가 없습니다.
                       </p>

@@ -1468,7 +1468,12 @@ const OwnerDashboard = () => {
         });
       }
       const response = await salaryAPI.calculateWorkplace(selectedWorkplace, { startDate, endDate });
-      setSalaryData(response.data);
+      const data = response.data;
+      if (data && data.employees) {
+        setSalaryData(data);
+      } else {
+        setSalaryData({ employees: [], totalSalary: 0 });
+      }
     } catch (error) {
       console.error('급여 계산 오류:', error);
     }

@@ -1420,6 +1420,7 @@ const OwnerDashboard = () => {
   };
 
   const loadSalary = async () => {
+    if (!selectedWorkplace || !employees || employees.length === 0) return;
     try {
       let startDate = '';
       let endDate = '';

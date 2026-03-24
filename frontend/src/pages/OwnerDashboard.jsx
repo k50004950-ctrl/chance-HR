@@ -1768,10 +1768,52 @@ const OwnerDashboard = () => {
   const handleSubmitEmployee = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: '', text: '' }); // 이전 메시지 초기화
-    setFormErrors({}); // 이전 에러 초기화
+    setMessage({ type: '', text: '' });
+    setFormErrors({});
 
     try {
+      // 수기 등록 모드
+      if (formData.is_manual && !formData.id) {
+        const form = e.target;
+        const name = form.querySelector('[name="name"]')?.value;
+        if (!name || !name.trim()) {
+          setToast({ message: '이름은 필수 항목입니다.', type: 'error' });
+          setLoading(false);
+          return;
+        }
+        const manualData = {
+          name: name.trim(),
+          phone: form.querySelector('[name="phone"]')?.value || null,
+          workplace_id: selectedWorkplace,
+          hire_date: form.querySelector('[name="hire_date"]')?.value || null,
+          position: form.querySelector('[name="position"]')?.value || null,
+          department: form.querySelector('[name="department"]')?.value || null,
+          job_type: form.querySelector('[name="job_type"]')?.value || null,
+          work_start_time: form.querySelector('[name="work_start_time"]')?.value || null,
+          work_end_time: form.querySelector('[name="work_end_time"]')?.value || null,
+          salary_type: form.querySelector('[name="salary_type"]')?.value || null,
+          amount: form.querySelector('[name="amount"]')?.value || null,
+          overtime_pay: form.querySelector('[name="overtime_pay"]')?.value || null,
+          tax_type: form.querySelector('[name="tax_type"]')?.value || '4대보험',
+          weekly_holiday_type: form.querySelector('input[name="weekly_holiday_type"]:checked')?.value || 'included',
+          deduct_absence: form.querySelector('[name="deduct_absence"]')?.checked || false,
+          flexible_hours: form.querySelector('[name="flexible_hours"]')?.checked || false,
+          pay_schedule_type: form.querySelector('[name="pay_schedule_type"]')?.value || null,
+          pay_day: form.querySelector('[name="pay_day"]')?.value || null,
+          payroll_period_start_day: form.querySelector('[name="payroll_period_start_day"]')?.value || null,
+          payroll_period_end_day: form.querySelector('[name="payroll_period_end_day"]')?.value || null,
+        };
+        const workDaysCheckboxes = form.querySelectorAll('input[name="work_days"]:checked');
+        manualData.work_days = JSON.stringify(Array.from(workDaysCheckboxes).map(cb => cb.value));
+
+        const response = await employeeAPI.createManual(manualData);
+        setToast({ message: '직원이 수기 등록되었습니다.', type: 'success' });
+        closeModal();
+        loadEmployees();
+        setLoading(false);
+        return;
+      }
+
       if (!formData.id && usernameCheckStatus !== 'available') {
         setToast({ message: '아이디 중복확인을 먼저 해주세요.', type: 'error' });
         setLoading(false);
@@ -4771,10 +4813,46 @@ const OwnerDashboard = () => {
             )}
 
             <form onSubmit={handleSubmitEmployee}>
+              {/* 수기 등록 모드 토글 (신규 등록 시만) */}
+              {!formData.id && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '14px 16px', background: formData.is_manual ? '#eff6ff' : '#f9fafb',
+                  border: `1px solid ${formData.is_manual ? '#3b82f6' : '#e5e7eb'}`,
+                  borderRadius: '10px', marginBottom: '20px', cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }} onClick={() => setFormData(prev => ({ ...prev, is_manual: !prev.is_manual }))}>
+                  <div style={{
+                    width: '44px', height: '24px', borderRadius: '12px',
+                    background: formData.is_manual ? '#3b82f6' : '#d1d5db',
+                    position: 'relative', transition: 'background 0.2s', flexShrink: 0
+                  }}>
+                    <div style={{
+                      width: '20px', height: '20px', borderRadius: '50%', background: 'white',
+                      position: 'absolute', top: '2px',
+                      left: formData.is_manual ? '22px' : '2px',
+                      transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    }} />
+                  </div>
+                  <div>
+                    <strong style={{ color: formData.is_manual ? '#1d4ed8' : '#374151', fontSize: '14px' }}>
+                      수기 등록 모드
+                    </strong>
+                    <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6b7280' }}>
+                      {formData.is_manual
+                        ? '계정 없이 이름 + 급여 정보만으로 등록합니다 (급여 계산 전용)'
+                        : '직원 로그인 계정을 함께 생성합니다'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <h4 style={{ marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
                 기본 정보
               </h4>
-              
+
+              {/* 계정 정보 - 수기 모드가 아닐 때만 표시 */}
+              {!formData.is_manual && (
               <div className="grid grid-2">
                 <div className="form-group">
                   <label className="form-label">사용자명 (로그인 ID) *</label>
@@ -4785,7 +4863,7 @@ const OwnerDashboard = () => {
                       className="form-input"
                       value={formData.username || ''}
                       onChange={handleInputChange}
-                      required
+                      required={!formData.is_manual}
                       disabled={formData.id}
                       placeholder="로그인할 때 사용할 아이디를 입력하세요"
                       style={formErrors.username ? { borderColor: '#ef4444' } : {}}
@@ -4878,6 +4956,10 @@ const OwnerDashboard = () => {
                     )}
                   </div>
                 )}
+              </div>
+              )}
+
+              <div className="grid grid-2">
                 <div className="form-group">
                   <label className="form-label">이름 *</label>
                   <input

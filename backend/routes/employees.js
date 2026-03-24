@@ -177,6 +177,91 @@ router.put('/:id/consent', authenticate, async (req, res) => {
   }
 });
 
+// 수기 직원 등록 (계정 생성 없이 급여 계산용)
+router.post('/manual', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
+  try {
+    const {
+      name, phone, workplace_id,
+      hire_date, position, department, job_type,
+      work_start_time, work_end_time, work_days,
+      salary_type, amount, overtime_pay, tax_type,
+      weekly_holiday_type, deduct_absence,
+      pay_schedule_type, pay_day, pay_after_days,
+      payroll_period_start_day, payroll_period_end_day,
+      flexible_hours
+    } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: '이름은 필수 항목입니다.' });
+    }
+    if (!workplace_id) {
+      return res.status(400).json({ success: false, message: '사업장 정보가 필요합니다.' });
+    }
+
+    // Generate a unique placeholder username (not for login - just for DB uniqueness)
+    const timestamp = Date.now();
+    const randomSuffix = Math.random().toString(36).substring(2, 6);
+    const placeholderUsername = `manual_${timestamp}_${randomSuffix}`;
+    // Use a random password hash (account is not usable for login)
+    const bcryptModule = await import('bcryptjs');
+    const placeholderPassword = await bcryptModule.default.hash(`disabled_${timestamp}`, 10);
+
+    // Create user with is_manual flag
+    const userResult = await run(
+      `INSERT INTO users (username, password, name, role, phone, workplace_id, employment_status, is_manual)
+       VALUES (?, ?, ?, 'employee', ?, ?, 'active', 1)`,
+      [placeholderUsername, placeholderPassword, name, phone || null, workplace_id]
+    );
+
+    const userId = userResult.id;
+
+    // Create employee details
+    await run(
+      `INSERT INTO employee_details (
+        user_id, workplace_id, hire_date, position, department, job_type,
+        work_start_time, work_end_time, work_days,
+        pay_schedule_type, pay_day, pay_after_days,
+        payroll_period_start_day, payroll_period_end_day,
+        deduct_absence, flexible_hours
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId, workplace_id,
+        hire_date || new Date().toISOString().split('T')[0],
+        position || null, department || null, job_type || null,
+        work_start_time || null, work_end_time || null,
+        work_days ? (typeof work_days === 'string' ? work_days : JSON.stringify(work_days)) : null,
+        pay_schedule_type || null,
+        pay_day !== undefined && pay_day !== '' ? Number(pay_day) : null,
+        pay_after_days !== undefined && pay_after_days !== '' ? Number(pay_after_days) : null,
+        payroll_period_start_day !== undefined ? Number(payroll_period_start_day) : null,
+        payroll_period_end_day !== undefined ? Number(payroll_period_end_day) : null,
+        deduct_absence ? 1 : 0,
+        flexible_hours ? 1 : 0
+      ]
+    );
+
+    // Create salary info if provided
+    if (salary_type && amount) {
+      await run(
+        `INSERT INTO salary_info (user_id, workplace_id, salary_type, amount, overtime_pay, weekly_holiday_type, tax_type)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [userId, workplace_id, salary_type, amount, overtime_pay || 0, weekly_holiday_type || 'included', tax_type || '4대보험']
+      );
+    }
+
+    logAudit(req, { action: 'CREATE', entityType: 'employee', entityId: userId, details: { name, manual: true } });
+
+    res.status(201).json({
+      success: true,
+      message: '직원이 수기 등록되었습니다.',
+      employeeId: userId
+    });
+  } catch (error) {
+    console.error('수기 직원 등록 오류:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 // 직원 등록
 router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']), uploadFiles, async (req, res) => {
   try {

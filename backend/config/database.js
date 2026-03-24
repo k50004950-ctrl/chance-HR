@@ -170,6 +170,7 @@ export const initDatabase = async () => {
           service_consent BOOLEAN DEFAULT false,
           service_consent_date TIMESTAMP,
           must_change_password BOOLEAN DEFAULT false,
+          is_manual BOOLEAN DEFAULT false,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
@@ -177,6 +178,11 @@ export const initDatabase = async () => {
       // must_change_password 컬럼 추가 (기존 DB 마이그레이션)
       try {
         await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false');
+      } catch (e) { /* 이미 존재 */ }
+
+      // is_manual 컬럼 추가 (기존 DB 마이그레이션)
+      try {
+        await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_manual BOOLEAN DEFAULT false');
       } catch (e) { /* 이미 존재 */ }
 
       // SSN 컬럼 크기 확장 (암호화 값 저장용)
@@ -957,6 +963,7 @@ export const initDatabase = async () => {
           service_consent INTEGER DEFAULT 0,
           service_consent_date DATETIME,
           must_change_password INTEGER DEFAULT 0,
+          is_manual INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
@@ -997,6 +1004,9 @@ export const initDatabase = async () => {
       // 기존 테이블에 새 컬럼 추가 (마이그레이션)
       try {
         await run(`ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE users ADD COLUMN is_manual INTEGER DEFAULT 0`);
       } catch (e) {}
       try {
         await run(`ALTER TABLE users ADD COLUMN business_name TEXT`);

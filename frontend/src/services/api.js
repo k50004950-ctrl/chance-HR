@@ -111,7 +111,8 @@ export const employeeAPI = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
-  delete: (id) => api.delete(`/employees/${id}`)
+  delete: (id) => api.delete(`/employees/${id}`),
+  createManual: (data) => api.post('/employees/manual', data),
 };
 
 // 출퇴근 API

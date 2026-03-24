@@ -913,6 +913,20 @@ export const initDatabase = async () => {
         )
       `);
 
+      // 성능 인덱스 추가
+      const indexes = [
+        'CREATE INDEX IF NOT EXISTS idx_attendance_user_wp_date ON attendance(user_id, workplace_id, date)',
+        'CREATE INDEX IF NOT EXISTS idx_users_workplace ON users(workplace_id)',
+        'CREATE INDEX IF NOT EXISTS idx_salary_slips_wp_month ON salary_slips(workplace_id, payroll_month)',
+        'CREATE INDEX IF NOT EXISTS idx_leaves_user_status ON leaves(user_id, status)',
+        'CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read)',
+        'CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at)',
+        'CREATE INDEX IF NOT EXISTS idx_community_posts_category ON community_posts(category, created_at)'
+      ];
+      for (const idx of indexes) {
+        try { await pool.query(idx); } catch (e) { /* 이미 존재하면 무시 */ }
+      }
+
       console.log('PostgreSQL 데이터베이스 초기화 완료');
     } else {
       // SQLite 초기화 (기존 코드)

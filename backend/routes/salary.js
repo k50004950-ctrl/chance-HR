@@ -46,7 +46,11 @@ const parseNumber = (value) => {
 const getTaxFromTable = async (monthlySalary, dependentsCount) => {
   try {
     const year = new Date().getFullYear();
-    const dependents = Math.min(Math.max(1, dependentsCount), 11); // 1~11 범위 제한
+    const dependents = Math.min(Math.max(1, Math.floor(Number(dependentsCount))), 11); // 1~11 범위 제한
+    const allowedColumns = [1,2,3,4,5,6,7,8,9,10,11];
+    if (!allowedColumns.includes(dependents)) {
+      return 0;
+    }
     const columnName = `dependents_${dependents}`;
     
     const taxData = await get(`

@@ -1409,6 +1409,16 @@ const OwnerDashboard = () => {
     }
   };
 
+  const loadEmployeeSlips = async () => {
+    if (!selectedSlipEmployee) return;
+    try {
+      const response = await salaryAPI.getEmployeeSlips(selectedSlipEmployee);
+      setEmployeeSlips(response.data.data || response.data || []);
+    } catch (error) {
+      console.error('급여명세서 조회 오류:', error);
+    }
+  };
+
   const loadSalary = async () => {
     try {
       let startDate = '';

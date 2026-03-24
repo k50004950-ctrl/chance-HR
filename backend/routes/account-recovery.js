@@ -39,7 +39,6 @@ router.post('/find-username', async (req, res) => {
       
       return {
         username: masked,
-        fullUsername: username, // 전체 아이디 (실제로는 인증 후에만 제공)
         role: user.role === 'owner' ? '사업주' : '근로자',
         createdAt: user.created_at
       };

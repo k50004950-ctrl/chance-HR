@@ -189,7 +189,7 @@ router.post('/signup', signupLimiter, async (req, res) => {
 });
 
 // 사용자 등록 (관리자/사업주만 가능)
-router.post('/register', async (req, res) => {
+router.post('/register', authenticate, authorizeRole(['admin', 'super_admin', 'owner']), async (req, res) => {
   try {
     const { username, password, name, role, phone, email, workplace_id } = req.body;
 

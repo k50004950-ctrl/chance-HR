@@ -33,7 +33,7 @@ router.get('/posts', authenticate, async (req, res) => {
            ORDER BY cp.created_at DESC`
         );
       }
-      return res.json(posts);
+      return res.json({ success: true, data: posts });
     }
 
     // owner는 owner 게시판만, employee는 employee 게시판만 볼 수 있음
@@ -48,10 +48,10 @@ router.get('/posts', authenticate, async (req, res) => {
       [allowedCategory]
     );
     
-    res.json(posts);
+    res.json({ success: true, data: posts });
   } catch (error) {
     console.error('게시글 목록 조회 오류:', error);
-    res.status(500).json({ message: '게시글 목록 조회에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '게시글 목록 조회에 실패했습니다.' });
   }
 });
 
@@ -71,7 +71,7 @@ router.get('/posts/:id', authenticate, async (req, res) => {
     );
 
     if (!post) {
-      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '게시글을 찾을 수 없습니다.' });
     }
 
     // super_admin은 모든 게시글 조회 가능
@@ -79,7 +79,7 @@ router.get('/posts/:id', authenticate, async (req, res) => {
       // 일반 사용자는 본인의 카테고리 게시글만 조회 가능
       const allowedCategory = userRole === 'owner' ? 'owner' : 'employee';
       if (post.category !== allowedCategory) {
-        return res.status(403).json({ message: '권한이 없습니다.' });
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
     }
 
@@ -87,10 +87,10 @@ router.get('/posts/:id', authenticate, async (req, res) => {
     await run('UPDATE community_posts SET view_count = view_count + 1 WHERE id = ?', [id]);
     post.view_count = (post.view_count || 0) + 1;
 
-    res.json(post);
+    res.json({ success: true, data: post });
   } catch (error) {
     console.error('게시글 조회 오류:', error);
-    res.status(500).json({ message: '게시글 조회에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '게시글 조회에 실패했습니다.' });
   }
 });
 
@@ -102,7 +102,7 @@ router.post('/posts', authenticate, authorizeRole(['owner', 'employee']), valida
     const userRole = req.user.role;
 
     if (!title || !content) {
-      return res.status(400).json({ message: '제목과 내용을 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '제목과 내용을 입력해주세요.' });
     }
 
     // 카테고리는 사용자의 role에 따라 자동 설정
@@ -115,12 +115,13 @@ router.post('/posts', authenticate, authorizeRole(['owner', 'employee']), valida
     );
 
     res.status(201).json({
+      success: true,
       message: '게시글이 작성되었습니다.',
       postId: result.id
     });
   } catch (error) {
     console.error('게시글 작성 오류:', error);
-    res.status(500).json({ message: '게시글 작성에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '게시글 작성에 실패했습니다.' });
   }
 });
 
@@ -132,31 +133,31 @@ router.put('/posts/:id', authenticate, authorizeRole(['owner', 'employee']), asy
     const userId = req.user.id;
 
     if (!title || !content) {
-      return res.status(400).json({ message: '제목과 내용을 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '제목과 내용을 입력해주세요.' });
     }
 
     const post = await get('SELECT * FROM community_posts WHERE id = ?', [id]);
 
     if (!post) {
-      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '게시글을 찾을 수 없습니다.' });
     }
 
     // 작성자만 수정 가능
     if (post.user_id !== userId) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     await run(
-      `UPDATE community_posts 
+      `UPDATE community_posts
        SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [title, content, id]
     );
 
-    res.json({ message: '게시글이 수정되었습니다.' });
+    res.json({ success: true, message: '게시글이 수정되었습니다.' });
   } catch (error) {
     console.error('게시글 수정 오류:', error);
-    res.status(500).json({ message: '게시글 수정에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '게시글 수정에 실패했습니다.' });
   }
 });
 
@@ -170,20 +171,20 @@ router.delete('/posts/:id', authenticate, async (req, res) => {
     const post = await get('SELECT * FROM community_posts WHERE id = ?', [id]);
 
     if (!post) {
-      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '게시글을 찾을 수 없습니다.' });
     }
 
     // super_admin 또는 작성자만 삭제 가능
     if (userRole !== 'super_admin' && post.user_id !== userId) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     await run('DELETE FROM community_posts WHERE id = ?', [id]);
 
-    res.json({ message: '게시글이 삭제되었습니다.' });
+    res.json({ success: true, message: '게시글이 삭제되었습니다.' });
   } catch (error) {
     console.error('게시글 삭제 오류:', error);
-    res.status(500).json({ message: '게시글 삭제에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '게시글 삭제에 실패했습니다.' });
   }
 });
 
@@ -197,7 +198,7 @@ router.get('/posts/:postId/comments', authenticate, async (req, res) => {
     // 게시글 존재 확인
     const post = await get('SELECT * FROM community_posts WHERE id = ?', [postId]);
     if (!post) {
-      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '게시글을 찾을 수 없습니다.' });
     }
 
     // 댓글 목록 조회
@@ -210,10 +211,10 @@ router.get('/posts/:postId/comments', authenticate, async (req, res) => {
       [postId]
     );
 
-    res.json(comments);
+    res.json({ success: true, data: comments });
   } catch (error) {
     console.error('댓글 목록 조회 오류:', error);
-    res.status(500).json({ message: '댓글 목록 조회에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '댓글 목록 조회에 실패했습니다.' });
   }
 });
 
@@ -225,13 +226,13 @@ router.post('/posts/:postId/comments', authenticate, async (req, res) => {
     const userId = req.user.id;
 
     if (!content || !content.trim()) {
-      return res.status(400).json({ message: '댓글 내용을 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '댓글 내용을 입력해주세요.' });
     }
 
     // 게시글 존재 확인
     const post = await get('SELECT * FROM community_posts WHERE id = ?', [postId]);
     if (!post) {
-      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '게시글을 찾을 수 없습니다.' });
     }
 
     const result = await run(
@@ -241,12 +242,13 @@ router.post('/posts/:postId/comments', authenticate, async (req, res) => {
     );
 
     res.status(201).json({
+      success: true,
       message: '댓글이 작성되었습니다.',
       commentId: result.id
     });
   } catch (error) {
     console.error('댓글 작성 오류:', error);
-    res.status(500).json({ message: '댓글 작성에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '댓글 작성에 실패했습니다.' });
   }
 });
 
@@ -258,31 +260,31 @@ router.put('/comments/:id', authenticate, async (req, res) => {
     const userId = req.user.id;
 
     if (!content || !content.trim()) {
-      return res.status(400).json({ message: '댓글 내용을 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '댓글 내용을 입력해주세요.' });
     }
 
     const comment = await get('SELECT * FROM community_comments WHERE id = ?', [id]);
 
     if (!comment) {
-      return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '댓글을 찾을 수 없습니다.' });
     }
 
     // 작성자만 수정 가능
     if (comment.user_id !== userId) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     await run(
-      `UPDATE community_comments 
+      `UPDATE community_comments
        SET content = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [content.trim(), id]
     );
 
-    res.json({ message: '댓글이 수정되었습니다.' });
+    res.json({ success: true, message: '댓글이 수정되었습니다.' });
   } catch (error) {
     console.error('댓글 수정 오류:', error);
-    res.status(500).json({ message: '댓글 수정에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '댓글 수정에 실패했습니다.' });
   }
 });
 
@@ -296,20 +298,20 @@ router.delete('/comments/:id', authenticate, async (req, res) => {
     const comment = await get('SELECT * FROM community_comments WHERE id = ?', [id]);
 
     if (!comment) {
-      return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '댓글을 찾을 수 없습니다.' });
     }
 
     // super_admin 또는 작성자만 삭제 가능
     if (userRole !== 'super_admin' && comment.user_id !== userId) {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     await run('DELETE FROM community_comments WHERE id = ?', [id]);
 
-    res.json({ message: '댓글이 삭제되었습니다.' });
+    res.json({ success: true, message: '댓글이 삭제되었습니다.' });
   } catch (error) {
     console.error('댓글 삭제 오류:', error);
-    res.status(500).json({ message: '댓글 삭제에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '댓글 삭제에 실패했습니다.' });
   }
 });
 
@@ -324,7 +326,7 @@ router.post('/posts/:postId/like', authenticate, async (req, res) => {
     // 게시글 존재 확인
     const post = await get('SELECT * FROM community_posts WHERE id = ?', [postId]);
     if (!post) {
-      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '게시글을 찾을 수 없습니다.' });
     }
 
     // 이미 추천했는지 확인
@@ -338,7 +340,8 @@ router.post('/posts/:postId/like', authenticate, async (req, res) => {
       await run('DELETE FROM community_post_likes WHERE post_id = ? AND user_id = ?', [postId, userId]);
       await run('UPDATE community_posts SET like_count = like_count - 1 WHERE id = ?', [postId]);
       
-      res.json({ 
+      res.json({
+        success: true,
         message: '추천이 취소되었습니다.',
         liked: false,
         like_count: (post.like_count || 0) - 1
@@ -351,7 +354,8 @@ router.post('/posts/:postId/like', authenticate, async (req, res) => {
       );
       await run('UPDATE community_posts SET like_count = like_count + 1 WHERE id = ?', [postId]);
       
-      res.json({ 
+      res.json({
+        success: true,
         message: '추천했습니다.',
         liked: true,
         like_count: (post.like_count || 0) + 1
@@ -359,7 +363,7 @@ router.post('/posts/:postId/like', authenticate, async (req, res) => {
     }
   } catch (error) {
     console.error('게시글 추천 오류:', error);
-    res.status(500).json({ message: '추천 처리에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '추천 처리에 실패했습니다.' });
   }
 });
 
@@ -374,14 +378,14 @@ router.get('/posts/:postId/like-status', authenticate, async (req, res) => {
       [postId, userId]
     );
 
-    res.json({ liked: !!like });
+    res.json({ success: true, liked: !!like });
   } catch (error) {
     console.error('추천 상태 확인 오류:', error);
     // 테이블이 없는 경우 기본값 반환 (에러 대신)
     if (error.message && error.message.includes('no such table')) {
-      return res.json({ liked: false });
+      return res.json({ success: true, liked: false });
     }
-    res.json({ liked: false }); // 기본값 반환
+    res.json({ success: true, liked: false }); // 기본값 반환
   }
 });
 

@@ -177,6 +177,14 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
     const { status, year } = req.query;
     const targetYear = year || new Date().getFullYear();
 
+    // 사업장 소유권 확인: owner는 자신의 사업장만, super_admin은 모두 가능
+    if (req.user.role !== 'super_admin') {
+      const workplace = await get('SELECT id FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, req.user.id]);
+      if (!workplace) {
+        return res.status(403).json({ success: false, message: '해당 사업장에 대한 권한이 없습니다.' });
+      }
+    }
+
     let sql = `
       SELECT l.*, u.name as user_name
       FROM leaves l
@@ -287,6 +295,19 @@ router.get('/annual-summary/:userId', authenticate, async (req, res) => {
     const { userId } = req.params;
     const { year } = req.query;
     const targetYear = year || new Date().getFullYear();
+
+    // 권한 확인: 직원은 본인만, owner는 자기 사업장 직원만, super_admin은 모두 가능
+    if (req.user.role === 'employee') {
+      if (req.user.id !== parseInt(userId, 10)) {
+        return res.status(403).json({ success: false, message: '본인의 연차 현황만 조회할 수 있습니다.' });
+      }
+    } else if (req.user.role === 'owner') {
+      const targetUser = await get('SELECT workplace_id FROM users WHERE id = ?', [userId]);
+      const ownerWorkplace = await get('SELECT id FROM workplaces WHERE owner_id = ?', [req.user.id]);
+      if (!targetUser || !ownerWorkplace || targetUser.workplace_id !== ownerWorkplace.id) {
+        return res.status(403).json({ success: false, message: '해당 직원에 대한 권한이 없습니다.' });
+      }
+    }
 
     const empDetail = await get('SELECT hire_date FROM employee_details WHERE user_id = ?', [userId]);
     if (!empDetail || !empDetail.hire_date) {

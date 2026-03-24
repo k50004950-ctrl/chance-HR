@@ -21,9 +21,7 @@ export const useRatesManager = () => {
       setLoading(true);
       setError(null);
 
-      const response = await insuranceAPI.getRates(month || 
-        `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
-      );
+      const response = await insuranceAPI.getCurrent();
 
       setCurrentRates(response.data.data || response.data);
 
@@ -51,7 +49,7 @@ export const useRatesManager = () => {
       setLoading(true);
       setError(null);
 
-      const response = await insuranceAPI.getRatesHistory();
+      const response = await insuranceAPI.getAll();
       setRatesHistory(response.data.data || response.data);
 
       return {

@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { run, get, all } from '../config/database.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, authorizeRole } from '../middleware/auth.js';
 import { encryptSSN } from '../utils/crypto.js';
 import { loginLimiter, signupLimiter } from '../middleware/rateLimiter.js';
 
@@ -379,7 +379,7 @@ router.get('/companies/search', async (req, res) => {
 // ============================================
 // 4. 근로자 -> 회사 매칭 요청 (근무정보는 사업주가 승인 시 입력)
 // ============================================
-router.post('/employee/match-request', async (req, res) => {
+router.post('/employee/match-request', authenticate, async (req, res) => {
   const { 
     userId,     // 근로자 ID
     companyId   // 회사 ID
@@ -396,21 +396,34 @@ router.post('/employee/match-request', async (req, res) => {
 
     // 이미 같은 회사에 매칭 중이거나 재직중인지 확인
     const existing = await get(
-      `SELECT id, status FROM company_employee_relations 
-       WHERE company_id = ? AND user_id = ? AND status IN ('pending', 'active')`,
+      `SELECT id, status FROM company_employee_relations
+       WHERE company_id = ? AND user_id = ?`,
       [companyId, userId]
     );
 
     if (existing) {
       if (existing.status === 'pending') {
-        return res.status(400).json({ 
-          success: false, 
-          message: '이미 매칭 요청이 대기 중입니다.' 
+        return res.status(400).json({
+          success: false,
+          message: '이미 매칭 요청이 대기 중입니다.'
         });
-      } else {
-        return res.status(400).json({ 
-          success: false, 
-          message: '이미 해당 회사에 재직중입니다.' 
+      } else if (existing.status === 'active') {
+        return res.status(400).json({
+          success: false,
+          message: '이미 해당 회사에 재직중입니다.'
+        });
+      } else if (existing.status === 'resigned') {
+        // 퇴직 후 재입사 요청: 기존 레코드를 pending으로 재활성화
+        await run(
+          `UPDATE company_employee_relations
+           SET status = 'pending', start_date = CURRENT_DATE, end_date = NULL, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+          [existing.id]
+        );
+        console.log(`✅ 재입사 매칭 요청: user ${userId} -> company ${companyId} (기존 resigned → pending)`);
+        return res.json({
+          success: true,
+          message: '재입사 매칭 요청이 전송되었습니다. 사업주 승인을 기다려주세요.'
         });
       }
     }
@@ -444,7 +457,7 @@ router.post('/employee/match-request', async (req, res) => {
 // ============================================
 // 5. 사업주 -> 매칭 요청 목록 조회
 // ============================================
-router.get('/owner/match-requests/:companyId', async (req, res) => {
+router.get('/owner/match-requests/:companyId', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
   const { companyId } = req.params;
 
   try {
@@ -489,7 +502,7 @@ router.get('/owner/match-requests/:companyId', async (req, res) => {
 // ============================================
 // 6. 사업주 -> 매칭 요청 승인/거부
 // ============================================
-router.post('/owner/match-approve', async (req, res) => {
+router.post('/owner/match-approve', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
   const { relationId, approve } = req.body;
 
   try {
@@ -617,7 +630,7 @@ router.post('/owner/match-approve', async (req, res) => {
 // ============================================
 // 7. 퇴사 처리
 // ============================================
-router.post('/employee/resign', async (req, res) => {
+router.post('/employee/resign', authenticate, async (req, res) => {
   const { relationId, endDate } = req.body;
 
   try {
@@ -902,10 +915,9 @@ router.get('/owner/my-companies/:userId', authenticate, async (req, res) => {
     console.error('❌ 회사 정보 조회 오류:', error);
     console.error('❌ 에러 상세:', error.message);
     console.error('❌ 스택:', error.stack);
-    res.status(500).json({ 
-      success: false, 
-      message: '서버 오류가 발생했습니다.',
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
     });
   }
 });
@@ -914,7 +926,7 @@ router.get('/owner/my-companies/:userId', authenticate, async (req, res) => {
 // ============================================
 // 11. 사업주 -> 회사 직원 목록 조회
 // ============================================
-router.get('/owner/employees/:companyId', async (req, res) => {
+router.get('/owner/employees/:companyId', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
   const { companyId } = req.params;
 
   try {
@@ -959,7 +971,7 @@ router.get('/owner/employees/:companyId', async (req, res) => {
 // ============================================
 // 사업장 수동 생성 (사업주 전용)
 // ============================================
-router.post('/owner/create-workplace', async (req, res) => {
+router.post('/owner/create-workplace', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
   let { companyId, ownerId, name, address, phone, latitude, longitude, radius, business_number } = req.body;
 
   try {
@@ -1200,23 +1212,21 @@ router.get('/owner/invites/:workplaceId', async (req, res) => {
     
     // 테이블이 없는 경우
     if (error.message && error.message.includes('workplace_invitations')) {
-      return res.status(500).json({ 
-        success: false, 
-        message: 'V2 시스템 마이그레이션이 필요합니다. 관리자에게 문의하세요.',
-        error: error.message
+      return res.status(500).json({
+        success: false,
+        message: 'V2 시스템 마이그레이션이 필요합니다. 관리자에게 문의하세요.'
       });
     }
-    
-    res.status(500).json({ 
-      success: false, 
-      message: '초대 링크 목록 조회 중 오류가 발생했습니다.',
-      error: error.message
+
+    res.status(500).json({
+      success: false,
+      message: '초대 링크 목록 조회 중 오류가 발생했습니다.'
     });
   }
 });
 
 // 3. 초대 링크 비활성화 (사업주 전용)
-router.delete('/owner/invite/:token', async (req, res) => {
+router.delete('/owner/invite/:token', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
   const { token } = req.params;
 
   try {

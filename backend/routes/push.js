@@ -7,16 +7,16 @@ const router = express.Router();
 router.get('/public-key', (req, res) => {
   const publicKey = getVapidPublicKey();
   if (!publicKey) {
-    return res.status(503).json({ message: '웹 푸시가 설정되지 않았습니다.' });
+    return res.status(503).json({ success: false, message: '웹 푸시가 설정되지 않았습니다.' });
   }
-  res.json({ publicKey });
+  res.json({ success: true, publicKey });
 });
 
 router.post('/subscribe', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
   try {
     const { subscription, userAgent } = req.body;
     if (!subscription?.endpoint) {
-      return res.status(400).json({ message: '구독 정보가 필요합니다.' });
+      return res.status(400).json({ success: false, message: '구독 정보가 필요합니다.' });
     }
 
     await upsertSubscription({
@@ -26,10 +26,10 @@ router.post('/subscribe', authenticate, authorizeRole(['owner', 'admin', 'super_
       userAgent
     });
 
-    res.json({ message: '구독이 저장되었습니다.' });
+    res.json({ success: true, message: '구독이 저장되었습니다.' });
   } catch (error) {
     console.error('Push 구독 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -37,14 +37,14 @@ router.post('/unsubscribe', authenticate, authorizeRole(['owner', 'admin', 'supe
   try {
     const { endpoint } = req.body;
     if (!endpoint) {
-      return res.status(400).json({ message: 'endpoint가 필요합니다.' });
+      return res.status(400).json({ success: false, message: 'endpoint가 필요합니다.' });
     }
 
     await removeSubscription({ endpoint });
-    res.json({ message: '구독이 해제되었습니다.' });
+    res.json({ success: true, message: '구독이 해제되었습니다.' });
   } catch (error) {
     console.error('Push 구독 해제 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -56,10 +56,10 @@ router.post('/test', authenticate, authorizeRole(['owner', 'admin', 'super_admin
       url: `${process.env.FRONTEND_URL || ''}`
     });
 
-    res.json({ message: '테스트 알림을 전송했습니다.', result });
+    res.json({ success: true, message: '테스트 알림을 전송했습니다.', result });
   } catch (error) {
     console.error('Push 테스트 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 

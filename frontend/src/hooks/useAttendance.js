@@ -188,7 +188,7 @@ export const useAttendance = () => {
     const checkedOut = todayRecords.filter(r => r.check_out_time).length;
     const late = todayRecords.filter(r => {
       const status = getAttendanceStatus(r);
-      return status.includes('지각');
+      return status.type === 'late';
     }).length;
     const absent = activeEmployees.length - checkedIn;
 
@@ -211,11 +211,11 @@ export const useAttendance = () => {
     const totalDays = employeeRecords.length;
     const normalDays = employeeRecords.filter(r => {
       const status = getAttendanceStatus(r);
-      return status === '정상';
+      return status.type === 'completed';
     }).length;
     const lateDays = employeeRecords.filter(r => {
       const status = getAttendanceStatus(r);
-      return status.includes('지각');
+      return status.type === 'late';
     }).length;
     const absentDays = employeeRecords.filter(r => !r.check_in_time).length;
 

@@ -8,13 +8,13 @@ const router = express.Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     // 사업주의 사업장 ID 조회
     const workplace = await get('SELECT id FROM workplaces WHERE owner_id = ?', [req.user.id]);
     if (!workplace) {
-      return res.status(404).json({ message: '사업장을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '사업장을 찾을 수 없습니다.' });
     }
 
     const pastEmployees = await query(
@@ -22,10 +22,10 @@ router.get('/', authenticate, async (req, res) => {
       [workplace.id]
     );
 
-    res.json(pastEmployees);
+    res.json({ success: true, data: pastEmployees });
   } catch (error) {
     console.error('과거 직원 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -33,20 +33,20 @@ router.get('/', authenticate, async (req, res) => {
 router.post('/', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const { name, hire_date, resignation_date, average_monthly_salary, notes } = req.body;
 
     // 유효성 검사
     if (!name || !hire_date || !resignation_date || !average_monthly_salary) {
-      return res.status(400).json({ message: '필수 정보를 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '필수 정보를 입력해주세요.' });
     }
 
     // 사업주의 사업장 ID 조회
     const workplace = await get('SELECT id FROM workplaces WHERE owner_id = ?', [req.user.id]);
     if (!workplace) {
-      return res.status(404).json({ message: '사업장을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '사업장을 찾을 수 없습니다.' });
     }
 
     // 퇴직금 계산
@@ -69,6 +69,7 @@ router.post('/', authenticate, async (req, res) => {
     );
 
     res.status(201).json({
+      success: true,
       id: result.id,
       message: '과거 직원이 등록되었습니다.',
       severance_pay: severancePay,
@@ -76,7 +77,7 @@ router.post('/', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('과거 직원 등록 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
@@ -84,7 +85,7 @@ router.post('/', authenticate, async (req, res) => {
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     if (req.user.role !== 'owner') {
-      return res.status(403).json({ message: '권한이 없습니다.' });
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const pastEmployeeId = req.params.id;
@@ -92,7 +93,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     // 사업주의 사업장 ID 조회
     const workplace = await get('SELECT id FROM workplaces WHERE owner_id = ?', [req.user.id]);
     if (!workplace) {
-      return res.status(404).json({ message: '사업장을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '사업장을 찾을 수 없습니다.' });
     }
 
     // 해당 직원이 사업주의 사업장 소속인지 확인
@@ -102,15 +103,15 @@ router.delete('/:id', authenticate, async (req, res) => {
     );
 
     if (!pastEmployee) {
-      return res.status(404).json({ message: '과거 직원을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '과거 직원을 찾을 수 없습니다.' });
     }
 
     await run('DELETE FROM past_employees WHERE id = ?', [pastEmployeeId]);
 
-    res.json({ message: '과거 직원이 삭제되었습니다.' });
+    res.json({ success: true, message: '과거 직원이 삭제되었습니다.' });
   } catch (error) {
     console.error('과거 직원 삭제 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 

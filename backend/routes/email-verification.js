@@ -24,12 +24,12 @@ router.post('/send-code', async (req, res) => {
     const { email, purpose } = req.body; // purpose: 'signup', 'find-id', 'reset-password'
 
     if (!email) {
-      return res.status(400).json({ error: '이메일을 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '이메일을 입력해주세요.' });
     }
 
     // 이메일 형식 검증
     if (!isValidEmail(email)) {
-      return res.status(400).json({ error: '올바른 이메일 형식이 아닙니다.' });
+      return res.status(400).json({ success: false, message: '올바른 이메일 형식이 아닙니다.' });
     }
 
     const lowerEmail = email.toLowerCase().trim();
@@ -41,7 +41,7 @@ router.post('/send-code', async (req, res) => {
         [lowerEmail]
       );
       if (existingUser.length > 0) {
-        return res.status(400).json({ error: '이미 가입된 이메일입니다.' });
+        return res.status(400).json({ success: false, message: '이미 가입된 이메일입니다.' });
       }
     }
 
@@ -52,7 +52,7 @@ router.post('/send-code', async (req, res) => {
         [lowerEmail]
       );
       if (existingUser.length === 0) {
-        return res.status(404).json({ error: '가입되지 않은 이메일입니다.' });
+        return res.status(404).json({ success: false, message: '가입되지 않은 이메일입니다.' });
       }
     }
 
@@ -105,12 +105,12 @@ router.post('/send-code', async (req, res) => {
         });
       }
       
-      return res.status(500).json({ error: '이메일 전송에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+      return res.status(500).json({ success: false, message: '이메일 전송에 실패했습니다. 잠시 후 다시 시도해주세요.' });
     }
 
   } catch (error) {
     console.error('인증번호 전송 오류:', error);
-    res.status(500).json({ error: '인증번호 전송에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '인증번호 전송에 실패했습니다.' });
   }
 });
 
@@ -120,23 +120,23 @@ router.post('/verify-code', async (req, res) => {
     const { email, code } = req.body;
 
     if (!email || !code) {
-      return res.status(400).json({ error: '이메일과 인증번호를 입력해주세요.' });
+      return res.status(400).json({ success: false, message: '이메일과 인증번호를 입력해주세요.' });
     }
 
     const lowerEmail = email.toLowerCase().trim();
     const stored = verificationCodes.get(lowerEmail);
 
     if (!stored) {
-      return res.status(400).json({ error: '인증번호를 먼저 요청해주세요.' });
+      return res.status(400).json({ success: false, message: '인증번호를 먼저 요청해주세요.' });
     }
 
     if (Date.now() > stored.expiresAt) {
       verificationCodes.delete(lowerEmail);
-      return res.status(400).json({ error: '인증번호가 만료되었습니다. 다시 요청해주세요.' });
+      return res.status(400).json({ success: false, message: '인증번호가 만료되었습니다. 다시 요청해주세요.' });
     }
 
     if (stored.code !== code) {
-      return res.status(400).json({ error: '인증번호가 일치하지 않습니다.' });
+      return res.status(400).json({ success: false, message: '인증번호가 일치하지 않습니다.' });
     }
 
     // 인증 성공
@@ -152,7 +152,7 @@ router.post('/verify-code', async (req, res) => {
 
   } catch (error) {
     console.error('인증번호 확인 오류:', error);
-    res.status(500).json({ error: '인증 확인에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '인증 확인에 실패했습니다.' });
   }
 });
 
@@ -170,7 +170,7 @@ router.post('/check-verification', async (req, res) => {
     res.json({ verified: true });
   } catch (error) {
     console.error('인증 상태 확인 오류:', error);
-    res.status(500).json({ error: '인증 상태 확인에 실패했습니다.' });
+    res.status(500).json({ success: false, message: '인증 상태 확인에 실패했습니다.' });
   }
 });
 
@@ -182,7 +182,7 @@ router.post('/clear-verification', async (req, res) => {
     verificationCodes.delete(lowerEmail);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: '처리 실패' });
+    res.status(500).json({ success: false, message: '처리 실패' });
   }
 });
 

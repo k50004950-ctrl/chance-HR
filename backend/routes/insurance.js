@@ -28,18 +28,18 @@ router.get('/rates/current', authenticate, async (req, res) => {
       `, [currentYear]);
       
       if (!yearRates) {
-        return res.status(404).json({ 
-          message: '적용 가능한 보험 요율이 없습니다.' 
+        return res.status(404).json({
+          success: false, message: '적용 가능한 보험 요율이 없습니다.'
         });
       }
-      
-      return res.json(yearRates);
+
+      return res.json({ success: true, data: yearRates });
     }
 
-    res.json(rates);
+    res.json({ success: true, data: rates });
   } catch (error) {
     console.error('보험 요율 조회 오류:', error);
-    res.status(500).json({ message: '보험 요율 조회 중 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '보험 요율 조회 중 오류가 발생했습니다.' });
   }
 });
 
@@ -54,10 +54,10 @@ router.get('/rates/year/:year', authenticate, async (req, res) => {
       ORDER BY effective_from DESC
     `, [parseInt(year)]);
 
-    res.json(rates);
+    res.json({ success: true, data: rates });
   } catch (error) {
     console.error('연도별 보험 요율 조회 오류:', error);
-    res.status(500).json({ message: '보험 요율 조회 중 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '보험 요율 조회 중 오류가 발생했습니다.' });
   }
 });
 
@@ -69,10 +69,10 @@ router.get('/rates/all', authenticate, authorizeRole(['admin', 'super_admin']), 
       ORDER BY year DESC, effective_from DESC
     `);
 
-    res.json(allRates);
+    res.json({ success: true, data: allRates });
   } catch (error) {
     console.error('보험 요율 이력 조회 오류:', error);
-    res.status(500).json({ message: '보험 요율 조회 중 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '보험 요율 조회 중 오류가 발생했습니다.' });
   }
 });
 
@@ -97,8 +97,8 @@ router.post('/rates', authenticate, authorizeRole(['admin', 'super_admin']), asy
     // 필수 필드 검증
     if (!year || !national_pension_rate || !health_insurance_rate || 
         !long_term_care_rate || !employment_insurance_rate || !effective_from) {
-      return res.status(400).json({ 
-        message: '필수 항목을 모두 입력해주세요.' 
+      return res.status(400).json({
+        success: false, message: '필수 항목을 모두 입력해주세요.'
       });
     }
 
@@ -109,8 +109,8 @@ router.post('/rates', authenticate, authorizeRole(['admin', 'super_admin']), asy
     `, [year, effective_from]);
 
     if (existing) {
-      return res.status(400).json({ 
-        message: '해당 연도 및 적용일의 보험 요율이 이미 존재합니다.' 
+      return res.status(400).json({
+        success: false, message: '해당 연도 및 적용일의 보험 요율이 이미 존재합니다.'
       });
     }
 
@@ -137,13 +137,14 @@ router.post('/rates', authenticate, authorizeRole(['admin', 'super_admin']), asy
       notes || null
     ]);
 
-    res.status(201).json({ 
+    res.status(201).json({
+      success: true,
       message: '보험 요율이 등록되었습니다.',
-      id: result.id 
+      id: result.id
     });
   } catch (error) {
     console.error('보험 요율 생성 오류:', error);
-    res.status(500).json({ message: '보험 요율 생성 중 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '보험 요율 생성 중 오류가 발생했습니다.' });
   }
 });
 
@@ -169,7 +170,7 @@ router.put('/rates/:id', authenticate, authorizeRole(['admin', 'super_admin']), 
     // 요율 존재 확인
     const existing = await get('SELECT * FROM insurance_rates WHERE id = ?', [id]);
     if (!existing) {
-      return res.status(404).json({ message: '해당 보험 요율을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '해당 보험 요율을 찾을 수 없습니다.' });
     }
 
     // 요율 업데이트
@@ -205,10 +206,10 @@ router.put('/rates/:id', authenticate, authorizeRole(['admin', 'super_admin']), 
       id
     ]);
 
-    res.json({ message: '보험 요율이 수정되었습니다.' });
+    res.json({ success: true, message: '보험 요율이 수정되었습니다.' });
   } catch (error) {
     console.error('보험 요율 수정 오류:', error);
-    res.status(500).json({ message: '보험 요율 수정 중 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '보험 요율 수정 중 오류가 발생했습니다.' });
   }
 });
 
@@ -220,16 +221,16 @@ router.delete('/rates/:id', authenticate, authorizeRole(['admin', 'super_admin']
     // 요율 존재 확인
     const existing = await get('SELECT * FROM insurance_rates WHERE id = ?', [id]);
     if (!existing) {
-      return res.status(404).json({ message: '해당 보험 요율을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '해당 보험 요율을 찾을 수 없습니다.' });
     }
 
     // 요율 삭제
     await run('DELETE FROM insurance_rates WHERE id = ?', [id]);
 
-    res.json({ message: '보험 요율이 삭제되었습니다.' });
+    res.json({ success: true, message: '보험 요율이 삭제되었습니다.' });
   } catch (error) {
     console.error('보험 요율 삭제 오류:', error);
-    res.status(500).json({ message: '보험 요율 삭제 중 오류가 발생했습니다.' });
+    res.status(500).json({ success: false, message: '보험 요율 삭제 중 오류가 발생했습니다.' });
   }
 });
 

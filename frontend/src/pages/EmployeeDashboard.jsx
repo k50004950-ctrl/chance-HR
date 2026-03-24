@@ -62,6 +62,9 @@ const EmployeeDashboard = () => {
     // V1 직원만 동의 확인 (V2 근로자는 매칭 후에만)
     if (user.workplace_id) {
       checkConsent();
+    } else {
+      // V2 직원도 프로필(출퇴근 시간 등) 로드
+      loadEmployeeProfile();
     }
     loadTodayStatus();
     loadAttendanceRecords();
@@ -98,6 +101,20 @@ const EmployeeDashboard = () => {
     }
     setShowAnnouncementModal(false);
     setCurrentAnnouncement(null);
+  };
+
+  const loadEmployeeProfile = async () => {
+    try {
+      const response = await employeeAPI.getById(user.id);
+      const employee = response.data.data || response.data;
+      setEmployeeProfile(employee);
+      if (employee.work_days) {
+        setEmployeeWorkDays(employee.work_days.split(',').map(d => d.trim()).filter(Boolean));
+      }
+    } catch (error) {
+      // V2 직원이 아직 employees 테이블에 없을 수 있음
+      console.log('직원 프로필 로드 실패 (V2 미매칭 가능):', error.message);
+    }
   };
 
   const checkConsent = async () => {

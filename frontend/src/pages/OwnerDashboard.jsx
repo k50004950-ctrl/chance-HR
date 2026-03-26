@@ -3816,7 +3816,7 @@ const OwnerDashboard = () => {
 
             {/* 퇴직금 계산 */}
             {activeTab === 'manual-calc' && (
-              <ManualCalcTab formatCurrency={formatCurrency} isMobile={isMobile} selectedWorkplace={selectedWorkplace} />
+              <ManualCalcTab formatCurrency={formatCurrency} isMobile={isMobile} selectedWorkplace={selectedWorkplace} onEmployeeSaved={() => loadEmployees()} />
             )}
 
             {activeTab === 'severance' && (

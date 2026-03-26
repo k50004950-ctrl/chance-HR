@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { manualCalcAPI, insuranceAPI } from '../../services/api';
+import { manualCalcAPI, insuranceAPI, employeeAPI } from '../../services/api';
 
-const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace }) => {
+const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployeeSaved }) => {
   const [workers, setWorkers] = useState([createEmptyWorker()]);
   const [results, setResults] = useState(null);
   const [rates, setRates] = useState(null);
@@ -174,6 +174,29 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace }) => {
       setToast('삭제 실패');
       setTimeout(() => setToast(null), 2000);
     }
+  };
+
+  // 수기 직원을 정식 직원으로 DB 저장
+  const saveAsEmployee = async (r) => {
+    if (!r.name) {
+      setToast('이름을 입력해주세요');
+      setTimeout(() => setToast(null), 2000);
+      return;
+    }
+    try {
+      await employeeAPI.createManual({
+        name: r.name,
+        workplace_id: selectedWorkplace,
+        salary_type: r.salaryType,
+        amount: parseFloat(r.amount) || 0,
+        tax_type: r.taxType === '4대보험' ? 'full' : r.taxType === '프리랜서' ? 'freelancer' : 'none'
+      });
+      setToast(`${r.name} 님이 직원으로 등록되었습니다`);
+      if (onEmployeeSaved) onEmployeeSaved();
+    } catch (e) {
+      setToast(e.response?.data?.message || '직원 등록 실패');
+    }
+    setTimeout(() => setToast(null), 3000);
   };
 
   return (
@@ -379,11 +402,19 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace }) => {
               padding: '16px', marginBottom: '10px', background: '#f9fafb',
               borderRadius: '10px', border: '1px solid #e5e7eb'
             }}>
-              <div style={{ fontWeight: '700', color: '#1f2937', marginBottom: '10px', fontSize: '15px' }}>
-                {r.name || `직원 ${idx + 1}`}
-                <span style={{ fontWeight: '400', color: '#6b7280', fontSize: '13px', marginLeft: '8px' }}>
-                  ({r.salaryType === 'hourly' ? '시급' : r.salaryType === 'daily' ? '일급' : '월급'} {formatCurrency(parseFloat(r.amount) || 0)})
-                </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <div style={{ fontWeight: '700', color: '#1f2937', fontSize: '15px' }}>
+                  {r.name || `직원 ${idx + 1}`}
+                  <span style={{ fontWeight: '400', color: '#6b7280', fontSize: '13px', marginLeft: '8px' }}>
+                    ({r.salaryType === 'hourly' ? '시급' : r.salaryType === 'daily' ? '일급' : '월급'} {formatCurrency(parseFloat(r.amount) || 0)})
+                  </span>
+                </div>
+                <button onClick={() => saveAsEmployee(r)} style={{
+                  padding: '5px 10px', background: '#667eea', color: '#fff',
+                  border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap'
+                }}>
+                  👤 직원으로 저장
+                </button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '8px', fontSize: '13px' }}>
                 <div><span style={{ color: '#6b7280' }}>월 지급액</span><br /><strong>{formatCurrency(r.monthlyPay)}</strong></div>

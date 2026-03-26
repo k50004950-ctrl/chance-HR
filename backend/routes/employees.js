@@ -99,9 +99,11 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
 
 // 직원 상세정보 조회
 router.get('/:id', authenticate, async (req, res) => {
+  // 숫자가 아닌 경로는 다른 라우트로 넘김 (excel-template 등)
+  if (isNaN(req.params.id)) return res.status(400).json({ success: false, message: '유효하지 않은 직원 ID입니다.' });
   try {
     const employee = await get(`
-      SELECT 
+      SELECT
         u.id, u.username, u.name, u.phone, u.email, u.ssn, u.address,
         u.emergency_contact, u.emergency_phone, u.workplace_id, u.employment_status,
         ed.hire_date, ed.gender, ed.birth_date, ed.career, ed.job_type,

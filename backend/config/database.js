@@ -919,7 +919,7 @@ export const initDatabase = async () => {
         )
       `);
 
-      await client.query(`
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS manual_calculations (
           id SERIAL PRIMARY KEY,
           owner_id INTEGER NOT NULL REFERENCES users(id),

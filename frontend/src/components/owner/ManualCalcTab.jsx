@@ -10,8 +10,7 @@ const ManualCalcTab = ({ formatCurrency, isMobile }) => {
       name: '',
       salaryType: 'hourly',
       amount: '',
-      hoursPerDay: '8',
-      daysPerMonth: '22',
+      totalHours: '',
       overtimeHours: '0',
       taxType: '4대보험',
       dependents: 1
@@ -34,13 +33,13 @@ const ManualCalcTab = ({ formatCurrency, isMobile }) => {
   const calculate = useCallback(() => {
     const calculated = workers.map(w => {
       const amount = parseFloat(w.amount) || 0;
-      const hours = parseFloat(w.hoursPerDay) || 8;
+      const totalHours = parseFloat(w.totalHours) || 0;
       const days = parseFloat(w.daysPerMonth) || 22;
       const overtime = parseFloat(w.overtimeHours) || 0;
 
       let monthlyPay = 0;
       if (w.salaryType === 'hourly') {
-        monthlyPay = amount * hours * days;
+        monthlyPay = amount * totalHours;
         if (overtime > 0) monthlyPay += amount * 1.5 * overtime;
       } else if (w.salaryType === 'daily') {
         monthlyPay = amount * days;
@@ -152,27 +151,35 @@ const ManualCalcTab = ({ formatCurrency, isMobile }) => {
               </div>
             </div>
 
-            {w.salaryType !== 'monthly' && (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
-                {w.salaryType === 'hourly' && (
-                  <div>
-                    <label style={labelStyle}>일 근무시간</label>
-                    <input type="number" value={w.hoursPerDay} onChange={e => updateWorker(w.id, 'hoursPerDay', e.target.value)}
-                      style={inputStyle} />
-                  </div>
-                )}
+            {w.salaryType === 'hourly' && (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                <div>
+                  <label style={labelStyle}>총 근무시간</label>
+                  <input type="number" value={w.totalHours} onChange={e => updateWorker(w.id, 'totalHours', e.target.value)}
+                    placeholder="176" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>연장근로(시간)</label>
+                  <input type="number" value={w.overtimeHours} onChange={e => updateWorker(w.id, 'overtimeHours', e.target.value)}
+                    placeholder="0" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>세금 유형</label>
+                  <select value={w.taxType} onChange={e => updateWorker(w.id, 'taxType', e.target.value)} style={inputStyle}>
+                    <option value="4대보험">4대보험</option>
+                    <option value="프리랜서">프리랜서 (3.3%)</option>
+                    <option value="없음">세금 없음</option>
+                  </select>
+                </div>
+              </div>
+            )}
+            {w.salaryType === 'daily' && (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr', gap: '10px', marginTop: '10px' }}>
                 <div>
                   <label style={labelStyle}>월 근무일수</label>
                   <input type="number" value={w.daysPerMonth} onChange={e => updateWorker(w.id, 'daysPerMonth', e.target.value)}
                     style={inputStyle} />
                 </div>
-                {w.salaryType === 'hourly' && (
-                  <div>
-                    <label style={labelStyle}>월 연장근로(시간)</label>
-                    <input type="number" value={w.overtimeHours} onChange={e => updateWorker(w.id, 'overtimeHours', e.target.value)}
-                      style={inputStyle} />
-                  </div>
-                )}
                 <div>
                   <label style={labelStyle}>세금 유형</label>
                   <select value={w.taxType} onChange={e => updateWorker(w.id, 'taxType', e.target.value)} style={inputStyle}>

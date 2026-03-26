@@ -901,6 +901,30 @@ const EmployeeDashboard = () => {
                  activeTab === 'employer' ? '사업주 정보' : '소통방'}
               </h2>
             </div>
+            <button
+              onClick={async () => {
+                try {
+                  const { subscribeToPush, isSubscribed, unsubscribeFromPush } = await import('../utils/pushNotification');
+                  const subscribed = await isSubscribed();
+                  if (subscribed) {
+                    await unsubscribeFromPush();
+                    setMessage({ type: 'success', text: '푸시 알림이 해제되었습니다.' });
+                  } else {
+                    await subscribeToPush();
+                    setMessage({ type: 'success', text: '푸시 알림이 설정되었습니다!' });
+                  }
+                } catch (e) {
+                  setMessage({ type: 'error', text: e.message || '알림 설정 실패' });
+                }
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px',
+                fontSize: '20px', cursor: 'pointer', padding: '6px 10px', lineHeight: 1, flexShrink: 0
+              }}
+              title="푸시 알림 설정"
+            >
+              🔔
+            </button>
           </div>
         </div>
       ) : (
@@ -927,6 +951,29 @@ const EmployeeDashboard = () => {
                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 📄 재직증명서 발급
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const { subscribeToPush, isSubscribed, unsubscribeFromPush } = await import('../utils/pushNotification');
+                    const subscribed = await isSubscribed();
+                    if (subscribed) {
+                      await unsubscribeFromPush();
+                      setMessage({ type: 'success', text: '푸시 알림이 해제되었습니다.' });
+                    } else {
+                      await subscribeToPush();
+                      setMessage({ type: 'success', text: '푸시 알림이 설정되었습니다!' });
+                    }
+                  } catch (e) {
+                    setMessage({ type: 'error', text: e.message || '알림 설정 실패' });
+                  }
+                }}
+                style={{
+                  background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', padding: '4px'
+                }}
+                title="푸시 알림 설정"
+              >
+                🔔
               </button>
             </div>
           </div>

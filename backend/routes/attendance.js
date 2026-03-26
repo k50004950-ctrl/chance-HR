@@ -6,7 +6,7 @@ import { isWithinWorkplace } from '../utils/location.js';
 import { validateCheckIn } from '../middleware/validate.js';
 import { logAudit } from '../utils/auditLog.js';
 import { notifyAttendance } from '../services/kakaoTalk.js';
-import { sendPushToUser } from '../services/webPush.js';
+import { sendPushToUser, sendPushToOwner } from '../services/webPush.js';
 
 const router = express.Router();
 
@@ -107,15 +107,12 @@ router.post('/check-in', authenticate, validateCheckIn, async (req, res) => {
       console.error('카카오 출근 알림 실패:', error);
     });
 
-    if (workplace?.owner_id) {
-      sendPushToUser(workplace.owner_id, {
-        title: '출근 체크',
-        body: `${req.user.name}님이 출근했습니다.`,
-        url: `${process.env.FRONTEND_URL || ''}`
-      }).catch((error) => {
-        console.error('Push 출근 알림 실패:', error);
-      });
-    }
+    // 사업주에게 출근 알림 (non-blocking)
+    sendPushToOwner(workplaceId, {
+      title: '출근 알림',
+      body: `${req.user.name} 님이 출근했습니다.`,
+      url: '/#/owner'
+    }).catch(() => {});
 
     res.json({
       success: true,
@@ -264,15 +261,12 @@ router.post('/check-out', authenticate, async (req, res) => {
       console.error('카카오 퇴근 알림 실패:', error);
     });
 
-    if (workplace?.owner_id) {
-      sendPushToUser(workplace.owner_id, {
-        title: '퇴근 체크',
-        body: `${req.user.name}님이 퇴근했습니다.`,
-        url: `${process.env.FRONTEND_URL || ''}`
-      }).catch((error) => {
-        console.error('Push 퇴근 알림 실패:', error);
-      });
-    }
+    // 사업주에게 퇴근 알림 (non-blocking)
+    sendPushToOwner(workplaceId, {
+      title: '퇴근 알림',
+      body: `${req.user.name} 님이 퇴근했습니다.`,
+      url: '/#/owner'
+    }).catch(() => {});
 
     res.json({
       success: true,
@@ -358,15 +352,12 @@ router.post('/qr/check', authenticate, async (req, res) => {
         console.error('카카오 출근 알림 실패:', error);
       });
 
-    if (workplace?.owner_id) {
-      sendPushToUser(workplace.owner_id, {
-        title: 'QR 출근 체크',
-        body: `${req.user.name}님이 QR로 출근했습니다.`,
-        url: `${process.env.FRONTEND_URL || ''}`
-      }).catch((error) => {
-        console.error('Push QR 출근 알림 실패:', error);
-      });
-    }
+    // 사업주에게 QR 출근 알림 (non-blocking)
+    sendPushToOwner(workplaceId, {
+      title: '출근 알림',
+      body: `${req.user.name} 님이 QR로 출근했습니다.`,
+      url: '/#/owner'
+    }).catch(() => {});
 
       return res.json({ success: true, message: 'QR 출근이 기록되었습니다.', checkInTime: now });
     }
@@ -398,15 +389,12 @@ router.post('/qr/check', authenticate, async (req, res) => {
       console.error('카카오 퇴근 알림 실패:', error);
     });
 
-    if (workplace?.owner_id) {
-      sendPushToUser(workplace.owner_id, {
-        title: 'QR 퇴근 체크',
-        body: `${req.user.name}님이 QR로 퇴근했습니다.`,
-        url: `${process.env.FRONTEND_URL || ''}`
-      }).catch((error) => {
-        console.error('Push QR 퇴근 알림 실패:', error);
-      });
-    }
+    // 사업주에게 QR 퇴근 알림 (non-blocking)
+    sendPushToOwner(workplaceId, {
+      title: '퇴근 알림',
+      body: `${req.user.name} 님이 QR로 퇴근했습니다.`,
+      url: '/#/owner'
+    }).catch(() => {});
 
     res.json({
       success: true,

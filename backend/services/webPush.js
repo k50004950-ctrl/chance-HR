@@ -88,3 +88,52 @@ export const sendPushToUser = async (userId, payload) => {
     return { sent: 0 };
   }
 };
+
+export const sendPushToWorkplace = async (workplaceId, payload, excludeUserId = null) => {
+  if (!isConfigured()) return { skipped: true, reason: 'vapid-not-configured' };
+
+  try {
+    let sql = 'SELECT * FROM push_subscriptions WHERE workplace_id = ?';
+    const params = [workplaceId];
+
+    if (excludeUserId) {
+      sql += ' AND user_id != ?';
+      params.push(excludeUserId);
+    }
+
+    const subscriptions = await query(sql, params);
+    if (!subscriptions || subscriptions.length === 0) return { sent: 0 };
+
+    const results = await Promise.allSettled(
+      subscriptions.map(async (row) => {
+        try {
+          const subscription = JSON.parse(row.subscription);
+          await webpush.sendNotification(subscription, JSON.stringify(payload));
+          return { ok: true };
+        } catch (error) {
+          if (error?.statusCode === 404 || error?.statusCode === 410) {
+            await removeSubscriptionByEndpoint(row.endpoint);
+          }
+          return { ok: false };
+        }
+      })
+    );
+
+    return { sent: results.filter(r => r.status === 'fulfilled' && r.value?.ok).length };
+  } catch (error) {
+    console.error('Workplace push 오류:', error);
+    return { sent: 0 };
+  }
+};
+
+export const sendPushToOwner = async (workplaceId, payload) => {
+  if (!isConfigured()) return { skipped: true };
+  try {
+    const workplace = await get('SELECT owner_id FROM workplaces WHERE id = ?', [workplaceId]);
+    if (!workplace) return { sent: 0 };
+    return sendPushToUser(workplace.owner_id, payload);
+  } catch (error) {
+    console.error('Owner push 오류:', error);
+    return { sent: 0 };
+  }
+};

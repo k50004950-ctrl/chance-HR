@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate, authorizeRole } from '../middleware/auth.js';
+import { authenticate } from '../middleware/auth.js';
 import { getVapidPublicKey, upsertSubscription, removeSubscription, sendPushToUser } from '../services/webPush.js';
 
 const router = express.Router();
@@ -12,7 +12,7 @@ router.get('/public-key', (req, res) => {
   res.json({ success: true, publicKey });
 });
 
-router.post('/subscribe', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
+router.post('/subscribe', authenticate, async (req, res) => {
   try {
     const { subscription, userAgent } = req.body;
     if (!subscription?.endpoint) {
@@ -33,7 +33,7 @@ router.post('/subscribe', authenticate, authorizeRole(['owner', 'admin', 'super_
   }
 });
 
-router.post('/unsubscribe', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
+router.post('/unsubscribe', authenticate, async (req, res) => {
   try {
     const { endpoint } = req.body;
     if (!endpoint) {

@@ -1,6 +1,7 @@
 import express from 'express';
 import { query, run, get } from '../config/database.js';
 import { authenticate, authorizeRole } from '../middleware/auth.js';
+import { sendPushToOwner, sendPushToUser } from '../services/webPush.js';
 
 const router = express.Router();
 
@@ -101,6 +102,13 @@ router.post('/', authenticate, async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
       [userId, workplaceId, leave_type, start_date, end_date, days, reason || null]
     );
+
+    // 사업주에게 휴가 신청 알림 (non-blocking)
+    sendPushToOwner(workplaceId, {
+      title: '휴가 신청',
+      body: `${req.user.name} 님이 ${leave_type === 'annual' ? '연차' : '휴가'}를 신청했습니다. (${start_date}~${end_date})`,
+      url: '/#/owner'
+    }).catch(() => {});
 
     res.status(201).json({
       success: true,
@@ -241,6 +249,13 @@ router.put('/:id/approve', authenticate, authorizeRole(['owner', 'admin', 'super
       `UPDATE leaves SET status = ?, approved_by = ?, approved_at = CURRENT_TIMESTAMP WHERE id = ?`,
       [status, req.user.id, id]
     );
+
+    // 직원에게 휴가 승인/반려 알림 (non-blocking)
+    sendPushToUser(leave.user_id, {
+      title: status === 'approved' ? '휴가 승인' : '휴가 반려',
+      body: status === 'approved' ? '휴가가 승인되었습니다.' : '휴가가 반려되었습니다.',
+      url: '/#/employee'
+    }).catch(() => {});
 
     const statusText = status === 'approved' ? '승인' : '거부';
     res.json({

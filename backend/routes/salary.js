@@ -1,6 +1,7 @@
 import express from 'express';
 import { query, get, run } from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
+import { sendPushToUser } from '../services/webPush.js';
 import { logAudit } from '../utils/auditLog.js';
 import { generatePayslipPDF } from '../utils/pdfGenerator.js';
 import { sendPayslipEmail, sendBulkPayslipEmails } from '../utils/emailSender.js';
@@ -1336,6 +1337,13 @@ router.put('/slips/:id/publish', authenticate, async (req, res) => {
     }
 
     await run('UPDATE salary_slips SET published = ? WHERE id = ?', [true, id]);
+
+    // 직원에게 급여명세서 알림 (non-blocking)
+    sendPushToUser(slip.user_id, {
+      title: '급여명세서 안내',
+      body: `${slip.payroll_month} 급여명세서가 등록되었습니다.`,
+      url: '/#/employee'
+    }).catch(() => {});
 
     res.json({ success: true, message: '급여명세서가 배포되었습니다.' });
   } catch (error) {

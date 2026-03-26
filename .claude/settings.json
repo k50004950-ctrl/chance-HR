@@ -68,7 +68,9 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTAxLCJ1c2VybmFtZSI6InNrYW44MjQwIiwibmFtZSI6IuydtOyEuO2YgSIsInJvbGUiOiJvd25lciIsIndvcmtwbGFjZV9pZCI6MjksImlhdCI6MTc3MzcxMjExOSwiZXhwIjoxNzc0MzE2OTE5fQ.XbdILYYwIDDLtr9RvM3Wl_Z0vBgxvTSqBUCrrHQhYgc\" BASE=\"https://charming-creation-production.up.railway.app/api\" __NEW_LINE_c02f5d888b526f26__ echo \"=== 사업주의 users.phone 확인 ===\" curl -s \"$BASE/employees/101\" -H \"Authorization: Bearer $TOKEN\")",
       "Bash(python3 -c \":*)",
       "Bash(/dev/null __NEW_LINE_c02f5d888b526f26__ echo -e '\\\\n=== 직접 핸드폰번호 검색 ===' curl -s \"$BASE/v2/auth/companies/search?business_number=8131102832&owner_phone=00000000000\")",
-      "Bash(curl -s \"https://charming-creation-production.up.railway.app/api/v2/auth/companies/search?business_number=8131102832&owner_phone=01068948240\")"
+      "Bash(curl -s \"https://charming-creation-production.up.railway.app/api/v2/auth/companies/search?business_number=8131102832&owner_phone=01068948240\")",
+      "Bash(node --check routes/push.js)",
+      "Bash(node --check services/webPush.js)"
     ]
   }
 }

@@ -38,6 +38,7 @@ import SalarySlipsTab from '../components/owner/SalarySlipsTab';
 import SettingsTab from '../components/owner/SettingsTab';
 import CommunityTab from '../components/owner/CommunityTab';
 import DashboardCharts from '../components/owner/DashboardCharts';
+import ManualCalcTab from '../components/owner/ManualCalcTab';
 
 const OwnerDashboard = () => {
   const { user, logout } = useAuth();
@@ -2547,6 +2548,9 @@ const OwnerDashboard = () => {
                 <button className={`erp-nav-item ${activeTab === 'severance' ? 'active' : ''}`} onClick={() => setActiveTab('severance')}>
                   <span className="erp-nav-icon">🧮</span> 퇴직금 계산
                 </button>
+                <button className={`erp-nav-item ${activeTab === 'manual-calc' ? 'active' : ''}`} onClick={() => setActiveTab('manual-calc')}>
+                  <span className="erp-nav-icon">✏️</span> 수기 급여계산
+                </button>
               </div>
               <div className="erp-sidebar-section">
                 <div className="erp-sidebar-section-label">인사</div>
@@ -2640,6 +2644,7 @@ const OwnerDashboard = () => {
                    activeTab === 'salary-slips' ? '급여명세서' :
                    activeTab === 'calendar' ? '출근 달력' :
                    activeTab === 'severance' ? '퇴직금 계산' :
+                   activeTab === 'manual-calc' ? '수기 급여계산' :
                    activeTab === 'past-employees' ? '서류 보관함' :
                    activeTab === 'matching' ? '매칭 요청' :
                    activeTab === 'community' ? '소통방' :
@@ -3810,6 +3815,10 @@ const OwnerDashboard = () => {
             )}
 
             {/* 퇴직금 계산 */}
+            {activeTab === 'manual-calc' && (
+              <ManualCalcTab formatCurrency={formatCurrency} isMobile={isMobile} />
+            )}
+
             {activeTab === 'severance' && (
               <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -6995,6 +7004,7 @@ const OwnerDashboard = () => {
                 { tab: 'calendar', icon: '📅', label: '출근 달력' },
                 { tab: 'salary-slips', icon: '📄', label: '급여명세서' },
                 { tab: 'severance', icon: '🧮', label: '퇴직금 계산' },
+                { tab: 'manual-calc', icon: '✏️', label: '수기 급여계산' },
                 { tab: 'past-employees', icon: '📁', label: '서류 보관함' },
                 ...(ownerCompanyId ? [{ tab: 'matching', icon: '🔔', label: '매칭 승인' }] : []),
                 { tab: 'settings', icon: '⚙️', label: '설정' },

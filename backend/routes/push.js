@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, authorizeRole } from '../middleware/auth.js';
 import { getVapidPublicKey, upsertSubscription, removeSubscription, sendPushToUser } from '../services/webPush.js';
 
 const router = express.Router();

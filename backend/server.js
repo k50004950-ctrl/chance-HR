@@ -37,6 +37,7 @@ import accountRecoveryRoutes from './routes/account-recovery.js';
 import notificationsRoutes from './routes/notifications.js';
 import auditLogRoutes from './routes/auditLog.js';
 import leavesRoutes from './routes/leaves.js';
+import manualCalcRoutes from './routes/manualCalc.js';
 import { startPaydayScheduler } from './services/payrollSchedule.js';
 import { startAttendanceScheduler } from './services/attendanceScheduler.js';
 import jwt from 'jsonwebtoken';
@@ -151,6 +152,7 @@ app.use('/api/account', cors(corsOptions), accountRecoveryRoutes);
 app.use('/api/notifications', cors(corsOptions), notificationsRoutes);
 app.use('/api/audit-logs', cors(corsOptions), auditLogRoutes);
 app.use('/api/leaves', cors(corsOptions), leavesRoutes);
+app.use('/api/manual-calc', cors(corsOptions), manualCalcRoutes);
 
 // ratesMaster 라우트 - 상세 로깅
 console.log('🔧 Importing ratesMaster routes from:', './routes/ratesMaster.js');

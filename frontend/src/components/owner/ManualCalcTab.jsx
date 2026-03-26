@@ -1,8 +1,14 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { manualCalcAPI, insuranceAPI } from '../../services/api';
 
-const ManualCalcTab = ({ formatCurrency, isMobile }) => {
+const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace }) => {
   const [workers, setWorkers] = useState([createEmptyWorker()]);
   const [results, setResults] = useState(null);
+  const [rates, setRates] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [toast, setToast] = useState(null);
 
   function createEmptyWorker() {
     return {
@@ -11,11 +17,36 @@ const ManualCalcTab = ({ formatCurrency, isMobile }) => {
       salaryType: 'hourly',
       amount: '',
       totalHours: '',
+      daysPerMonth: '22',
       overtimeHours: '0',
       taxType: '4대보험',
-      dependents: 1
     };
   }
+
+  // DB에서 최신 보험 요율 로드
+  useEffect(() => {
+    loadRates();
+    loadHistory();
+  }, []);
+
+  const loadRates = async () => {
+    try {
+      const res = await insuranceAPI.getCurrent();
+      const data = res.data.data || res.data;
+      if (data) setRates(data);
+    } catch (e) {
+      console.log('요율 로드 실패, 기본값 사용');
+    }
+  };
+
+  const loadHistory = async () => {
+    try {
+      const res = await manualCalcAPI.getList();
+      setHistory(res.data.data || res.data || []);
+    } catch (e) {
+      console.log('이력 로드 실패');
+    }
+  };
 
   const addWorker = () => setWorkers(prev => [...prev, createEmptyWorker()]);
 
@@ -30,7 +61,19 @@ const ManualCalcTab = ({ formatCurrency, isMobile }) => {
     if (results) setResults(null);
   };
 
+  // 요율 가져오기 (DB 우선, 없으면 기본값)
+  const getRate = (key, fallback) => {
+    if (!rates) return fallback;
+    const val = parseFloat(rates[key]);
+    return isNaN(val) ? fallback : val / 100; // DB는 % 단위 (예: 4.5 → 0.045)
+  };
+
   const calculate = useCallback(() => {
+    const npsRate = getRate('national_pension_rate', 0.045);
+    const nhisRate = getRate('health_insurance_rate', 0.03545);
+    const ltciRate = getRate('long_term_care_rate', 0.1295);
+    const eiRate = getRate('employment_insurance_rate', 0.009);
+
     const calculated = workers.map(w => {
       const amount = parseFloat(w.amount) || 0;
       const totalHours = parseFloat(w.totalHours) || 0;
@@ -47,17 +90,15 @@ const ManualCalcTab = ({ formatCurrency, isMobile }) => {
         monthlyPay = amount;
       }
 
-      // 4대보험 계산
       let nationalPension = 0, healthInsurance = 0, longTermCare = 0, employmentInsurance = 0;
       let incomeTax = 0, localIncomeTax = 0;
 
       if (w.taxType === '4대보험') {
-        nationalPension = Math.round(monthlyPay * 0.045);
-        healthInsurance = Math.round(monthlyPay * 0.03545);
-        longTermCare = Math.round(healthInsurance * 0.1295);
-        employmentInsurance = Math.round(monthlyPay * 0.009);
+        nationalPension = Math.round(monthlyPay * npsRate);
+        healthInsurance = Math.round(monthlyPay * nhisRate);
+        longTermCare = Math.round(healthInsurance * ltciRate);
+        employmentInsurance = Math.round(monthlyPay * eiRate);
 
-        // 간이세액 추정 (간략화)
         const taxBase = monthlyPay - nationalPension - healthInsurance - longTermCare - employmentInsurance;
         if (taxBase > 1500000) {
           incomeTax = Math.round((taxBase - 1500000) * 0.06 + (Math.min(taxBase, 1500000) - 1060000) * 0.06);
@@ -73,43 +114,134 @@ const ManualCalcTab = ({ formatCurrency, isMobile }) => {
       const netPay = monthlyPay - totalDeductions;
 
       return {
-        ...w,
-        monthlyPay,
-        nationalPension,
-        healthInsurance,
-        longTermCare,
-        employmentInsurance,
-        incomeTax,
-        localIncomeTax,
-        totalDeductions,
-        netPay
+        ...w, monthlyPay, nationalPension, healthInsurance, longTermCare,
+        employmentInsurance, incomeTax, localIncomeTax, totalDeductions, netPay
       };
     });
 
     setResults(calculated);
-  }, [workers]);
+  }, [workers, rates]);
 
   const totalGross = results ? results.reduce((s, r) => s + r.monthlyPay, 0) : 0;
   const totalNet = results ? results.reduce((s, r) => s + r.netPay, 0) : 0;
-  const totalDeductions = results ? results.reduce((s, r) => s + r.totalDeductions, 0) : 0;
+  const totalDed = results ? results.reduce((s, r) => s + r.totalDeductions, 0) : 0;
+
+  // 서버에 저장
+  const saveToServer = async () => {
+    if (!results) return;
+    setSaving(true);
+    try {
+      await manualCalcAPI.save({
+        workplace_id: selectedWorkplace,
+        workers, results,
+        total_gross: totalGross,
+        total_deductions: totalDed,
+        total_net: totalNet
+      });
+      setToast('저장되었습니다');
+      loadHistory();
+    } catch (e) {
+      setToast('저장 실패');
+    } finally {
+      setSaving(false);
+      setTimeout(() => setToast(null), 2000);
+    }
+  };
+
+  // 이력 불러오기
+  const loadFromHistory = async (id) => {
+    try {
+      const res = await manualCalcAPI.getById(id);
+      const data = res.data.data || res.data;
+      if (data) {
+        const w = typeof data.workers === 'string' ? JSON.parse(data.workers) : data.workers;
+        const r = typeof data.results === 'string' ? JSON.parse(data.results) : data.results;
+        setWorkers(w);
+        setResults(r);
+        setShowHistory(false);
+      }
+    } catch (e) {
+      setToast('불러오기 실패');
+      setTimeout(() => setToast(null), 2000);
+    }
+  };
+
+  const deleteFromHistory = async (id) => {
+    try {
+      await manualCalcAPI.delete(id);
+      loadHistory();
+    } catch (e) {
+      setToast('삭제 실패');
+      setTimeout(() => setToast(null), 2000);
+    }
+  };
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+      {/* 토스트 */}
+      {toast && (
+        <div style={{
+          position: 'fixed', top: '20px', right: '20px', zIndex: 9999,
+          padding: '12px 20px', background: '#1f2937', color: '#fff',
+          borderRadius: '8px', fontSize: '14px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+        }}>{toast}</div>
+      )}
+
       <div className="card" style={{ padding: '24px', marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div>
             <h3 style={{ margin: 0, color: '#1f2937', fontSize: '18px' }}>✏️ 수기 급여계산</h3>
             <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: '13px' }}>
               직원 등록 없이 빠르게 급여를 계산합니다
+              {rates && <span style={{ color: '#3b82f6' }}> (DB 요율 적용중)</span>}
             </p>
           </div>
-          <button onClick={addWorker} style={{
-            padding: '8px 16px', background: '#3b82f6', color: '#fff',
-            border: 'none', borderRadius: '8px', fontSize: '13px', cursor: 'pointer'
-          }}>
-            + 직원 추가
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => setShowHistory(!showHistory)} style={{
+              padding: '8px 12px', background: showHistory ? '#4b5563' : '#f3f4f6',
+              color: showHistory ? '#fff' : '#374151',
+              border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', cursor: 'pointer'
+            }}>
+              📋 이력 {history.length > 0 && `(${history.length})`}
+            </button>
+            <button onClick={addWorker} style={{
+              padding: '8px 16px', background: '#3b82f6', color: '#fff',
+              border: 'none', borderRadius: '8px', fontSize: '13px', cursor: 'pointer'
+            }}>
+              + 직원 추가
+            </button>
+          </div>
         </div>
+
+        {/* 이력 패널 */}
+        {showHistory && (
+          <div style={{ marginBottom: '16px', padding: '12px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+            <h4 style={{ margin: '0 0 8px', fontSize: '14px', color: '#374151' }}>저장된 계산 이력</h4>
+            {history.length === 0 ? (
+              <p style={{ color: '#9ca3af', fontSize: '13px', margin: 0 }}>저장된 이력이 없습니다</p>
+            ) : (
+              history.map(h => (
+                <div key={h.id} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '8px 0', borderBottom: '1px solid #e5e7eb'
+                }}>
+                  <div style={{ cursor: 'pointer', flex: 1 }} onClick={() => loadFromHistory(h.id)}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>
+                      {h.title}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                      지급 {formatCurrency(h.total_gross)} → 실수령 {formatCurrency(h.total_net)}
+                      <span style={{ marginLeft: '8px' }}>{new Date(h.created_at).toLocaleDateString('ko-KR')}</span>
+                    </div>
+                  </div>
+                  <button onClick={() => deleteFromHistory(h.id)} style={{
+                    background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '12px'
+                  }}>삭제</button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
 
         {workers.map((w, idx) => (
           <div key={w.id} style={{
@@ -117,9 +249,7 @@ const ManualCalcTab = ({ formatCurrency, isMobile }) => {
             borderRadius: '10px', border: '1px solid #e5e7eb'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <span style={{ fontWeight: '600', color: '#374151', fontSize: '14px' }}>
-                직원 {idx + 1}
-              </span>
+              <span style={{ fontWeight: '600', color: '#374151', fontSize: '14px' }}>직원 {idx + 1}</span>
               {workers.length > 1 && (
                 <button onClick={() => removeWorker(w.id)} style={{
                   background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '13px'
@@ -178,7 +308,7 @@ const ManualCalcTab = ({ formatCurrency, isMobile }) => {
                 <div>
                   <label style={labelStyle}>월 근무일수</label>
                   <input type="number" value={w.daysPerMonth} onChange={e => updateWorker(w.id, 'daysPerMonth', e.target.value)}
-                    style={inputStyle} />
+                    placeholder="22" style={inputStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>세금 유형</label>
@@ -190,9 +320,8 @@ const ManualCalcTab = ({ formatCurrency, isMobile }) => {
                 </div>
               </div>
             )}
-
             {w.salaryType === 'monthly' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px', marginTop: '10px' }}>
                 <div>
                   <label style={labelStyle}>세금 유형</label>
                   <select value={w.taxType} onChange={e => updateWorker(w.id, 'taxType', e.target.value)} style={inputStyle}>
@@ -217,9 +346,16 @@ const ManualCalcTab = ({ formatCurrency, isMobile }) => {
 
       {results && (
         <div className="card" style={{ padding: '24px' }}>
-          <h3 style={{ margin: '0 0 16px', color: '#1f2937', fontSize: '18px' }}>📊 계산 결과</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0, color: '#1f2937', fontSize: '18px' }}>📊 계산 결과</h3>
+            <button onClick={saveToServer} disabled={saving} style={{
+              padding: '8px 16px', background: saving ? '#9ca3af' : '#10b981', color: '#fff',
+              border: 'none', borderRadius: '8px', fontSize: '13px', cursor: 'pointer'
+            }}>
+              {saving ? '저장중...' : '💾 서버에 저장'}
+            </button>
+          </div>
 
-          {/* 총계 요약 */}
           <div style={{
             display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
             gap: '12px', marginBottom: '20px'
@@ -230,7 +366,7 @@ const ManualCalcTab = ({ formatCurrency, isMobile }) => {
             </div>
             <div style={{ padding: '16px', background: '#fef2f2', borderRadius: '10px', textAlign: 'center' }}>
               <div style={{ fontSize: '13px', color: '#ef4444', marginBottom: '4px' }}>총 공제액</div>
-              <div style={{ fontSize: '20px', fontWeight: '700', color: '#dc2626' }}>{formatCurrency(totalDeductions)}</div>
+              <div style={{ fontSize: '20px', fontWeight: '700', color: '#dc2626' }}>{formatCurrency(totalDed)}</div>
             </div>
             <div style={{ padding: '16px', background: '#f0fdf4', borderRadius: '10px', textAlign: 'center' }}>
               <div style={{ fontSize: '13px', color: '#10b981', marginBottom: '4px' }}>총 실수령액</div>
@@ -238,7 +374,6 @@ const ManualCalcTab = ({ formatCurrency, isMobile }) => {
             </div>
           </div>
 
-          {/* 개인별 상세 */}
           {results.map((r, idx) => (
             <div key={r.id} style={{
               padding: '16px', marginBottom: '10px', background: '#f9fafb',

@@ -919,6 +919,21 @@ export const initDatabase = async () => {
         )
       `);
 
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS manual_calculations (
+          id SERIAL PRIMARY KEY,
+          owner_id INTEGER NOT NULL REFERENCES users(id),
+          workplace_id INTEGER REFERENCES workplaces(id),
+          title VARCHAR(255),
+          workers JSONB NOT NULL,
+          results JSONB NOT NULL,
+          total_gross DECIMAL(15,2),
+          total_deductions DECIMAL(15,2),
+          total_net DECIMAL(15,2),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       // 성능 인덱스 추가
       const indexes = [
         'CREATE INDEX IF NOT EXISTS idx_attendance_user_wp_date ON attendance(user_id, workplace_id, date)',
@@ -1635,6 +1650,22 @@ export const initDatabase = async () => {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
+        )
+      `);
+
+      db.run(`
+        CREATE TABLE IF NOT EXISTS manual_calculations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          owner_id INTEGER NOT NULL,
+          workplace_id INTEGER,
+          title TEXT,
+          workers TEXT NOT NULL,
+          results TEXT NOT NULL,
+          total_gross REAL,
+          total_deductions REAL,
+          total_net REAL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (owner_id) REFERENCES users(id)
         )
       `);
 

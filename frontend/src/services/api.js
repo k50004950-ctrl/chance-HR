@@ -264,6 +264,14 @@ export const leavesAPI = {
   getAnnualSummary: (userId) => api.get(`/leaves/annual-summary/${userId}`)
 };
 
+// 수기계산 API
+export const manualCalcAPI = {
+  save: (data) => api.post('/manual-calc', data),
+  getList: () => api.get('/manual-calc'),
+  getById: (id) => api.get(`/manual-calc/${id}`),
+  delete: (id) => api.delete(`/manual-calc/${id}`)
+};
+
 // 감사 로그 API
 export const auditLogAPI = {
   getAll: (params) => api.get('/audit-logs', { params })

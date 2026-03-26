@@ -324,12 +324,16 @@ export const initDatabase = async () => {
           payroll_period_end_day INTEGER,
           last_pay_notice_date DATE,
           deduct_absence INTEGER DEFAULT 0,
+          nationality VARCHAR(50) DEFAULT '대한민국',
+          visa_type VARCHAR(50),
+          visa_expiry_date DATE,
+          foreign_worker_id VARCHAR(50),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id),
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
-      
+
       // Add work_days column if it doesn't exist
       try {
         await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS work_days VARCHAR(100)`);
@@ -403,6 +407,19 @@ export const initDatabase = async () => {
       } catch (e) {
         // Column already exists, ignore
       }
+
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS nationality VARCHAR(50) DEFAULT '대한민국'`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS visa_type VARCHAR(50)`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS visa_expiry_date DATE`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE employee_details ADD COLUMN IF NOT EXISTS foreign_worker_id VARCHAR(50)`);
+      } catch (e) {}
 
       // Salary_info 테이블
       await pool.query(`
@@ -1148,6 +1165,10 @@ export const initDatabase = async () => {
           payroll_period_end_day INTEGER,
           last_pay_notice_date DATE,
           deduct_absence INTEGER DEFAULT 0,
+          nationality TEXT DEFAULT '대한민국',
+          visa_type TEXT,
+          visa_expiry_date DATE,
+          foreign_worker_id TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
@@ -1238,6 +1259,18 @@ export const initDatabase = async () => {
       } catch (e) {}
       try {
         await run(`ALTER TABLE employee_details ADD COLUMN location_consent_date DATETIME`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN nationality TEXT DEFAULT '대한민국'`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN visa_type TEXT`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN visa_expiry_date DATE`);
+      } catch (e) {}
+      try {
+        await run(`ALTER TABLE employee_details ADD COLUMN foreign_worker_id TEXT`);
       } catch (e) {}
       try {
         await run(`ALTER TABLE salary_info ADD COLUMN tax_type TEXT DEFAULT '4대보험'`);

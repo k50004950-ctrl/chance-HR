@@ -39,6 +39,7 @@ import SettingsTab from '../components/owner/SettingsTab';
 import CommunityTab from '../components/owner/CommunityTab';
 import DashboardCharts from '../components/owner/DashboardCharts';
 import ManualCalcTab from '../components/owner/ManualCalcTab';
+import ExcelImportModal from '../components/owner/ExcelImportModal';
 
 const OwnerDashboard = () => {
   const { user, logout } = useAuth();
@@ -71,6 +72,7 @@ const OwnerDashboard = () => {
   const [ownerCompanyId, setOwnerCompanyId] = useState(null); // V2: 사업주의 company_id
   const [showWorkplaceForm, setShowWorkplaceForm] = useState(false); // 사업장 등록 폼 표시 여부
   const [showInviteManager, setShowInviteManager] = useState(false); // 초대 링크 관리 모달 표시 여부
+  const [showExcelImport, setShowExcelImport] = useState(false); // 엑셀 일괄 등록 모달
   const [workplaceForm, setWorkplaceForm] = useState({
     name: '',
     business_number: user?.business_number || '',
@@ -3261,6 +3263,7 @@ const OwnerDashboard = () => {
                 formatDate={formatDate}
                 formatCurrency={formatCurrency}
                 getSalaryTypeName={getSalaryTypeName}
+                onExcelImport={() => setShowExcelImport(true)}
               />
             )}
 
@@ -7065,6 +7068,14 @@ const OwnerDashboard = () => {
           onClose={() => setShowInviteManager(false)}
         />
       )}
+
+      <ExcelImportModal
+        isOpen={showExcelImport}
+        onClose={() => setShowExcelImport(false)}
+        workplaceId={selectedWorkplace}
+        onImportComplete={() => { loadEmployees(); setShowExcelImport(false); }}
+        formatCurrency={formatCurrency}
+      />
 
       <Footer />
     </div>

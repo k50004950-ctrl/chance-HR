@@ -3,6 +3,7 @@ import { query, get, run } from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
 import { logAudit } from '../utils/auditLog.js';
 import { generatePayslipPDF } from '../utils/pdfGenerator.js';
+import { sendPayslipEmail, sendBulkPayslipEmails } from '../utils/emailSender.js';
 
 const router = express.Router();
 
@@ -1385,6 +1386,107 @@ router.get('/slip/:slipId/pdf', authenticate, async (req, res) => {
   } catch (error) {
     console.error('PDF 생성 오류:', error);
     res.status(500).json({ success: false, message: 'PDF 생성에 실패했습니다.' });
+  }
+});
+
+// 급여명세서 이메일 발송 (개별)
+router.post('/slip/:slipId/email', authenticate, async (req, res) => {
+  try {
+    if (!['owner', 'admin', 'super_admin'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+    }
+
+    const slip = await get(
+      `SELECT ss.*, u.name as employee_name, u.email,
+              ed.position, ed.department,
+              w.name as workplace_name,
+              owner.name as owner_name, owner.business_number
+       FROM salary_slips ss
+       JOIN users u ON ss.user_id = u.id
+       LEFT JOIN employee_details ed ON u.id = ed.user_id
+       LEFT JOIN workplaces w ON ss.workplace_id = w.id
+       LEFT JOIN users owner ON w.owner_id = owner.id
+       WHERE ss.id = ?`,
+      [req.params.slipId]
+    );
+
+    if (!slip) return res.status(404).json({ success: false, message: '급여명세서를 찾을 수 없습니다.' });
+    if (!slip.email) return res.status(400).json({ success: false, message: '직원 이메일이 등록되지 않았습니다.' });
+
+    const pdfBuffer = await generatePayslipPDF({
+      slip,
+      employee: { name: slip.employee_name, position: slip.position, department: slip.department },
+      workplace: { name: slip.workplace_name },
+      owner: { name: slip.owner_name, business_number: slip.business_number }
+    });
+
+    await sendPayslipEmail({
+      to: slip.email,
+      employeeName: slip.employee_name,
+      month: slip.payroll_month,
+      pdfBuffer,
+      companyName: slip.workplace_name
+    });
+
+    res.json({ success: true, message: `${slip.employee_name}님에게 이메일이 발송되었습니다.` });
+  } catch (error) {
+    console.error('이메일 발송 오류:', error);
+    res.status(500).json({ success: false, message: error.message || '이메일 발송에 실패했습니다.' });
+  }
+});
+
+// 급여명세서 일괄 이메일 발송
+router.post('/slips/bulk-email', authenticate, async (req, res) => {
+  try {
+    if (!['owner', 'admin', 'super_admin'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+    }
+
+    const { workplace_id, payroll_month } = req.body;
+    if (!workplace_id || !payroll_month) {
+      return res.status(400).json({ success: false, message: '사업장과 급여월을 입력해주세요.' });
+    }
+
+    const slips = await query(
+      `SELECT ss.*, u.name, u.email,
+              ed.position, ed.department,
+              w.name as workplace_name,
+              owner.name as owner_name, owner.business_number
+       FROM salary_slips ss
+       JOIN users u ON ss.user_id = u.id
+       LEFT JOIN employee_details ed ON u.id = ed.user_id
+       LEFT JOIN workplaces w ON ss.workplace_id = w.id
+       LEFT JOIN users owner ON w.owner_id = owner.id
+       WHERE ss.workplace_id = ? AND ss.payroll_month = ? AND ss.published = true`,
+      [workplace_id, payroll_month]
+    );
+
+    if (slips.length === 0) {
+      return res.status(404).json({ success: false, message: '발송할 급여명세서가 없습니다.' });
+    }
+
+    const results = await sendBulkPayslipEmails({
+      slips,
+      month: payroll_month,
+      companyName: slips[0].workplace_name,
+      generatePdf: async (slip) => {
+        return generatePayslipPDF({
+          slip,
+          employee: { name: slip.name, position: slip.position, department: slip.department },
+          workplace: { name: slip.workplace_name },
+          owner: { name: slip.owner_name, business_number: slip.business_number }
+        });
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `${results.sent}명 발송 완료, ${results.failed}명 실패`,
+      data: results
+    });
+  } catch (error) {
+    console.error('일괄 이메일 발송 오류:', error);
+    res.status(500).json({ success: false, message: '이메일 발송에 실패했습니다.' });
   }
 });
 

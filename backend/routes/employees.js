@@ -1,5 +1,6 @@
 import express from 'express';
 import multer from 'multer';
+import xlsx from 'xlsx';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -74,6 +75,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       ed.resignation_date, ed.privacy_consent, ed.privacy_consent_date, ed.location_consent, ed.location_consent_date,
       ed.pay_schedule_type, ed.pay_day, ed.pay_after_days, ed.payroll_period_start_day, ed.payroll_period_end_day,
       ed.last_pay_notice_date, ed.deduct_absence,
+      ed.nationality, ed.visa_type, ed.visa_expiry_date, ed.foreign_worker_id,
       si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
     FROM users u
     LEFT JOIN employee_details ed ON u.id = ed.user_id
@@ -110,6 +112,7 @@ router.get('/:id', authenticate, async (req, res) => {
         ed.resignation_date, ed.privacy_consent, ed.location_consent,
         ed.pay_schedule_type, ed.pay_day, ed.pay_after_days, ed.payroll_period_start_day, ed.payroll_period_end_day,
         ed.last_pay_notice_date, ed.deduct_absence,
+        ed.nationality, ed.visa_type, ed.visa_expiry_date, ed.foreign_worker_id,
         si.salary_type, si.amount, si.weekly_holiday_pay, si.weekly_holiday_type, si.overtime_pay, si.tax_type
       FROM users u
       LEFT JOIN employee_details ed ON u.id = ed.user_id
@@ -188,7 +191,8 @@ router.post('/manual', authenticate, authorizeRole(['owner', 'admin', 'super_adm
       weekly_holiday_type, deduct_absence,
       pay_schedule_type, pay_day, pay_after_days,
       payroll_period_start_day, payroll_period_end_day,
-      flexible_hours
+      flexible_hours,
+      nationality, visa_type, visa_expiry_date, foreign_worker_id
     } = req.body;
 
     if (!name) {
@@ -222,8 +226,9 @@ router.post('/manual', authenticate, authorizeRole(['owner', 'admin', 'super_adm
         work_start_time, work_end_time, work_days,
         pay_schedule_type, pay_day, pay_after_days,
         payroll_period_start_day, payroll_period_end_day,
-        deduct_absence, flexible_hours
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        deduct_absence, flexible_hours,
+        nationality, visa_type, visa_expiry_date, foreign_worker_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId, workplace_id,
         hire_date || new Date().toISOString().split('T')[0],
@@ -236,7 +241,11 @@ router.post('/manual', authenticate, authorizeRole(['owner', 'admin', 'super_adm
         payroll_period_start_day !== undefined ? Number(payroll_period_start_day) : null,
         payroll_period_end_day !== undefined ? Number(payroll_period_end_day) : null,
         deduct_absence ? 1 : 0,
-        flexible_hours ? 1 : 0
+        flexible_hours ? 1 : 0,
+        nationality || '대한민국',
+        visa_type || null,
+        visa_expiry_date || null,
+        foreign_worker_id || null
       ]
     );
 
@@ -262,6 +271,142 @@ router.post('/manual', authenticate, authorizeRole(['owner', 'admin', 'super_adm
   }
 });
 
+// 엑셀 업로드용 multer
+const excelUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+        file.mimetype === 'application/vnd.ms-excel' ||
+        file.originalname.endsWith('.xlsx') || file.originalname.endsWith('.xls')) {
+      cb(null, true);
+    } else {
+      cb(new Error('엑셀 파일만 업로드 가능합니다.'), false);
+    }
+  }
+});
+
+// 엑셀 템플릿 다운로드
+router.get('/excel-template', authenticate, (req, res) => {
+  const wb = xlsx.utils.book_new();
+  const templateData = [
+    ['이름*', '급여형태*', '금액*', '핸드폰', '입사일', '직위', '부서', '국적', '비자유형', '비자만료일', '메모'],
+    ['홍길동', '시급', '10320', '01012345678', '2025-03-01', '직원', '매장', '대한민국', '', '', ''],
+    ['John Smith', '월급', '2500000', '01098765432', '2024-06-15', '매니저', '사무실', 'USA', 'E-7', '2027-12-31', '영어 가능'],
+    ['응웬티란', '시급', '10320', '01055551234', '2026-01-10', '직원', '주방', '베트남', 'E-9', '2027-06-30', ''],
+  ];
+  const ws = xlsx.utils.aoa_to_sheet(templateData);
+
+  // 컬럼 너비 설정
+  ws['!cols'] = [
+    {wch:12},{wch:10},{wch:12},{wch:14},{wch:12},{wch:10},{wch:10},{wch:12},{wch:10},{wch:12},{wch:20}
+  ];
+
+  xlsx.utils.book_append_sheet(wb, ws, '직원목록');
+  const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename=employee_template.xlsx');
+  res.send(buffer);
+});
+
+// 엑셀 대량 업로드
+router.post('/excel-import', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), excelUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: '파일을 업로드해주세요.' });
+    }
+
+    const workplaceId = req.body.workplace_id;
+    if (!workplaceId) {
+      return res.status(400).json({ success: false, message: '사업장을 선택해주세요.' });
+    }
+
+    const wb = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = xlsx.utils.sheet_to_json(ws, { defval: '' });
+
+    if (rows.length === 0) {
+      return res.status(400).json({ success: false, message: '엑셀에 데이터가 없습니다.' });
+    }
+    if (rows.length > 200) {
+      return res.status(400).json({ success: false, message: '최대 200명까지 업로드 가능합니다.' });
+    }
+
+    const results = { success: 0, failed: 0, errors: [] };
+    const salaryTypeMap = { '시급': 'hourly', '일급': 'daily', '월급': 'monthly', 'hourly': 'hourly', 'daily': 'daily', 'monthly': 'monthly' };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNum = i + 2; // 헤더가 1행
+
+      // 필수 필드 검증
+      const name = String(row['이름*'] || row['이름'] || row['name'] || '').trim();
+      const salaryTypeRaw = String(row['급여형태*'] || row['급여형태'] || row['salary_type'] || '').trim();
+      const amount = parseFloat(row['금액*'] || row['금액'] || row['amount'] || 0);
+
+      if (!name) { results.failed++; results.errors.push(`${rowNum}행: 이름 없음`); continue; }
+      if (!salaryTypeRaw) { results.failed++; results.errors.push(`${rowNum}행: 급여형태 없음`); continue; }
+      if (!amount) { results.failed++; results.errors.push(`${rowNum}행: 금액 없음`); continue; }
+
+      const salaryType = salaryTypeMap[salaryTypeRaw];
+      if (!salaryType) { results.failed++; results.errors.push(`${rowNum}행: 급여형태 '${salaryTypeRaw}' 무효 (시급/일급/월급)`); continue; }
+
+      // 선택 필드
+      const phone = String(row['핸드폰'] || row['phone'] || '').replace(/[^0-9]/g, '');
+      const hireDate = row['입사일'] || row['hire_date'] || null;
+      const position = String(row['직위'] || row['position'] || '').trim();
+      const department = String(row['부서'] || row['department'] || '').trim();
+      const nationality = String(row['국적'] || row['nationality'] || '대한민국').trim();
+      const visaType = String(row['비자유형'] || row['visa_type'] || '').trim();
+      const visaExpiry = row['비자만료일'] || row['visa_expiry_date'] || null;
+      const notes = String(row['메모'] || row['notes'] || '').trim();
+
+      try {
+        // 수기 등록 직원으로 저장 (로그인 불가 계정)
+        const username = `manual_${Date.now()}_${i}`;
+        const hashedPw = await bcrypt.hash(`manual_${Date.now()}`, 10);
+
+        // users 테이블에 등록
+        const userResult = await run(
+          `INSERT INTO users (username, password, name, phone, role, workplace_id, is_manual)
+           VALUES (?, ?, ?, ?, 'employee', ?, 1)`,
+          [username, hashedPw, name, phone || null, workplaceId]
+        );
+        const userId = userResult.lastID || userResult.id;
+
+        // employee_details 등록
+        await run(
+          `INSERT INTO employee_details (user_id, workplace_id, hire_date, position, department, nationality, visa_type, visa_expiry_date, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [userId, workplaceId, hireDate, position || null, department || null, nationality, visaType || null, visaExpiry || null, notes || null]
+        );
+
+        // salary_info 등록
+        await run(
+          `INSERT INTO salary_info (user_id, type, amount, workplace_id)
+           VALUES (?, ?, ?, ?)`,
+          [userId, salaryType, amount, workplaceId]
+        );
+
+        results.success++;
+      } catch (err) {
+        results.failed++;
+        results.errors.push(`${rowNum}행 (${name}): ${err.message}`);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `${results.success}명 등록 완료, ${results.failed}명 실패`,
+      data: results
+    });
+  } catch (error) {
+    console.error('엑셀 업로드 오류:', error);
+    res.status(500).json({ success: false, message: '엑셀 처리에 실패했습니다.' });
+  }
+});
+
 // 직원 등록
 router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']), uploadFiles, async (req, res) => {
   try {
@@ -276,9 +421,10 @@ router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']),
       deduct_absence,
       salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type,
       employment_status, resignation_date,
-      privacy_consent, privacy_consent_date, location_consent, location_consent_date
+      privacy_consent, privacy_consent_date, location_consent, location_consent_date,
+      nationality, visa_type, visa_expiry_date, foreign_worker_id
     } = req.body;
-    
+
     // work_days가 JSON 문자열이면 파싱
     if (typeof work_days === 'string' && work_days.startsWith('[')) {
       try {
@@ -328,8 +474,9 @@ router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']),
         notes, work_start_time, work_end_time, work_days, resignation_date,
       pay_schedule_type, pay_day, pay_after_days, payroll_period_start_day, payroll_period_end_day,
       deduct_absence,
-      privacy_consent, privacy_consent_date, location_consent, location_consent_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      privacy_consent, privacy_consent_date, location_consent, location_consent_date,
+      nationality, visa_type, visa_expiry_date, foreign_worker_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId, workplace_id, hire_date, gender, birth_date, career, job_type,
         employment_renewal_date, contract_start_date, contract_end_date,
@@ -342,7 +489,11 @@ router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']),
         payroll_period_start_day !== undefined && payroll_period_start_day !== '' ? Number(payroll_period_start_day) : null,
         payroll_period_end_day !== undefined && payroll_period_end_day !== '' ? Number(payroll_period_end_day) : null,
         deduct_absence === '1' || deduct_absence === 1 || deduct_absence === true ? 1 : 0,
-        0, null, 0, null
+        0, null, 0, null,
+        nationality || '대한민국',
+        visa_type || null,
+        visa_expiry_date || null,
+        foreign_worker_id || null
       ]
     );
 
@@ -396,9 +547,10 @@ router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']
       deduct_absence,
       salary_type, amount, weekly_holiday_pay, weekly_holiday_type, overtime_pay, tax_type,
       employment_status, resignation_date,
-      privacy_consent, privacy_consent_date, location_consent, location_consent_date
+      privacy_consent, privacy_consent_date, location_consent, location_consent_date,
+      nationality, visa_type, visa_expiry_date, foreign_worker_id
     } = req.body;
-    
+
     // work_days가 JSON 문자열이면 파싱
     if (typeof work_days === 'string' && work_days.startsWith('[')) {
       try {
@@ -504,15 +656,20 @@ router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']
     const resolvedDeductAbsence = deduct_absence !== undefined
       ? (deduct_absence === '1' || deduct_absence === 1 || deduct_absence === true ? 1 : 0)
       : existingDetails?.deduct_absence;
+    const resolvedNationality = nationality !== undefined ? nationality : existingDetails?.nationality;
+    const resolvedVisaType = visa_type !== undefined ? visa_type : existingDetails?.visa_type;
+    const resolvedVisaExpiryDate = visa_expiry_date !== undefined ? visa_expiry_date : existingDetails?.visa_expiry_date;
+    const resolvedForeignWorkerId = foreign_worker_id !== undefined ? foreign_worker_id : existingDetails?.foreign_worker_id;
 
     // 직원 상세정보 수정
-    let updateQuery = `UPDATE employee_details SET 
+    let updateQuery = `UPDATE employee_details SET
       hire_date = ?, gender = ?, birth_date = ?, career = ?, job_type = ?,
       employment_renewal_date = ?, contract_start_date = ?, contract_end_date = ?,
       employment_notes = ?, separation_type = ?, separation_reason = ?,
       position = ?, department = ?, notes = ?, work_start_time = ?, work_end_time = ?, work_days = ?, resignation_date = ?,
       pay_schedule_type = ?, pay_day = ?, pay_after_days = ?, payroll_period_start_day = ?, payroll_period_end_day = ?,
-      deduct_absence = ?`;
+      deduct_absence = ?,
+      nationality = ?, visa_type = ?, visa_expiry_date = ?, foreign_worker_id = ?`;
     let updateParams = [
       resolvedHireDate, resolvedGender, resolvedBirthDate, resolvedCareer, resolvedJobType,
       resolvedEmploymentRenewalDate, resolvedContractStartDate, resolvedContractEndDate,
@@ -524,7 +681,11 @@ router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']
       resolvedPayAfterDays ?? null,
       resolvedPayrollStart ?? null,
       resolvedPayrollEnd ?? null,
-      resolvedDeductAbsence ?? 0
+      resolvedDeductAbsence ?? 0,
+      resolvedNationality || '대한민국',
+      resolvedVisaType || null,
+      resolvedVisaExpiryDate || null,
+      resolvedForeignWorkerId || null
     ];
     
     if (contractFile) {

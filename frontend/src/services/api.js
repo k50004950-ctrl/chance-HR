@@ -113,6 +113,8 @@ export const employeeAPI = {
   },
   delete: (id) => api.delete(`/employees/${id}`),
   createManual: (data) => api.post('/employees/manual', data),
+  downloadTemplate: () => api.get('/employees/excel-template', { responseType: 'blob' }),
+  excelImport: (formData) => api.post('/employees/excel-import', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
 };
 
 // 출퇴근 API
@@ -147,7 +149,9 @@ export const salaryAPI = {
   getPayrollLedger: (workplaceId, payrollMonth) => api.get(`/salary/payroll-ledger/${workplaceId}/${payrollMonth}`),
   calculateInsurance: (data) => api.post('/salary/calculate-insurance', data),
   finalize: (data) => api.post('/salary/finalize', data),
-  downloadSlipPDF: (slipId) => api.get(`/salary/slip/${slipId}/pdf`, { responseType: 'blob' })
+  downloadSlipPDF: (slipId) => api.get(`/salary/slip/${slipId}/pdf`, { responseType: 'blob' }),
+  sendSlipEmail: (slipId) => api.post(`/salary/slip/${slipId}/email`),
+  sendBulkEmail: (data) => api.post('/salary/slips/bulk-email', data)
 };
 
 // 과거 직원 API

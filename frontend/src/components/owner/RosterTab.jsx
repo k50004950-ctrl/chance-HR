@@ -40,6 +40,7 @@ const RosterTab = ({
   formatDate,
   formatCurrency,
   getSalaryTypeName,
+  onExcelImport,
 }) => {
   return (
               <div className="card">
@@ -232,6 +233,15 @@ const RosterTab = ({
                         >
                           📁 서류 보관함
                         </button>
+                        {onExcelImport && (
+                          <button
+                            className="btn btn-secondary"
+                            onClick={onExcelImport}
+                            style={{ fontSize: '14px', padding: '8px 16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                          >
+                            📊 엑셀 업로드
+                          </button>
+                        )}
                         {/* V2: 초대 링크 대신 매칭 승인 사용 */}
                       </div>
                     </div>

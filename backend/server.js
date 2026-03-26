@@ -74,8 +74,8 @@ const corsOptions = {
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      // 같은 도메인의 요청은 허용
-      callback(null, true);
+      console.warn(`⛔ CORS 차단: ${origin}`);
+      callback(new Error('CORS policy: origin not allowed'));
     }
   },
   credentials: true
@@ -113,7 +113,7 @@ app.get('/api/_ping', cors(corsOptions), (req, res) => {
 console.log('✅ Registered: /api/_ping');
 
 // 업로드 파일 접근 보안 - JWT 인증 필수
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production-2026';
+import { JWT_SECRET_SAFE as JWT_SECRET } from './config/constants.js';
 app.use('/uploads', (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1] || req.query.token;
   if (!token) {
@@ -154,22 +154,7 @@ app.use('/api/audit-logs', cors(corsOptions), auditLogRoutes);
 app.use('/api/leaves', cors(corsOptions), leavesRoutes);
 app.use('/api/manual-calc', cors(corsOptions), manualCalcRoutes);
 
-// ratesMaster 라우트 - 상세 로깅
-console.log('🔧 Importing ratesMaster routes from:', './routes/ratesMaster.js');
-console.log('🔧 ratesMasterRoutes type:', typeof ratesMasterRoutes);
-console.log('🔧 ratesMasterRoutes value:', ratesMasterRoutes);
-
 app.use('/api/rates-master', cors(corsOptions), ratesMasterRoutes);
-console.log('✅ Registered: /api/rates-master');
-
-// 등록된 라우트 검증
-app._router.stack.forEach((middleware) => {
-  if (middleware.route) {
-    console.log('  Route:', middleware.route.path);
-  } else if (middleware.name === 'router') {
-    console.log('  Router middleware');
-  }
-});
 
 // ========================================
 // ✅ 2) 프론트엔드 정적 파일 서빙

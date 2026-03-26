@@ -7,8 +7,8 @@ import { validateLogin, validateSignup, validateChangePassword } from '../middle
 import { loginLimiter, signupLimiter, passwordResetLimiter } from '../middleware/rateLimiter.js';
 import { logAudit } from '../utils/auditLog.js';
 
+import { JWT_SECRET_SAFE as JWT_SECRET } from '../config/constants.js';
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production-2026';
 
 // 사업주: 소속 직원 계정 정보 확인 (이메일/SSN 등록 여부)
 router.get('/owner/check-employee-account', authenticate, async (req, res) => {

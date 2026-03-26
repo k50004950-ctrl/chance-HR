@@ -6,8 +6,8 @@ import { authenticate, authorizeRole } from '../middleware/auth.js';
 import { encryptSSN } from '../utils/crypto.js';
 import { loginLimiter, signupLimiter } from '../middleware/rateLimiter.js';
 
+import { JWT_SECRET_SAFE as JWT_SECRET } from '../config/constants.js';
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production-2026';
 
 // ============================================
 // 1. 독립 회원가입 (사업주 / 근로자 공통)

@@ -3,9 +3,11 @@ import Header from '../components/Header';
 import { workplaceAPI, authAPI, announcementsAPI, insuranceAPI, communityAPI, ratesMasterAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Footer from '../components/Footer';
+import useIsMobile from '../hooks/useIsMobile';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const isSuperAdmin = user?.role === 'super_admin';
   const [activeTab, setActiveTab] = useState('owners');
   const [workplaces, setWorkplaces] = useState([]);
@@ -64,6 +66,7 @@ const AdminDashboard = () => {
   const [resetTargetUser, setResetTargetUser] = useState(null);
   const [newPwInput, setNewPwInput] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const loadAllUsers = useCallback(async () => {
     setUserLoading(true);
@@ -514,16 +517,61 @@ const AdminDashboard = () => {
       return new Date(b.created_at) - new Date(a.created_at);
     });
 
+  // 탭 목록 정의
+  const adminTabs = [
+    { tab: 'owners', icon: '👤', label: '사업주 목록' },
+    { tab: 'workplaces', icon: '🏢', label: '사업장 목록' },
+    ...(isSuperAdmin ? [
+      { tab: 'accounts', icon: '👥', label: '계정 관리' },
+      { tab: 'rates', icon: '💼', label: '요율 관리' },
+      { tab: 'insurance', icon: '🏥', label: '(구)4대보험' },
+      { tab: 'announcements', icon: '📢', label: '공지사항' },
+      { tab: 'community', icon: '💬', label: '커뮤니티' },
+    ] : []),
+  ];
+
   return (
     <div>
       <Header />
-      <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 style={{ color: '#374151' }}>관리자 대시보드</h2>
-          <button className="btn btn-secondary" onClick={handleRefresh}>
-            ↻ 새로고침
-          </button>
-        </div>
+      <div className="container" style={isMobile ? { padding: '0 12px', maxWidth: '100%' } : {}}>
+        {/* 모바일 헤더 */}
+        {isMobile ? (
+          <div style={{
+            position: 'sticky', top: 0, zIndex: 50,
+            background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)',
+            padding: '14px 16px',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            borderRadius: '0 0 12px 12px', marginBottom: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button
+                onClick={() => setSidebarOpen(true)}
+                style={{
+                  background: 'rgba(255,255,255,0.2)', border: 'none',
+                  color: 'white', borderRadius: '8px', padding: '8px 10px',
+                  fontSize: '18px', cursor: 'pointer'
+                }}
+              >
+                ☰
+              </button>
+              <h2 style={{ color: 'white', margin: 0, fontSize: '16px', fontWeight: '700' }}>관리자</h2>
+            </div>
+            <button
+              className="btn btn-secondary"
+              onClick={handleRefresh}
+              style={{ padding: '6px 12px', fontSize: '12px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '8px' }}
+            >
+              ↻
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h2 style={{ color: '#374151' }}>관리자 대시보드</h2>
+            <button className="btn btn-secondary" onClick={handleRefresh}>
+              ↻ 새로고침
+            </button>
+          </div>
+        )}
 
         {message.text && (
           <div className={`alert alert-${message.type}`} style={{ marginBottom: '20px' }}>
@@ -531,57 +579,77 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* 탭 메뉴 */}
-        <div className="nav-tabs">
-          <button
-            className={`nav-tab ${activeTab === 'owners' ? 'active' : ''}`}
-            onClick={() => setActiveTab('owners')}
-          >
-            사업주 목록
-          </button>
-          <button
-            className={`nav-tab ${activeTab === 'workplaces' ? 'active' : ''}`}
-            onClick={() => setActiveTab('workplaces')}
-          >
-            사업장 목록
-          </button>
-          {isSuperAdmin && (
-            <>
+        {/* 탭 메뉴 - PC: 기존 탭바 / 모바일: 가로 스크롤 */}
+        {!isMobile ? (
+          <div className="nav-tabs">
+            <button
+              className={`nav-tab ${activeTab === 'owners' ? 'active' : ''}`}
+              onClick={() => setActiveTab('owners')}
+            >
+              사업주 목록
+            </button>
+            <button
+              className={`nav-tab ${activeTab === 'workplaces' ? 'active' : ''}`}
+              onClick={() => setActiveTab('workplaces')}
+            >
+              사업장 목록
+            </button>
+            {isSuperAdmin && (
+              <>
+                <button
+                  className={`nav-tab ${activeTab === 'accounts' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('accounts')}
+                  style={{ background: activeTab === 'accounts' ? '#dc2626' : '', color: activeTab === 'accounts' ? 'white' : '' }}
+                >
+                  👥 계정 관리
+                </button>
+                <button
+                  className={`nav-tab ${activeTab === 'rates' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('rates')}
+                >
+                  💼 요율 관리
+                </button>
+                <button
+                  className={`nav-tab ${activeTab === 'insurance' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('insurance')}
+                  style={{ fontSize: '11px', opacity: 0.6 }}
+                >
+                  (구)4대보험
+                </button>
+                <button
+                  className={`nav-tab ${activeTab === 'announcements' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('announcements')}
+                >
+                  📢 공지사항
+                </button>
+                <button
+                  className={`nav-tab ${activeTab === 'community' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('community')}
+                >
+                  💬 커뮤니티
+                </button>
+              </>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '16px', WebkitOverflowScrolling: 'touch' }}>
+            {adminTabs.map(({ tab, icon, label }) => (
               <button
-                className={`nav-tab ${activeTab === 'accounts' ? 'active' : ''}`}
-                onClick={() => setActiveTab('accounts')}
-                style={{ background: activeTab === 'accounts' ? '#dc2626' : '', color: activeTab === 'accounts' ? 'white' : '' }}
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  padding: '8px 14px', borderRadius: '20px', border: 'none', whiteSpace: 'nowrap',
+                  fontSize: '13px', fontWeight: activeTab === tab ? '700' : '500', cursor: 'pointer',
+                  background: activeTab === tab ? '#2563eb' : '#f3f4f6',
+                  color: activeTab === tab ? 'white' : '#6b7280',
+                  flexShrink: 0
+                }}
               >
-                👥 계정 관리
+                {icon} {label}
               </button>
-              <button
-                className={`nav-tab ${activeTab === 'rates' ? 'active' : ''}`}
-                onClick={() => setActiveTab('rates')}
-              >
-                💼 요율 관리
-              </button>
-              <button
-                className={`nav-tab ${activeTab === 'insurance' ? 'active' : ''}`}
-                onClick={() => setActiveTab('insurance')}
-                style={{ fontSize: '11px', opacity: 0.6 }}
-              >
-                (구)4대보험
-              </button>
-              <button
-                className={`nav-tab ${activeTab === 'announcements' ? 'active' : ''}`}
-                onClick={() => setActiveTab('announcements')}
-              >
-                📢 공지사항
-              </button>
-              <button
-                className={`nav-tab ${activeTab === 'community' ? 'active' : ''}`}
-                onClick={() => setActiveTab('community')}
-              >
-                💬 커뮤니티
-              </button>
-            </>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* 사업장 관리 */}
         {activeTab === 'workplaces' && (
@@ -594,6 +662,29 @@ const AdminDashboard = () => {
               <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
                 등록된 사업장이 없습니다.
               </p>
+            ) : isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {workplaces.map((workplace) => (
+                  <div key={workplace.id} style={{ padding: '16px', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontWeight: '700', fontSize: '15px', color: '#111827' }}>{workplace.name}</span>
+                      <span style={{
+                        padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600',
+                        background: workplace.employee_count > 0 ? '#dbeafe' : '#f3f4f6',
+                        color: workplace.employee_count > 0 ? '#1e40af' : '#6b7280'
+                      }}>{workplace.employee_count}명</span>
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '6px' }}>{workplace.address}</div>
+                    <div style={{ fontSize: '13px', color: '#374151' }}>
+                      사업주: {workplace.owner_name || '미할당'}
+                      {workplace.owner_phone && <span style={{ color: '#6b7280' }}> ({workplace.owner_phone})</span>}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px' }}>
+                      {new Date(workplace.created_at).toLocaleDateString('ko-KR')}
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table className="table">
@@ -708,6 +799,54 @@ const AdminDashboard = () => {
               <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
                 {owners.length === 0 ? '등록된 사업주가 없습니다.' : '검색 결과가 없습니다.'}
               </p>
+            ) : isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {filteredOwners.map((owner) => (
+                  <div key={owner.id} style={{ padding: '16px', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => openModal('owner-view', owner)}
+                        style={{ background: 'none', border: 'none', padding: 0, color: '#2563eb', cursor: 'pointer', fontWeight: '700', fontSize: '15px' }}
+                      >
+                        {owner.name}
+                      </button>
+                      <span style={{
+                        padding: '4px 8px', borderRadius: '4px', fontWeight: '600', fontSize: '12px',
+                        background: owner.approval_status === 'approved' ? '#d1fae5' : owner.approval_status === 'suspended' ? '#fee2e2' : '#fef3c7',
+                        color: owner.approval_status === 'approved' ? '#065f46' : owner.approval_status === 'suspended' ? '#991b1b' : '#92400e'
+                      }}>
+                        {owner.approval_status === 'approved' ? '활성' : owner.approval_status === 'suspended' ? '중지' : '대기'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#374151', marginBottom: '4px' }}>{owner.business_name || '-'} / {owner.username}</div>
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>{owner.phone || '-'} {owner.email ? `/ ${owner.email}` : ''}</div>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600', background: owner.service_consent ? '#d1fae5' : '#fee2e2', color: owner.service_consent ? '#065f46' : '#991b1b' }}>
+                        {owner.service_consent ? '동의' : '미동의'}
+                      </span>
+                      <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600', background: '#dbeafe', color: '#1e40af' }}>
+                        사업장 {owner.workplace_count}개
+                      </span>
+                      <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600', background: '#dcfce7', color: '#166534' }}>
+                        직원 {owner.employee_count || 0}명
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {owner.approval_status === 'approved' && (
+                        <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#991b1b', padding: '5px 10px', border: '1px solid #fecaca', fontSize: '12px' }}
+                          onClick={() => handleToggleOwnerStatus(owner.id, owner.name)}>중지</button>
+                      )}
+                      {owner.approval_status === 'suspended' && (
+                        <button className="btn btn-sm btn-primary" style={{ padding: '5px 10px', fontSize: '12px' }}
+                          onClick={() => handleToggleOwnerStatus(owner.id, owner.name)}>활성화</button>
+                      )}
+                      <button className="btn btn-sm" style={{ background: '#fff1f2', color: '#be123c', padding: '5px 10px', border: '1px solid #fecdd3', fontSize: '12px' }}
+                        onClick={() => handleDeleteOwner(owner.id, owner.name, owner.role)}>삭제</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table className="table" style={{ minWidth: '100%', tableLayout: 'auto' }}>
@@ -795,7 +934,7 @@ const AdminDashboard = () => {
                             borderRadius: '4px',
                             fontWeight: '600',
                             fontSize: '12px',
-                            background: 
+                            background:
                               owner.approval_status === 'approved' ? '#d1fae5' :
                               owner.approval_status === 'suspended' ? '#fee2e2' :
                               owner.approval_status === 'pending' ? '#fef3c7' :
@@ -1696,6 +1835,42 @@ const AdminDashboard = () => {
             <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>로딩 중...</div>
           ) : allUsers.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>검색 결과가 없습니다.</div>
+          ) : isMobile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {allUsers.map((u) => (
+                <div key={u.id} style={{ padding: '14px', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontWeight: '700', fontSize: '14px' }}>{u.name} <span style={{ color: '#6b7280', fontWeight: '400', fontSize: '12px' }}>({u.username})</span></span>
+                    <span style={{
+                      padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600',
+                      background: u.role === 'owner' ? '#fef3c7' : u.role === 'employee' ? '#d1fae5' : u.role === 'super_admin' ? '#fee2e2' : '#ede9fe',
+                      color: u.role === 'owner' ? '#92400e' : u.role === 'employee' ? '#065f46' : u.role === 'super_admin' ? '#991b1b' : '#5b21b6'
+                    }}>
+                      {u.role === 'owner' ? '사업주' : u.role === 'employee' ? '근로자' : u.role === 'super_admin' ? '총관리자' : '관리자'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+                    {u.workplace_name || '소속 없음'} | 이메일: {u.has_email ? '등록' : '미등록'} | 가입: {u.created_at ? new Date(u.created_at).toLocaleDateString('ko-KR') : '-'}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <button
+                      onClick={() => { setResetTargetUser(u); setNewPwInput(''); setShowResetModal(true); }}
+                      style={{ padding: '5px 10px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
+                    >
+                      비번초기화
+                    </button>
+                    {u.role !== 'super_admin' && (
+                      <button
+                        onClick={() => handleDeleteUser(u)}
+                        style={{ padding: '5px 10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
+                      >
+                        삭제
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -1801,6 +1976,44 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 모바일 사이드바 메뉴 */}
+      {isMobile && (
+        <>
+          <div
+            className={`mobile-sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+            onClick={() => setSidebarOpen(false)}
+          />
+          <nav className={`mobile-sidebar ${sidebarOpen ? 'open' : ''}`}>
+            <div className="mobile-sidebar-header">
+              <h3>찬스HR 관리자</h3>
+              <p>{user?.name} ({isSuperAdmin ? '총관리자' : '관리자'})</p>
+            </div>
+            <div className="mobile-sidebar-menu">
+              {adminTabs.map(({ tab, icon, label }) => (
+                <button
+                  key={tab}
+                  className={`mobile-sidebar-item ${activeTab === tab ? 'active' : ''}`}
+                  onClick={() => { setActiveTab(tab); setSidebarOpen(false); }}
+                >
+                  <span className="sidebar-icon">{icon}</span>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="mobile-sidebar-footer">
+              <button
+                className="mobile-sidebar-item"
+                onClick={() => setSidebarOpen(false)}
+                style={{ color: '#6b7280' }}
+              >
+                <span className="sidebar-icon">✕</span>
+                닫기
+              </button>
+            </div>
+          </nav>
+        </>
       )}
 
       <Footer />

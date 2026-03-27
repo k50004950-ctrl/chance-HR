@@ -692,3 +692,230 @@
 }
 
 .erp-roster-stat.risk .erp-roster-stat-value { color: #D97706; }
+
+/* ===================================
+   모바일 반응형 (768px 이하)
+=================================== */
+@media (max-width: 768px) {
+  /* ── 사이드바: 숨김 (모바일에서는 JS 토글 사이드바 사용) ── */
+  .erp-sidebar {
+    display: none;
+  }
+
+  /* ── 메인 콘텐츠: margin-left 제거, 패딩 축소 ── */
+  .erp-main {
+    margin-left: 0;
+    padding: 16px 12px;
+    min-height: calc(100vh - 56px);
+  }
+
+  /* ── 헤더: 높이 축소, 패딩 조정 ── */
+  .erp-header {
+    height: 56px;
+    padding: 0 12px 0 0;
+  }
+
+  .erp-header-logo {
+    height: 56px;
+    width: auto;
+    padding: 0 12px;
+    font-size: 16px;
+    border-right: none;
+  }
+
+  .erp-header-center {
+    padding: 0 8px;
+    gap: 8px;
+  }
+
+  .erp-workplace-select {
+    min-width: 0;
+    flex: 1;
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+
+  .erp-main {
+    margin-top: 56px;
+  }
+
+  /* ── 페이지 타이틀 축소 ── */
+  .erp-page-title {
+    font-size: 18px;
+    margin-bottom: 2px;
+  }
+
+  .erp-page-subtitle {
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  /* ── KPI 카드 그리드: 2열 ── */
+  .erp-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .erp-kpi-card {
+    padding: 14px 16px;
+    gap: 4px;
+  }
+
+  .erp-kpi-label {
+    font-size: 12px;
+  }
+
+  .erp-kpi-value {
+    font-size: 22px;
+  }
+
+  /* ── 요약 카드 그리드: 1열 ── */
+  .erp-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .erp-summary-card {
+    padding: 16px;
+  }
+
+  /* ── 카드 패딩 축소 ── */
+  .erp-card {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .erp-card-header {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .erp-card-title {
+    font-size: 15px;
+  }
+
+  /* ── 테이블: 가로 스크롤 ── */
+  .erp-table {
+    font-size: 13px;
+  }
+
+  .erp-table th {
+    padding: 8px 10px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .erp-table td {
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  /* 테이블 래퍼에 overflow 보장 */
+  .erp-card > div:has(> .erp-table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── 폼 그리드: 1열로 변환 ── */
+  .grid.grid-2,
+  .grid.grid-3,
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .erp-form-group {
+    margin-bottom: 12px;
+  }
+
+  .erp-form-input,
+  .erp-form-select {
+    font-size: 16px; /* iOS 줌 방지 */
+    padding: 12px;
+  }
+
+  /* ── 버튼: 모바일 터치 타겟 ── */
+  .erp-btn {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .erp-btn-sm {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  /* ── 직원 현황 요약 (roster): 2열 ── */
+  .erp-roster-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .erp-roster-stat {
+    padding: 12px;
+  }
+
+  .erp-roster-stat-value {
+    font-size: 22px;
+  }
+
+  /* ── 드롭다운: 전체 너비 ── */
+  .erp-dropdown {
+    min-width: 160px;
+  }
+
+  .erp-user-btn {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .erp-user-btn .avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+
+  /* ── 배지 ── */
+  .erp-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+
+  /* ── 알림 배너 ── */
+  .erp-alert {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  /* ── 빈 상태 ── */
+  .erp-empty {
+    padding: 40px 16px;
+  }
+
+  .erp-empty-icon {
+    font-size: 36px;
+  }
+
+  /* ── 섹션 타이틀 ── */
+  .erp-section-title {
+    font-size: 15px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+
+  /* ── 사이드바 네비 (표시될 경우 대비) ── */
+  .erp-nav-item {
+    padding: 12px 14px;
+    font-size: 15px;
+  }
+
+  .erp-sidebar-section {
+    padding: 12px 10px 6px;
+  }
+}

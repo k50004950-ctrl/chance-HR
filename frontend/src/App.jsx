@@ -1,25 +1,33 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ForceChangePassword from './components/ForceChangePassword';
 
-// Pages
+// Eager-loaded pages (login flow - immediate visibility)
 import Login from './pages/Login';
-import Signup from './pages/Signup';
-import LoginV2 from './pages/LoginV2';
-import SignupV2 from './pages/SignupV2';
-import InviteSignup from './pages/InviteSignup';
-import EmployeeMatchRequest from './pages/EmployeeMatchRequest';
-import AdminDashboard from './pages/AdminDashboard';
-import OwnerDashboard from './pages/OwnerDashboard';
-import EmployeeDashboard from './pages/EmployeeDashboard';
-import UsageGuide from './pages/UsageGuide';
-import QrAttendance from './pages/QrAttendance';
-import NotificationsPage from './pages/NotificationsPage';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import SystemGuide from './pages/SystemGuide';
 import FindUsername from './pages/FindUsername';
 import ResetPassword from './pages/ResetPassword';
+
+// Lazy-loaded pages (code splitting)
+const Signup = lazy(() => import('./pages/Signup'));
+const InviteSignup = lazy(() => import('./pages/InviteSignup'));
+const EmployeeMatchRequest = lazy(() => import('./pages/EmployeeMatchRequest'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const OwnerDashboard = lazy(() => import('./pages/OwnerDashboard'));
+const EmployeeDashboard = lazy(() => import('./pages/EmployeeDashboard'));
+const UsageGuide = lazy(() => import('./pages/UsageGuide'));
+const QrAttendance = lazy(() => import('./pages/QrAttendance'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const SystemGuide = lazy(() => import('./pages/SystemGuide'));
+
+// Loading spinner for Suspense fallback
+const LoadingSpinner = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+    <div className="spinner" style={{ width: 40, height: 40, border: '4px solid #e0e0e0', borderTop: '4px solid #4A90D9', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+);
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -60,6 +68,7 @@ const AppRouter = () => {
   }
 
   return (
+    <Suspense fallback={<LoadingSpinner />}>
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
       <Route path="/signup" element={user ? <Navigate to="/" /> : <Signup />} />
@@ -129,6 +138,7 @@ const AppRouter = () => {
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+    </Suspense>
   );
 };
 

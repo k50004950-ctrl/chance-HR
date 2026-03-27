@@ -1,6 +1,7 @@
 import express from 'express';
 import { query, get } from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
+import { requirePremium } from '../middleware/planCheck.js';
 import { logAudit } from '../utils/auditLog.js';
 import {
   getTaxFromTable,
@@ -456,7 +457,7 @@ router.get('/slip/:slipId/pdf', authenticate, async (req, res) => {
 });
 
 // 급여명세서 이메일 발송 (개별)
-router.post('/slip/:slipId/email', authenticate, async (req, res) => {
+router.post('/slip/:slipId/email', authenticate, requirePremium('email'), async (req, res) => {
   try {
     if (!['owner', 'admin', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ success: false, message: '권한이 없습니다.' });
@@ -476,7 +477,7 @@ router.post('/slip/:slipId/email', authenticate, async (req, res) => {
 });
 
 // 급여명세서 일괄 이메일 발송
-router.post('/slips/bulk-email', authenticate, async (req, res) => {
+router.post('/slips/bulk-email', authenticate, requirePremium('email'), async (req, res) => {
   try {
     if (!['owner', 'admin', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ success: false, message: '권한이 없습니다.' });

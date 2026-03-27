@@ -291,6 +291,12 @@ export const contractsAPI = {
   downloadPdf: (id) => api.get(`/contracts/${id}/pdf`, { responseType: 'blob' })
 };
 
+// 플랜 API
+export const plansAPI = {
+  getCurrent: (workplaceId) => api.get('/plans/current', { params: { workplace_id: workplaceId } }),
+  upgrade: (workplaceId) => api.post('/plans/upgrade', { workplace_id: workplaceId })
+};
+
 // 회원 탈퇴 API
 export const accountAPI = {
   deleteAccount: (password) => api.delete('/v2/auth/account', { data: { password } })

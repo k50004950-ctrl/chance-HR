@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MapPicker from '../MapPicker';
-import { accountAPI } from '../../services/api';
+import { accountAPI, plansAPI } from '../../services/api';
 
 /**
  * Settings tab - extracted from OwnerDashboard
@@ -27,11 +27,48 @@ const SettingsTab = ({
   pushLoading,
   handleDisablePush,
   handleSendPushTest,
-  handleEnablePush
+  handleEnablePush,
+  workplaceId
 }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [planInfo, setPlanInfo] = useState(null);
+  const [planLoading, setPlanLoading] = useState(false);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+
+  useEffect(() => {
+    if (workplaceId) {
+      fetchPlanInfo();
+    }
+  }, [workplaceId]);
+
+  const fetchPlanInfo = async () => {
+    try {
+      setPlanLoading(true);
+      const res = await plansAPI.getCurrent(workplaceId);
+      setPlanInfo(res.data);
+    } catch (error) {
+      console.error('플랜 조회 오류:', error);
+    } finally {
+      setPlanLoading(false);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    if (!window.confirm('프리미엄 플랜(30일 체험)을 활성화하시겠습니까?')) return;
+    try {
+      setUpgradeLoading(true);
+      await plansAPI.upgrade(workplaceId);
+      alert('프리미엄 플랜이 활성화되었습니다!');
+      fetchPlanInfo();
+    } catch (error) {
+      const msg = error.response?.data?.message || '업그레이드에 실패했습니다.';
+      alert(msg);
+    } finally {
+      setUpgradeLoading(false);
+    }
+  };
 
   const handleDeleteAccount = async () => {
     if (!deletePassword) {
@@ -55,6 +92,81 @@ const SettingsTab = ({
 
   return (
     <>
+      {/* 내 플랜 섹션 */}
+      <div className="card" style={{ marginBottom: '20px' }}>
+        <h3 style={{ marginTop: 0, color: '#374151' }}>내 플랜</h3>
+        {planLoading ? (
+          <p style={{ color: '#6b7280', fontSize: '14px' }}>로딩 중...</p>
+        ) : planInfo ? (
+          <div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '16px'
+            }}>
+              <span style={{
+                display: 'inline-block',
+                padding: '6px 16px',
+                borderRadius: '20px',
+                fontSize: '14px',
+                fontWeight: 700,
+                backgroundColor: planInfo.plan?.plan_type === 'premium' ? '#dbeafe' : '#f3f4f6',
+                color: planInfo.plan?.plan_type === 'premium' ? '#1d4ed8' : '#6b7280'
+              }}>
+                {planInfo.plan?.plan_type === 'premium' ? 'Premium' : 'Free'}
+              </span>
+              {planInfo.plan?.plan_type === 'premium' && planInfo.plan?.expires_at && (
+                <span style={{ fontSize: '13px', color: '#6b7280' }}>
+                  ~ {new Date(planInfo.plan.expires_at).toLocaleDateString('ko-KR')} 까지
+                </span>
+              )}
+            </div>
+
+            <div style={{
+              backgroundColor: '#f9fafb',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', color: '#374151' }}>등록 직원 수</span>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
+                  {planInfo.employee_count || 0}명
+                  {planInfo.employee_limit && (
+                    <span style={{ color: '#6b7280', fontWeight: 400 }}> / {planInfo.employee_limit}명</span>
+                  )}
+                  {!planInfo.employee_limit && (
+                    <span style={{ color: '#6b7280', fontWeight: 400 }}> (무제한)</span>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {planInfo.plan?.plan_type !== 'premium' && (
+              <div>
+                <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px', lineHeight: 1.5 }}>
+                  프리미엄 플랜: 직원 무제한, 엑셀 가져오기, 급여명세서 이메일, 근로계약서, 수기급여계산
+                </p>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleUpgrade}
+                  disabled={upgradeLoading}
+                  style={{
+                    backgroundColor: '#0284c7',
+                    borderColor: '#0284c7'
+                  }}
+                >
+                  {upgradeLoading ? '처리 중...' : '프리미엄 업그레이드 (30일 체험)'}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p style={{ color: '#6b7280', fontSize: '13px' }}>플랜 정보를 불러올 수 없습니다.</p>
+        )}
+      </div>
+
       <div className="card">
         <h3 style={{ marginTop: 0, color: '#374151' }}>사업장 주소/위치 수정</h3>
         <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '12px' }}>

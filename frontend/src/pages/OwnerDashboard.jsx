@@ -3825,6 +3825,7 @@ const OwnerDashboard = () => {
                 handleDisablePush={handleDisablePush}
                 handleSendPushTest={handleSendPushTest}
                 handleEnablePush={handleEnablePush}
+                workplaceId={selectedWorkplace}
               />
             )}
 

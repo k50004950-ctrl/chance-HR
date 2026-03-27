@@ -1,13 +1,14 @@
 import express from 'express';
 import { run, get, query } from '../config/database.js';
 import { authenticate, authorizeRole } from '../middleware/auth.js';
+import { requirePremium } from '../middleware/planCheck.js';
 
 const router = express.Router();
 
 // ============================================
 // 1. 근로계약서 생성 (사업주만)
 // ============================================
-router.post('/', authenticate, authorizeRole('owner', 'admin'), async (req, res) => {
+router.post('/', authenticate, requirePremium('contracts'), authorizeRole('owner', 'admin'), async (req, res) => {
   try {
     const {
       workplace_id, employee_id, employer_name, employee_name,
@@ -56,7 +57,7 @@ router.post('/', authenticate, authorizeRole('owner', 'admin'), async (req, res)
 // ============================================
 // 2. 사업장의 모든 계약서 조회
 // ============================================
-router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
+router.get('/workplace/:workplaceId', authenticate, requirePremium('contracts'), async (req, res) => {
   try {
     const { workplaceId } = req.params;
     const contracts = await query(
@@ -78,7 +79,7 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
 // ============================================
 // 3. 직원별 계약서 조회
 // ============================================
-router.get('/employee/:employeeId', authenticate, async (req, res) => {
+router.get('/employee/:employeeId', authenticate, requirePremium('contracts'), async (req, res) => {
   try {
     const { employeeId } = req.params;
     const contracts = await query(
@@ -100,7 +101,7 @@ router.get('/employee/:employeeId', authenticate, async (req, res) => {
 // ============================================
 // 4. 특정 계약서 조회
 // ============================================
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', authenticate, requirePremium('contracts'), async (req, res) => {
   try {
     const { id } = req.params;
     // Non-numeric IDs pass through
@@ -128,7 +129,7 @@ router.get('/:id', authenticate, async (req, res) => {
 // ============================================
 // 5. 직원 서명 (employee signs the contract)
 // ============================================
-router.put('/:id/sign', authenticate, async (req, res) => {
+router.put('/:id/sign', authenticate, requirePremium('contracts'), async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id || req.user.userId;
@@ -169,7 +170,7 @@ router.put('/:id/sign', authenticate, async (req, res) => {
 // ============================================
 // 6. 계약서 PDF 생성 (간이 텍스트 형태)
 // ============================================
-router.get('/:id/pdf', authenticate, async (req, res) => {
+router.get('/:id/pdf', authenticate, requirePremium('contracts'), async (req, res) => {
   try {
     const { id } = req.params;
     const contract = await get(

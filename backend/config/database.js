@@ -989,8 +989,21 @@ export const initDatabase = async () => {
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`);
       } catch (e) {}
 
+      // Subscription Plans 테이블
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS subscription_plans (
+          id SERIAL PRIMARY KEY,
+          workplace_id INTEGER NOT NULL REFERENCES workplaces(id),
+          plan_type VARCHAR(20) DEFAULT 'free',
+          started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          expires_at TIMESTAMP,
+          is_active BOOLEAN DEFAULT true
+        )
+      `);
+
       // 성능 인덱스 추가
       const indexes = [
+        'CREATE INDEX IF NOT EXISTS idx_subscription_plans_workplace ON subscription_plans(workplace_id, is_active)',
         'CREATE INDEX IF NOT EXISTS idx_attendance_user_wp_date ON attendance(user_id, workplace_id, date)',
         'CREATE INDEX IF NOT EXISTS idx_users_workplace ON users(workplace_id)',
         'CREATE INDEX IF NOT EXISTS idx_salary_slips_wp_month ON salary_slips(workplace_id, payroll_month)',
@@ -1771,6 +1784,19 @@ export const initDatabase = async () => {
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id),
           FOREIGN KEY (employee_id) REFERENCES users(id)
+        )
+      `);
+
+      // Subscription Plans 테이블
+      await run(`
+        CREATE TABLE IF NOT EXISTS subscription_plans (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          workplace_id INTEGER NOT NULL,
+          plan_type TEXT DEFAULT 'free',
+          started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          expires_at DATETIME,
+          is_active INTEGER DEFAULT 1,
+          FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
 

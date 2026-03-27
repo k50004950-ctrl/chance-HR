@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const Login = () => {
+  const { t } = useTranslation();
   const [credentials, setCredentials] = useState({
     username: '',
     password: ''
@@ -26,13 +29,13 @@ const Login = () => {
     setError('');
 
     const result = await login(credentials);
-    
+
     if (result.success) {
       navigate('/');
     } else {
       setError(result.message);
     }
-    
+
     setLoading(false);
   };
 
@@ -45,6 +48,10 @@ const Login = () => {
       padding: '20px'
     }}>
       <div className="card" style={{ maxWidth: '400px', width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+          <LanguageSwitcher />
+        </div>
+
         <h1 style={{
           textAlign: 'center',
           marginBottom: '32px',
@@ -54,7 +61,7 @@ const Login = () => {
           fontSize: '28px',
           fontWeight: '700'
         }}>
-          찬스HR
+          ChanceHR
         </h1>
 
         {error && (
@@ -65,7 +72,7 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">사용자명</label>
+            <label className="form-label">{t('auth.username')}</label>
             <input
               type="text"
               name="username"
@@ -78,7 +85,7 @@ const Login = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">비밀번호</label>
+            <label className="form-label">{t('auth.password')}</label>
             <input
               type="password"
               name="password"
@@ -95,7 +102,7 @@ const Login = () => {
             style={{ width: '100%', marginTop: '8px' }}
             disabled={loading}
           >
-            {loading ? '로그인 중...' : '로그인'}
+            {loading ? t('auth.loggingIn') : t('auth.login')}
           </button>
 
           {/* 아이디/비밀번호 찾기 */}
@@ -113,7 +120,7 @@ const Login = () => {
                 padding: '0'
               }}
             >
-              아이디 찾기
+              {t('auth.findUsername')}
             </button>
             <span style={{ color: '#ddd' }}>|</span>
             <button
@@ -129,7 +136,7 @@ const Login = () => {
                 padding: '0'
               }}
             >
-              비밀번호 찾기
+              {t('auth.findPassword')}
             </button>
           </div>
         </form>
@@ -137,7 +144,7 @@ const Login = () => {
         {/* 회원가입 구분 */}
         <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e5e7eb' }}>
           <p style={{ textAlign: 'center', marginBottom: '12px', color: '#6b7280', fontSize: '14px', fontWeight: '600' }}>
-            아직 계정이 없으신가요?
+            {t('auth.noAccount')}
           </p>
           <div style={{ display: 'grid', gap: '12px' }}>
             <button
@@ -168,7 +175,7 @@ const Login = () => {
               }}
             >
               <span style={{ fontSize: '18px' }}>💼</span>
-              <span>사업주 회원가입</span>
+              <span>{t('auth.ownerSignup')}</span>
             </button>
             <button
               onClick={() => navigate('/signup-v2?role=employee')}
@@ -200,7 +207,7 @@ const Login = () => {
               }}
             >
               <span style={{ fontSize: '18px' }}>👷</span>
-              <span>근로자 회원가입</span>
+              <span>{t('auth.employeeSignup')}</span>
             </button>
           </div>
         </div>
@@ -214,7 +221,7 @@ const Login = () => {
           color: '#6b7280',
           textAlign: 'center'
         }}>
-          <p style={{ fontWeight: '600' }}>문의: 카카오톡 채널 "찬스컴퍼니"</p>
+          <p style={{ fontWeight: '600' }}>{t('auth.contact')}</p>
         </div>
       </div>
     </div>

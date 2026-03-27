@@ -10,6 +10,7 @@ import bcrypt from 'bcryptjs';
 import { encryptSSN, decryptSSN } from '../utils/crypto.js';
 import { validateEmployeeCreate, validateIdParam } from '../middleware/validate.js';
 import { logAudit } from '../utils/auditLog.js';
+import { requirePremium, checkEmployeeLimit } from '../middleware/planCheck.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -313,7 +314,7 @@ router.get('/excel-template', authenticate, (req, res) => {
 });
 
 // 엑셀 대량 업로드
-router.post('/excel-import', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), excelUpload.single('file'), async (req, res) => {
+router.post('/excel-import', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), requirePremium('excel_import'), excelUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: '파일을 업로드해주세요.' });
@@ -410,7 +411,7 @@ router.post('/excel-import', authenticate, authorizeRole(['owner', 'admin', 'sup
 });
 
 // 직원 등록
-router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']), uploadFiles, async (req, res) => {
+router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']), checkEmployeeLimit, uploadFiles, async (req, res) => {
   try {
     let {
       username, password, name, phone, email, ssn, address,

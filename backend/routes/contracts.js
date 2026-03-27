@@ -2,12 +2,93 @@ import express from 'express';
 import { run, get, query } from '../config/database.js';
 import { authenticate, authorizeRole } from '../middleware/auth.js';
 import { requirePremium } from '../middleware/planCheck.js';
+import { generateContractPDF } from '../utils/contractPdfGenerator.js';
 
 const router = express.Router();
 
 // ============================================
 // 1. 근로계약서 생성 (사업주만)
 // ============================================
+/**
+ * @swagger
+ * /api/contracts:
+ *   get:
+ *     summary: 사업장의 모든 계약서 조회
+ *     description: workplace_id 또는 employee_id 기준으로 계약서 목록을 조회합니다.
+ *     tags: [Contracts]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 계약서 목록
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 contracts:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *   post:
+ *     summary: 근로계약서 생성
+ *     tags: [Contracts]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - workplace_id
+ *               - employee_id
+ *               - contract_start_date
+ *             properties:
+ *               workplace_id:
+ *                 type: integer
+ *               employee_id:
+ *                 type: integer
+ *               employer_name:
+ *                 type: string
+ *               employee_name:
+ *                 type: string
+ *               contract_start_date:
+ *                 type: string
+ *                 format: date
+ *               contract_end_date:
+ *                 type: string
+ *                 format: date
+ *               job_description:
+ *                 type: string
+ *               work_location:
+ *                 type: string
+ *               work_days:
+ *                 type: string
+ *               work_start_time:
+ *                 type: string
+ *               work_end_time:
+ *                 type: string
+ *               salary_type:
+ *                 type: string
+ *                 enum: [monthly, hourly, daily, weekly, yearly]
+ *               salary_amount:
+ *                 type: number
+ *               payment_date:
+ *                 type: string
+ *               social_insurance:
+ *                 type: boolean
+ *               special_terms:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 계약서 생성 성공
+ *       400:
+ *         description: 필수 항목 누락
+ */
 router.post('/', authenticate, requirePremium('contracts'), authorizeRole('owner', 'admin'), async (req, res) => {
   try {
     const {
@@ -168,15 +249,42 @@ router.put('/:id/sign', authenticate, requirePremium('contracts'), async (req, r
 });
 
 // ============================================
-// 6. 계약서 PDF 생성 (간이 텍스트 형태)
+// 6. 계약서 PDF 생성
 // ============================================
+/**
+ * @swagger
+ * /api/contracts/{id}/pdf:
+ *   get:
+ *     summary: 근로계약서 PDF 다운로드
+ *     tags: [Contracts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 계약서 ID
+ *     responses:
+ *       200:
+ *         description: PDF 파일
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: 계약서를 찾을 수 없음
+ */
 router.get('/:id/pdf', authenticate, requirePremium('contracts'), async (req, res) => {
   try {
     const { id } = req.params;
     const contract = await get(
-      `SELECT lc.*, u.name as employee_display_name
+      `SELECT lc.*, u.name as employee_display_name, w.name as workplace_name
        FROM labor_contracts lc
        LEFT JOIN users u ON lc.employee_id = u.id
+       LEFT JOIN workplaces w ON lc.workplace_id = w.id
        WHERE lc.id = ?`,
       [id]
     );
@@ -185,63 +293,12 @@ router.get('/:id/pdf', authenticate, requirePremium('contracts'), async (req, re
       return res.status(404).json({ success: false, message: '계약서를 찾을 수 없습니다.' });
     }
 
-    // Generate a simple text-based contract document
-    const socialInsuranceText = contract.social_insurance ? '적용' : '미적용';
-    const contractEndText = contract.contract_end_date || '무기한';
-    const employerSignedText = contract.employer_signed
-      ? `서명 완료 (${new Date(contract.employer_signed_at).toLocaleString('ko-KR')})`
-      : '미서명';
-    const employeeSignedText = contract.employee_signed
-      ? `서명 완료 (${new Date(contract.employee_signed_at).toLocaleString('ko-KR')})`
-      : '미서명';
+    const pdfBuffer = await generateContractPDF(contract);
 
-    const content = `
-========================================
-          근 로 계 약 서
-========================================
-
-1. 계약 당사자
-   사업주: ${contract.employer_name || '-'}
-   근로자: ${contract.employee_name || contract.employee_display_name || '-'}
-
-2. 계약 기간
-   시작일: ${contract.contract_start_date}
-   종료일: ${contractEndText}
-
-3. 업무 내용
-   ${contract.job_description || '-'}
-
-4. 근무 장소
-   ${contract.work_location || '-'}
-
-5. 근무 시간
-   근무일: ${contract.work_days || '-'}
-   시작: ${contract.work_start_time || '-'}
-   종료: ${contract.work_end_time || '-'}
-
-6. 급여
-   급여 유형: ${contract.salary_type || '-'}
-   급여 금액: ${contract.salary_amount ? contract.salary_amount.toLocaleString() + '원' : '-'}
-   지급일: ${contract.payment_date || '-'}
-
-7. 4대보험: ${socialInsuranceText}
-
-8. 특약사항
-   ${contract.special_terms || '없음'}
-
-========================================
-           서 명 확 인
-========================================
-사업주: ${employerSignedText}
-근로자: ${employeeSignedText}
-
-※ 본 근로계약서는 근로기준법 제17조에 의거하여 작성되었습니다.
-========================================
-`;
-
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="labor_contract_${id}.txt"`);
-    res.send(content);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="labor_contract_${id}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
   } catch (error) {
     console.error('계약서 PDF 생성 오류:', error);
     res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });

@@ -1,7 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const Footer = ({ simple = false }) => {
+  const { t } = useTranslation();
   if (simple) {
     // 로그인/회원가입 페이지용 간단한 푸터
     return (
@@ -15,16 +17,16 @@ const Footer = ({ simple = false }) => {
         backgroundColor: '#f9f9f9'
       }}>
         <div style={{ marginBottom: '8px', fontWeight: '600', color: '#333' }}>
-          찬스컴퍼니
+          {t('footer.companyName')}
         </div>
         <div style={{ marginBottom: '4px' }}>
-          사업자등록번호: 819-06-01671 | 대표자: 김우연
+          {t('footer.businessNumber')} | {t('footer.representative')}
         </div>
         <div style={{ marginBottom: '8px' }}>
-          이메일: K50004950@gmail.com
+          {t('footer.email')}
         </div>
         <div style={{ color: '#999', fontSize: '11px' }}>
-          © 2020-{new Date().getFullYear()} 찬스컴퍼니. All rights reserved.
+          &copy; 2020-{new Date().getFullYear()} {t('footer.copyright')}
         </div>
       </div>
     );
@@ -49,17 +51,17 @@ const Footer = ({ simple = false }) => {
             color: '#333', 
             marginBottom: '12px' 
           }}>
-            찬스컴퍼니
+            {t('footer.companyName')}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
-            <span>사업자등록번호: 819-06-01671</span>
+            <span>{t('footer.businessNumber')}</span>
             <span>|</span>
-            <span>대표자: 김우연</span>
+            <span>{t('footer.representative')}</span>
             <span>|</span>
             <span>Since 2020</span>
           </div>
           <div style={{ marginTop: '8px' }}>
-            <span>이메일: K50004950@gmail.com</span>
+            <span>{t('footer.email')}</span>
           </div>
         </div>
 
@@ -80,7 +82,7 @@ const Footer = ({ simple = false }) => {
             onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
             onMouseOut={(e) => e.target.style.textDecoration = 'none'}
           >
-            개인정보처리방침
+            {t('footer.privacyPolicy')}
           </Link>
           <span style={{ color: '#ddd' }}>|</span>
           <Link 
@@ -93,7 +95,7 @@ const Footer = ({ simple = false }) => {
             onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
             onMouseOut={(e) => e.target.style.textDecoration = 'none'}
           >
-            이용가이드
+            {t('footer.userGuide')}
           </Link>
         </div>
 
@@ -104,7 +106,7 @@ const Footer = ({ simple = false }) => {
           paddingTop: '15px',
           borderTop: '1px solid #e0e0e0'
         }}>
-          © 2020-{new Date().getFullYear()} 찬스컴퍼니. All rights reserved.
+          &copy; 2020-{new Date().getFullYear()} {t('footer.copyright')}
         </div>
 
         {/* 모바일 최적화 */}

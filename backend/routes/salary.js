@@ -309,6 +309,43 @@ router.post('/calculate-tax', authenticate, async (req, res) => {
 });
 
 // 4대보험료 자동 계산
+/**
+ * @swagger
+ * /api/salary/calculate-insurance:
+ *   post:
+ *     summary: 4대보험료 계산
+ *     description: 과세대상 급여액을 기반으로 4대보험료를 계산합니다.
+ *     tags: [Salary]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - basePay
+ *             properties:
+ *               basePay:
+ *                 type: number
+ *                 description: 과세대상 급여액
+ *                 example: 3000000
+ *               payrollMonth:
+ *                 type: string
+ *                 description: 귀속 월 (YYYY-MM)
+ *                 example: "2026-03"
+ *               taxType:
+ *                 type: string
+ *                 description: 과세 유형
+ *     responses:
+ *       200:
+ *         description: 4대보험료 계산 결과
+ *       400:
+ *         description: 잘못된 입력
+ *       404:
+ *         description: 적용 가능한 요율 없음
+ */
 router.post('/calculate-insurance', authenticate, async (req, res) => {
   try {
     const { basePay, payrollMonth, taxType } = req.body;

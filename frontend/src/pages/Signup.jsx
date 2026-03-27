@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { authAPI } from '../services/api';
 import { searchAddress, getCoordinatesFromAddress, getGoogleMapsLink } from '../utils/addressSearch';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [usernameCheckStatus, setUsernameCheckStatus] = useState('unchecked');
@@ -44,7 +46,7 @@ const Signup = () => {
 
   const handleCheckUsername = async () => {
     if (!formData.username) {
-      setMessage({ type: 'error', text: '아이디를 입력해주세요.' });
+      setMessage({ type: 'error', text: t('signup.msgEnterUsername') });
       return;
     }
     try {
@@ -52,13 +54,13 @@ const Signup = () => {
       const response = await authAPI.checkUsername(formData.username);
       if (response.data.available) {
         setUsernameCheckStatus('available');
-        setMessage({ type: 'success', text: '사용 가능한 아이디입니다.' });
+        setMessage({ type: 'success', text: t('signup.usernameAvailable') });
       } else {
         setUsernameCheckStatus('unavailable');
-        setMessage({ type: 'error', text: '이미 사용 중인 아이디입니다.' });
+        setMessage({ type: 'error', text: t('signup.usernameUnavailable') });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || '아이디 확인에 실패했습니다.' });
+      setMessage({ type: 'error', text: error.response?.data?.message || t('signup.msgCheckUsername') });
     } finally {
       setUsernameCheckLoading(false);
     }
@@ -68,32 +70,30 @@ const Signup = () => {
     e.preventDefault();
     setMessage({ type: '', text: '' });
 
-    // 비밀번호 확인
     if (formData.password !== formData.confirmPassword) {
-      setMessage({ type: 'error', text: '비밀번호가 일치하지 않습니다.' });
+      setMessage({ type: 'error', text: t('signup.msgPasswordMismatch') });
       return;
     }
 
-    // 필수 입력 확인
-    if (!formData.username || !formData.password || !formData.name || 
+    if (!formData.username || !formData.password || !formData.name ||
         !formData.business_name || !formData.business_number || !formData.phone) {
-      setMessage({ type: 'error', text: '필수 항목을 모두 입력해주세요.' });
+      setMessage({ type: 'error', text: t('signup.msgRequiredFields') });
       return;
     }
     if (usernameCheckStatus !== 'available') {
-      setMessage({ type: 'error', text: '아이디 중복확인을 먼저 해주세요.' });
+      setMessage({ type: 'error', text: t('signup.msgCheckDuplicate') });
       return;
     }
     if (!formData.address || !formData.latitude || !formData.longitude) {
-      setMessage({ type: 'error', text: '사업장 주소와 좌표를 입력해주세요.' });
+      setMessage({ type: 'error', text: t('signup.msgAddressRequired') });
       return;
     }
     if (!formData.privacy_consent) {
-      setMessage({ type: 'error', text: '개인정보 수집·이용 동의가 필요합니다.' });
+      setMessage({ type: 'error', text: t('signup.msgPrivacyRequired') });
       return;
     }
     if (!formData.service_consent) {
-      setMessage({ type: 'error', text: '서비스 이용 동의가 필요합니다.' });
+      setMessage({ type: 'error', text: t('signup.msgServiceRequired') });
       return;
     }
 
@@ -103,18 +103,18 @@ const Signup = () => {
       const { confirmPassword, ...signupData } = formData;
       await authAPI.signup(signupData);
       
-      setMessage({ 
-        type: 'success', 
-        text: '회원가입이 완료되었습니다! 관리자 승인 후 로그인하실 수 있습니다.' 
+      setMessage({
+        type: 'success',
+        text: t('signup.msgSignupSuccess')
       });
       
       setTimeout(() => {
         navigate('/login');
       }, 2000);
     } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || '회원가입 중 오류가 발생했습니다.' 
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || t('signup.msgSignupError')
       });
     }
 
@@ -133,15 +133,14 @@ const Signup = () => {
           latitude: result.latitude,
           longitude: result.longitude
         }));
-        setMessage({ type: 'success', text: '주소와 좌표가 자동으로 입력되었습니다!' });
+        setMessage({ type: 'success', text: t('signup.msgAddressCoordSuccess') });
       } else {
-        // 좌표가 없는 경우에만 주소로 재검색
         setFormData((prev) => ({
           ...prev,
           address: result.address
         }));
 
-        setMessage({ type: 'info', text: '좌표를 검색하는 중...' });
+        setMessage({ type: 'info', text: t('signup.msgSearchingCoord') });
         const coords = await getCoordinatesFromAddress(result.address);
 
         setFormData((prev) => ({
@@ -152,19 +151,19 @@ const Signup = () => {
         }));
 
         if (coords.success) {
-          setMessage({ type: 'success', text: '주소와 좌표가 자동으로 입력되었습니다!' });
+          setMessage({ type: 'success', text: t('signup.msgAddressCoordSuccess') });
         } else {
           setMessage({ type: 'info', text: coords.message });
         }
       }
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || '주소 검색에 실패했습니다.' });
+      setMessage({ type: 'error', text: error.message || t('signup.msgAddressSearchFailed') });
     }
   };
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setMessage({ type: 'error', text: '현재 브라우저에서는 위치 기능을 사용할 수 없습니다.' });
+      setMessage({ type: 'error', text: t('signup.msgLocationUnavailable') });
       return;
     }
 
@@ -176,16 +175,16 @@ const Signup = () => {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude
         }));
-        setMessage({ type: 'success', text: '현재 위치가 입력되었습니다.' });
+        setMessage({ type: 'success', text: t('signup.msgLocationSet') });
         setLocating(false);
       },
       (error) => {
         const messageMap = {
-          1: '위치 권한이 필요합니다.',
-          2: '위치 정보를 가져올 수 없습니다.',
-          3: '위치 요청 시간이 초과되었습니다.'
+          1: t('signup.msgLocationPermission'),
+          2: t('signup.msgLocationError'),
+          3: t('signup.msgLocationTimeout')
         };
-        setMessage({ type: 'error', text: messageMap[error.code] || '위치 정보를 가져오지 못했습니다.' });
+        setMessage({ type: 'error', text: messageMap[error.code] || t('signup.msgLocationFailed') });
         setLocating(false);
       }
     );
@@ -202,10 +201,10 @@ const Signup = () => {
     }}>
       <div className="card" style={{ maxWidth: '600px', width: '100%' }}>
         <h2 style={{ textAlign: 'center', marginBottom: '8px', color: '#374151' }}>
-          대표자 회원가입
+          {t('signup.title')}
         </h2>
         <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '24px', fontSize: '14px' }}>
-          사업장 정보를 입력해주세요
+          {t('signup.subtitle')}
         </p>
 
         {message.text && (
@@ -216,11 +215,11 @@ const Signup = () => {
 
         <form onSubmit={handleSubmit}>
           <h3 style={{ marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
-            로그인 정보
+            {t('signup.loginInfo')}
           </h3>
           
           <div className="form-group">
-            <label className="form-label">아이디 *</label>
+            <label className="form-label">{t('signup.usernameLabel')}</label>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
                 type="text"
@@ -229,7 +228,7 @@ const Signup = () => {
                 value={formData.username}
                 onChange={handleChange}
                 required
-                placeholder="로그인용 아이디"
+                placeholder={t('signup.usernamePlaceholder')}
               />
               <button
                 type="button"
@@ -238,24 +237,24 @@ const Signup = () => {
                 disabled={usernameCheckLoading}
                 style={{ whiteSpace: 'nowrap' }}
               >
-                {usernameCheckLoading ? '확인 중...' : '중복 확인'}
+                {usernameCheckLoading ? t('signup.checking') : t('signup.checkDuplicate')}
               </button>
             </div>
             {usernameCheckStatus === 'available' && (
               <small style={{ color: '#16a34a', fontSize: '12px', display: 'block', marginTop: '6px' }}>
-                사용 가능한 아이디입니다.
+                {t('signup.usernameAvailable')}
               </small>
             )}
             {usernameCheckStatus === 'unavailable' && (
               <small style={{ color: '#dc2626', fontSize: '12px', display: 'block', marginTop: '6px' }}>
-                이미 사용 중인 아이디입니다.
+                {t('signup.usernameUnavailable')}
               </small>
             )}
           </div>
 
           <div className="grid grid-2">
             <div className="form-group">
-              <label className="form-label">비밀번호 *</label>
+              <label className="form-label">{t('signup.passwordLabel')}</label>
               <input
                 type="password"
                 name="password"
@@ -263,11 +262,11 @@ const Signup = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                placeholder="비밀번호"
+                placeholder={t('signup.passwordPlaceholder')}
               />
             </div>
             <div className="form-group">
-              <label className="form-label">비밀번호 확인 *</label>
+              <label className="form-label">{t('signup.confirmPasswordLabel')}</label>
               <input
                 type="password"
                 name="confirmPassword"
@@ -275,17 +274,17 @@ const Signup = () => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                placeholder="비밀번호 재입력"
+                placeholder={t('signup.confirmPasswordPlaceholder')}
               />
             </div>
           </div>
 
           <h3 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
-            대표자 정보
+            {t('signup.ownerInfo')}
           </h3>
 
           <div className="form-group">
-            <label className="form-label">대표자 이름 *</label>
+            <label className="form-label">{t('signup.ownerNameLabel')}</label>
             <input
               type="text"
               name="name"
@@ -293,13 +292,13 @@ const Signup = () => {
               value={formData.name}
               onChange={handleChange}
               required
-              placeholder="실명"
+              placeholder={t('signup.ownerNamePlaceholder')}
             />
           </div>
 
           <div className="grid grid-2">
             <div className="form-group">
-              <label className="form-label">전화번호 *</label>
+              <label className="form-label">{t('signup.phoneLabel')}</label>
               <input
                 type="tel"
                 name="phone"
@@ -311,7 +310,7 @@ const Signup = () => {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">이메일</label>
+              <label className="form-label">{t('signup.emailLabel')}</label>
               <input
                 type="email"
                 name="email"
@@ -324,11 +323,11 @@ const Signup = () => {
           </div>
 
           <h3 style={{ marginTop: '24px', marginBottom: '16px', color: '#374151', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
-            사업장 정보
+            {t('signup.businessInfo')}
           </h3>
 
           <div className="form-group">
-            <label className="form-label">상호 (사업장명) *</label>
+            <label className="form-label">{t('signup.businessNameLabel')}</label>
             <input
               type="text"
               name="business_name"
@@ -336,12 +335,12 @@ const Signup = () => {
               value={formData.business_name}
               onChange={handleChange}
               required
-              placeholder="예: 홍길동 카페"
+              placeholder={t('signup.businessNamePlaceholder')}
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">사업자등록번호 *</label>
+            <label className="form-label">{t('signup.businessNumberLabel')}</label>
             <input
               type="text"
               name="business_number"
@@ -349,39 +348,39 @@ const Signup = () => {
               value={formData.business_number}
               onChange={handleChange}
               required
-              placeholder="000-00-00000"
+              placeholder={t('signup.businessNumberPlaceholder')}
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">추천인</label>
+            <label className="form-label">{t('signup.referrerLabel')}</label>
             <input
               type="text"
               name="sales_rep"
               className="form-input"
               value={formData.sales_rep}
               onChange={handleChange}
-              placeholder="추천인 이름"
+              placeholder={t('signup.referrerPlaceholder')}
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">세무사 상호</label>
+            <label className="form-label">{t('signup.taxOfficeLabel')}</label>
             <input
               type="text"
               name="tax_office_name"
               className="form-input"
               value={formData.tax_office_name}
               onChange={handleChange}
-              placeholder="세무사 사무소 이름"
+              placeholder={t('signup.taxOfficePlaceholder')}
             />
             <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-              추후 세무사사무실과 연계업데이트 작업을 할수있습니다
+              {t('signup.taxOfficeNote')}
             </p>
           </div>
 
           <div className="form-group">
-            <label className="form-label">주소 *</label>
+            <label className="form-label">{t('signup.addressLabel')}</label>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <input
                 type="text"
@@ -391,7 +390,7 @@ const Signup = () => {
                 onChange={handleChange}
                 onClick={handleSearchAddress}
                 readOnly
-                placeholder="주소 검색 버튼을 클릭하세요"
+                placeholder={t('signup.addressPlaceholder')}
                 style={{ flex: '1 1 260px' }}
               />
               <button
@@ -400,17 +399,17 @@ const Signup = () => {
                 onClick={handleSearchAddress}
                 style={{ whiteSpace: 'nowrap', minWidth: '140px', flex: '0 0 auto' }}
               >
-                🔍 주소 검색
+                {t('signup.searchAddress')}
               </button>
             </div>
             <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-              주소 검색(다음/카카오)으로 정확한 주소를 선택하면 좌표가 자동 입력됩니다.
+              {t('signup.addressNote')}
             </p>
           </div>
 
           <div className="grid grid-2">
             <div className="form-group">
-              <label className="form-label">위도 *</label>
+              <label className="form-label">{t('signup.latitudeLabel')}</label>
               <input
                 type="number"
                 step="any"
@@ -419,11 +418,11 @@ const Signup = () => {
                 value={formData.latitude}
                 onChange={handleChange}
                 required
-                placeholder="예: 37.5665"
+                placeholder={t('signup.latitudePlaceholder')}
               />
             </div>
             <div className="form-group">
-              <label className="form-label">경도 *</label>
+              <label className="form-label">{t('signup.longitudeLabel')}</label>
               <input
                 type="number"
                 step="any"
@@ -432,7 +431,7 @@ const Signup = () => {
                 value={formData.longitude}
                 onChange={handleChange}
                 required
-                placeholder="예: 126.9780"
+                placeholder={t('signup.longitudePlaceholder')}
               />
             </div>
           </div>
@@ -445,7 +444,7 @@ const Signup = () => {
               style={{ flex: 1 }}
               disabled={locating}
             >
-              {locating ? '위치 확인 중...' : '📍 현재 위치 사용'}
+              {locating ? t('signup.locating') : t('signup.useCurrentLocation')}
             </button>
             {formData.latitude && formData.longitude && (
               <a
@@ -455,13 +454,13 @@ const Signup = () => {
                 className="btn btn-secondary"
                 style={{ flex: 1, textDecoration: 'none', textAlign: 'center' }}
               >
-                🗺️ 지도에서 확인
+                {t('signup.viewOnMap')}
               </a>
             )}
           </div>
 
           <div className="form-group">
-            <label className="form-label">반경 (미터)</label>
+            <label className="form-label">{t('signup.radiusLabel')}</label>
             <input
               type="number"
               name="radius"
@@ -473,19 +472,19 @@ const Signup = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">기타 정보</label>
+            <label className="form-label">{t('signup.additionalInfoLabel')}</label>
             <textarea
               name="additional_info"
               className="form-input"
               value={formData.additional_info}
               onChange={handleChange}
               rows="3"
-              placeholder="추가로 전달할 정보가 있다면 입력해주세요"
+              placeholder={t('signup.additionalInfoPlaceholder')}
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">개인정보 수집·이용 동의 (필수)</label>
+            <label className="form-label">{t('signup.privacyConsentTitle')}</label>
             <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', maxHeight: '200px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7' }}>
               <strong>개인정보 수집·이용 안내</strong>
               <p style={{ marginTop: '8px' }}><strong>수집 항목:</strong> 대표자 성명, 아이디, 비밀번호, 전화번호, 이메일, 사업자등록번호, 사업장 주소 및 좌표</p>
@@ -502,13 +501,13 @@ const Signup = () => {
                 style={{ marginTop: '4px' }}
               />
               <span style={{ fontSize: '14px', color: '#374151' }}>
-                [필수] 개인정보 수집·이용에 동의합니다.
+                {t('signup.privacyConsentCheck')}
               </span>
             </label>
           </div>
 
           <div className="form-group">
-            <label className="form-label">서비스 이용 동의 (필수)</label>
+            <label className="form-label">{t('signup.serviceConsentTitle')}</label>
             <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', maxHeight: '260px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7' }}>
               <strong>📄 서비스 이용 동의 및 책임 한계에 대한 안내</strong>
               <p style={{ marginTop: '10px' }}>
@@ -550,7 +549,7 @@ const Signup = () => {
                 style={{ marginTop: '4px' }}
               />
               <span style={{ fontSize: '14px', color: '#374151' }}>
-                [필수] 위 내용에 동의합니다.
+                {t('signup.serviceConsentCheck')}
               </span>
             </label>
           </div>
@@ -565,7 +564,7 @@ const Signup = () => {
                 style={{ marginTop: '4px' }}
               />
               <span style={{ fontSize: '14px', color: '#374151' }}>
-                [선택] 마케팅 정보 수신에 동의합니다.
+                {t('signup.marketingConsentCheck')}
               </span>
             </label>
           </div>
@@ -577,7 +576,7 @@ const Signup = () => {
               onClick={() => navigate('/login')}
               style={{ flex: 1 }}
             >
-              취소
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -585,22 +584,22 @@ const Signup = () => {
               disabled={loading}
               style={{ flex: 1 }}
             >
-              {loading ? '처리 중...' : '회원가입'}
+              {loading ? t('signup.processing') : t('signup.submitButton')}
             </button>
           </div>
         </form>
 
         <p style={{ textAlign: 'center', marginTop: '20px', color: '#6b7280', fontSize: '14px' }}>
-          이미 계정이 있으신가요?{' '}
-          <a 
-            href="/login" 
+          {t('signup.hasAccount')}{' '}
+          <a
+            href="/login"
             style={{ color: '#667eea', textDecoration: 'none', fontWeight: '600' }}
             onClick={(e) => {
               e.preventDefault();
               navigate('/login');
             }}
           >
-            로그인
+            {t('signup.goToLogin')}
           </a>
         </p>
       </div>

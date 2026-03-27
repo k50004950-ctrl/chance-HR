@@ -1,28 +1,31 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import ChangePassword from './ChangePassword';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const Header = () => {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const getRoleName = (role) => {
     switch (role) {
       case 'admin':
-        return '총관리자';
+        return t('header.roleAdmin');
       case 'owner':
-        return '사업주';
+        return t('header.roleOwner');
       case 'employee':
-        return '직원';
+        return t('header.roleEmployee');
       default:
         return '';
     }
   };
 
   const handlePasswordChangeSuccess = () => {
-    alert('비밀번호가 변경되었습니다. 다시 로그인해주세요.');
+    alert(t('header.passwordChanged'));
     logout();
   };
 
@@ -31,7 +34,7 @@ const Header = () => {
       <div className="header">
         <div className="header-content">
           <div className="header-title">
-            📋 찬스HR
+            {t('header.title')}
           </div>
           
           {/* PC 버전 네비게이션 */}
@@ -40,17 +43,18 @@ const Header = () => {
               {user?.name} ({getRoleName(user?.role)})
             </span>
             <Link to="/guide" className="btn btn-secondary" style={{ marginRight: '8px' }}>
-              📘 사용방법
+              {t('header.guide')}
             </Link>
-            <button 
-              onClick={() => setShowChangePassword(true)} 
+            <button
+              onClick={() => setShowChangePassword(true)}
               className="btn btn-secondary"
               style={{ marginRight: '8px' }}
             >
-              🔐 비밀번호 변경
+              {t('header.changePassword')}
             </button>
+            <LanguageSwitcher style={{ marginRight: '8px' }} />
             <button onClick={logout} className="btn btn-secondary">
-              로그아웃
+              {t('header.logout')}
             </button>
           </div>
 
@@ -120,9 +124,13 @@ const Header = () => {
               onMouseOver={(e) => e.target.style.background = '#f3f4f6'}
               onMouseOut={(e) => e.target.style.background = 'transparent'}
             >
-              📘 사용방법
+              {t('header.guide')}
             </Link>
-            
+
+            <div style={{ padding: '8px 12px' }}>
+              <LanguageSwitcher style={{ width: '100%' }} />
+            </div>
+
             <button
               onClick={() => {
                 setShowMobileMenu(false);
@@ -144,9 +152,9 @@ const Header = () => {
               onMouseOver={(e) => e.target.style.background = '#f3f4f6'}
               onMouseOut={(e) => e.target.style.background = 'transparent'}
             >
-              🔐 비밀번호 변경
+              {t('header.changePassword')}
             </button>
-            
+
             <button
               onClick={() => {
                 setShowMobileMenu(false);
@@ -168,7 +176,7 @@ const Header = () => {
               onMouseOver={(e) => e.target.style.background = '#fef2f2'}
               onMouseOut={(e) => e.target.style.background = 'transparent'}
             >
-              로그아웃
+              {t('header.logout')}
             </button>
           </div>
         </div>

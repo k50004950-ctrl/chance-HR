@@ -12,6 +12,55 @@ const router = express.Router();
 // ============================================
 // 1. 독립 회원가입 (사업주 / 근로자 공통)
 // ============================================
+/**
+ * @swagger
+ * /api/v2/auth/signup:
+ *   post:
+ *     summary: 독립 회원가입
+ *     description: 사업주 또는 근로자로 독립 회원가입합니다.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *               - name
+ *               - phone
+ *               - role
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [owner, employee]
+ *               business_number:
+ *                 type: string
+ *                 description: 사업주인 경우 필수
+ *               ssn:
+ *                 type: string
+ *                 description: 근로자인 경우 필수
+ *               email:
+ *                 type: string
+ *                 description: 근로자인 경우 필수
+ *               address:
+ *                 type: string
+ *                 description: 근로자인 경우 필수
+ *     responses:
+ *       200:
+ *         description: 회원가입 성공
+ *       400:
+ *         description: 입력값 오류
+ */
 router.post('/signup', signupLimiter, async (req, res) => {
   const {
     username,

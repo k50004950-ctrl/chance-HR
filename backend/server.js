@@ -45,6 +45,8 @@ import { startAttendanceScheduler } from './services/attendanceScheduler.js';
 import jwt from 'jsonwebtoken';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import { initSentry, Sentry } from './config/sentry.js';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -130,6 +132,12 @@ app.use('/uploads', (req, res, next) => {
   }
 }, express.static(uploadsDir));
 
+// Swagger API 문서
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  swaggerOptions: { persistAuthorization: true },
+}));
+console.log('✅ Swagger UI: /api-docs');
+
 // 전역 API Rate Limiting
 app.use('/api/', apiLimiter);
 
@@ -183,7 +191,7 @@ if (existsSync(frontendDistPath)) {
 // ========================================
 app.get('*', (req, res) => {
   // API 요청이나 정적 파일 요청은 fallback하지 않음
-  if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/') || 
+  if (req.path.startsWith('/api/') || req.path.startsWith('/api-docs') || req.path.startsWith('/uploads/') ||
       req.path.includes('.js') || req.path.includes('.css') || 
       req.path.includes('.png') || req.path.includes('.jpg') || 
       req.path.includes('.ico') || req.path.includes('.svg') ||

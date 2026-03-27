@@ -30,8 +30,7 @@ dist/
 build/
 frontend/dist/
 frontend/build/
-!backend/dist/
-# backend/dist/ is deployed (excluded from ignore)
+backend/dist/
 
 # IDE
 .vscode/
@@ -50,6 +49,10 @@ backend/uploads/*
 *.pem
 .cache
 .temp
+local_admin_token.txt
+
+# Claude Code
+.claude/worktrees/
 
 # Capacitor build outputs
 frontend/android/app/build/

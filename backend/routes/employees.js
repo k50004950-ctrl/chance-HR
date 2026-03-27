@@ -52,6 +52,39 @@ const uploadFiles = upload.fields([
 ]);
 
 // 사업장의 직원 목록 조회
+/**
+ * @swagger
+ * /api/employees/workplace/{workplaceId}:
+ *   get:
+ *     summary: 사업장별 직원 목록 조회
+ *     description: 지정된 사업장에 소속된 모든 직원의 정보를 조회합니다.
+ *     tags: [Employees]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workplaceId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 사업장 ID
+ *     responses:
+ *       200:
+ *         description: 직원 목록
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       403:
+ *         description: 권한 없음
+ */
 router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
   try {
     const workplaceId = req.params.workplaceId;

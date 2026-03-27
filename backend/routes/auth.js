@@ -63,6 +63,48 @@ router.get('/username-check', async (req, res) => {
 });
 
 // 로그인
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: 사용자 로그인
+ *     description: 아이디/비밀번호로 로그인하여 JWT 토큰을 발급받습니다.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: admin
+ *               password:
+ *                 type: string
+ *                 example: admin123
+ *     responses:
+ *       200:
+ *         description: 로그인 성공, JWT 토큰 반환
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 token:
+ *                   type: string
+ *                 user:
+ *                   type: object
+ *       401:
+ *         description: 인증 실패
+ *       403:
+ *         description: 승인 대기/거부/정지
+ */
 router.post('/login', loginLimiter, validateLogin, async (req, res) => {
   try {
     const { username, password } = req.body;

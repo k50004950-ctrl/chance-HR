@@ -4,6 +4,45 @@ import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /api/plans/current:
+ *   get:
+ *     summary: 현재 구독 플랜 조회
+ *     description: 현재 사업장의 활성화된 구독 플랜 정보를 반환합니다.
+ *     tags: [Plans]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: workplace_id
+ *         schema:
+ *           type: integer
+ *         description: 사업장 ID (미지정 시 토큰의 workplace_id 사용)
+ *     responses:
+ *       200:
+ *         description: 플랜 정보
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 plan:
+ *                   type: object
+ *                   properties:
+ *                     plan_type:
+ *                       type: string
+ *                       enum: [free, premium]
+ *                     is_active:
+ *                       type: boolean
+ *                 employee_count:
+ *                   type: integer
+ *                 employee_limit:
+ *                   type: integer
+ *                   nullable: true
+ */
 // GET /api/plans/current - 현재 플랜 조회
 router.get('/current', authenticate, async (req, res) => {
   try {

@@ -300,7 +300,7 @@ router.get('/companies/search', async (req, res) => {
       });
     }
 
-    console.log(`🔍 회사 검색 시도:`, { business_number, owner_phone });
+    console.log(`🔍 회사 검색 시도: 사업자번호=${business_number?.slice(0, 3)}***`);
 
     // 사업자등록번호와 사업주 핸드폰번호 매칭
     const cleanPhone = owner_phone.replace(/-/g, '');

@@ -6,7 +6,14 @@ const IV_LENGTH = 16;
 const TAG_LENGTH = 16;
 
 function getEncryptionKey() {
-  const key = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'default-encryption-key-change-in-production-2026';
+  const key = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET;
+  if (!key) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('ENCRYPTION_KEY 또는 JWT_SECRET 환경변수가 설정되지 않았습니다. 프로덕션에서는 필수입니다.');
+    }
+    // 개발 환경 전용 기본 키
+    return crypto.createHash('sha256').update('dev-only-key-not-for-production').digest();
+  }
   // Derive a consistent 32-byte key using SHA-256
   return crypto.createHash('sha256').update(key).digest();
 }

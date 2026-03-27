@@ -62,13 +62,9 @@ router.post('/send-code', async (req, res) => {
     // 실제 운영환경에서는 여기서 SMS API 호출
     // await sendSMS(cleanPhone, `[찬스 출퇴근] 인증번호: ${code}`);
     
-    // 개발용: 콘솔에 출력
-    console.log('\n📱 ============ SMS 인증번호 ============');
-    console.log(`전화번호: ${cleanPhone}`);
-    console.log(`인증번호: ${code}`);
-    console.log(`용도: ${purpose}`);
-    console.log(`만료시간: 5분`);
-    console.log('======================================\n');
+    // 개발용: 콘솔에 출력 (개인정보 마스킹)
+    const maskedPhone = cleanPhone.slice(0, 3) + '****' + cleanPhone.slice(-4);
+    console.log(`📱 SMS 인증번호 발송: ${maskedPhone} (${purpose}, 5분 만료)`);
 
     res.json({ 
       success: true, 
@@ -111,7 +107,7 @@ router.post('/verify-code', async (req, res) => {
     // 인증 성공
     stored.verified = true;
     
-    console.log(`✅ 전화번호 인증 성공: ${cleanPhone}`);
+    console.log(`✅ 전화번호 인증 성공: ${cleanPhone.slice(0, 3)}****${cleanPhone.slice(-4)}`);
 
     res.json({ 
       success: true, 

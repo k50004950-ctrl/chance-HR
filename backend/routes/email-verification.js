@@ -71,12 +71,10 @@ router.post('/send-code', async (req, res) => {
     try {
       await sendVerificationEmail(lowerEmail, code, purpose);
       
-      console.log('\n📧 ============ 이메일 인증번호 ============');
-      console.log(`이메일: ${lowerEmail}`);
-      console.log(`인증번호: ${code}`);
-      console.log(`용도: ${purpose}`);
-      console.log(`만료시간: 5분`);
-      console.log('========================================\n');
+      // 개인정보 마스킹 로그
+      const [emailId, emailDomain] = lowerEmail.split('@');
+      const maskedEmail = emailId.slice(0, 2) + '***@' + emailDomain;
+      console.log(`📧 이메일 인증번호 발송: ${maskedEmail} (${purpose}, 5분 만료)`);
 
       res.json({ 
         success: true, 

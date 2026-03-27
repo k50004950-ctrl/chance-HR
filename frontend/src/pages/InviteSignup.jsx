@@ -23,6 +23,8 @@ const InviteSignup = () => {
     account_number: '',
     account_holder: ''
   });
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [locationConsent, setLocationConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -62,6 +64,11 @@ const InviteSignup = () => {
 
     if (formData.password.length < 4) {
       alert('비밀번호는 최소 4자 이상이어야 합니다.');
+      return;
+    }
+
+    if (!privacyConsent) {
+      alert('개인정보 수집·이용 동의는 필수입니다.');
       return;
     }
 
@@ -428,6 +435,56 @@ const InviteSignup = () => {
                 }}
               />
             </div>
+          </div>
+
+          {/* 개인정보 수집·이용 동의 */}
+          <div style={{
+            background: '#f9fafb',
+            padding: '16px',
+            borderRadius: '8px',
+            marginBottom: '16px',
+            border: '1px solid #e5e7eb'
+          }}>
+            <h4 style={{ marginBottom: '12px', color: '#374151', fontSize: '14px' }}>
+              개인정보 수집·이용 동의
+            </h4>
+            <div style={{
+              maxHeight: '160px',
+              overflowY: 'auto',
+              fontSize: '12px',
+              lineHeight: '1.7',
+              color: '#4b5563',
+              marginBottom: '12px',
+              padding: '12px',
+              background: 'white',
+              borderRadius: '6px',
+              border: '1px solid #e5e7eb'
+            }}>
+              <p><strong>수집 항목:</strong> 성명, 아이디, 비밀번호, 전화번호, 주민등록번호, 주소, 은행명, 계좌번호, 예금주명</p>
+              <p><strong>수집 목적:</strong> 근로계약 관리, 급여 계산 및 지급, 4대보험 신고, 근태관리</p>
+              <p><strong>보유 기간:</strong> 근로관계 종료 후 관련 법령에 따라 3~5년간 보관 후 파기</p>
+              <p style={{ marginTop: '8px' }}>주민등록번호는 소득세법 제145조에 따른 원천징수 및 4대보험 신고를 위해 수집하며, AES-256 암호화하여 저장합니다. 동의를 거부할 수 있으나, 이 경우 회원가입이 제한됩니다.</p>
+            </div>
+            <label style={{ display: 'flex', gap: '10px', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={privacyConsent}
+                onChange={(e) => setPrivacyConsent(e.target.checked)}
+              />
+              <span style={{ fontSize: '13px', color: '#374151' }}>
+                [필수] 개인정보 수집·이용에 동의합니다.
+              </span>
+            </label>
+            <label style={{ display: 'flex', gap: '10px', alignItems: 'center', cursor: 'pointer', marginTop: '8px' }}>
+              <input
+                type="checkbox"
+                checked={locationConsent}
+                onChange={(e) => setLocationConsent(e.target.checked)}
+              />
+              <span style={{ fontSize: '13px', color: '#374151' }}>
+                [선택] 위치정보 수집·이용에 동의합니다. (출퇴근 기록용)
+              </span>
+            </label>
           </div>
 
           <button

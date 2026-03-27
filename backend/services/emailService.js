@@ -99,8 +99,8 @@ export async function sendVerificationEmail(email, code, purpose) {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('✅ 이메일 전송 성공:', email);
-    console.log('📧 Message ID:', info.messageId);
+    const [eid, edom] = email.split('@');
+    console.log(`✅ 이메일 전송 성공: ${eid.slice(0, 2)}***@${edom}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('❌ 이메일 전송 실패:', error);

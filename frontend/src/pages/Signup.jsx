@@ -26,7 +26,8 @@ const Signup = () => {
     longitude: '',
     radius: 100,
     marketing_consent: false,
-    service_consent: false
+    service_consent: false,
+    privacy_consent: false
   });
   const [locating, setLocating] = useState(false);
 
@@ -85,6 +86,10 @@ const Signup = () => {
     }
     if (!formData.address || !formData.latitude || !formData.longitude) {
       setMessage({ type: 'error', text: '사업장 주소와 좌표를 입력해주세요.' });
+      return;
+    }
+    if (!formData.privacy_consent) {
+      setMessage({ type: 'error', text: '개인정보 수집·이용 동의가 필요합니다.' });
       return;
     }
     if (!formData.service_consent) {
@@ -477,6 +482,29 @@ const Signup = () => {
               rows="3"
               placeholder="추가로 전달할 정보가 있다면 입력해주세요"
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">개인정보 수집·이용 동의 (필수)</label>
+            <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', maxHeight: '200px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7' }}>
+              <strong>개인정보 수집·이용 안내</strong>
+              <p style={{ marginTop: '8px' }}><strong>수집 항목:</strong> 대표자 성명, 아이디, 비밀번호, 전화번호, 이메일, 사업자등록번호, 사업장 주소 및 좌표</p>
+              <p><strong>수집 목적:</strong> 회원가입 및 본인 확인, 사업장 등록 및 근태관리 서비스 제공, 급여·인사관리 업무 지원</p>
+              <p><strong>보유 기간:</strong> 회원 탈퇴 시 또는 관련 법령에 따른 보존 기간 경과 후 파기</p>
+              <p style={{ marginTop: '8px' }}>동의를 거부할 수 있으나, 이 경우 회원가입이 제한됩니다.</p>
+            </div>
+            <label style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', cursor: 'pointer', marginTop: '12px' }}>
+              <input
+                type="checkbox"
+                name="privacy_consent"
+                checked={formData.privacy_consent}
+                onChange={handleChange}
+                style={{ marginTop: '4px' }}
+              />
+              <span style={{ fontSize: '14px', color: '#374151' }}>
+                [필수] 개인정보 수집·이용에 동의합니다.
+              </span>
+            </label>
           </div>
 
           <div className="form-group">

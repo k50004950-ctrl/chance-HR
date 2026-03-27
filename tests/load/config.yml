@@ -1,0 +1,15 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 60
+      arrivalRate: 20
+      name: "Ramp up"
+    - duration: 30
+      arrivalRate: 50
+      name: "Peak load"
+  defaults:
+    headers:
+      Content-Type: "application/json"

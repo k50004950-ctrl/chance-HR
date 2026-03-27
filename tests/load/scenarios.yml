@@ -1,0 +1,108 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 60
+      arrivalRate: 20
+      name: "Ramp up"
+    - duration: 30
+      arrivalRate: 50
+      name: "Peak load"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+  variables:
+    loginEmail: "admin@chancehr.com"
+    loginPassword: "test1234"
+    workplaceId: "1"
+
+scenarios:
+  # 로그인 시나리오
+  - name: "Login"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ loginEmail }}"
+            password: "{{ loginPassword }}"
+          expect:
+            - statusCode: 200
+
+  # 푸시 공개키 조회 (인증 불필요)
+  - name: "Public key fetch"
+    weight: 20
+    flow:
+      - get:
+          url: "/api/push/public-key"
+          expect:
+            - statusCode: 200
+
+  # 직원 목록 조회 (인증 필요 - 로그인 후 토큰 사용)
+  - name: "Employee list"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ loginEmail }}"
+            password: "{{ loginPassword }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - get:
+          url: "/api/employees/workplace/{{ workplaceId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # 급여 계산 (인증 필요)
+  - name: "Salary calculation"
+    weight: 15
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ loginEmail }}"
+            password: "{{ loginPassword }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - post:
+          url: "/api/salary/calculate-insurance"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            salary: 3000000
+          expect:
+            - statusCode: 200
+
+  # 혼합 시나리오: 로그인 → 직원목록 → 급여계산 순차 실행
+  - name: "Full workflow"
+    weight: 25
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ loginEmail }}"
+            password: "{{ loginPassword }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - get:
+          url: "/api/employees/workplace/{{ workplaceId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - post:
+          url: "/api/salary/calculate-insurance"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            salary: 3000000
+          expect:
+            - statusCode: 200

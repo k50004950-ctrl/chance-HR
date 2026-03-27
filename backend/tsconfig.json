@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowJs": true,
+    "checkJs": false,
+    "outDir": "./dist-ts",
+    "noEmit": true,
+    "strict": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false
+  },
+  "include": [
+    "types/**/*.ts",
+    "config/constants.ts",
+    "middleware/auth.ts",
+    "middleware/rateLimiter.ts",
+    "middleware/planCheck.ts",
+    "utils/crypto.ts",
+    "config/redis.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist-ts",
+    "__tests__",
+    "uploads"
+  ]
+}

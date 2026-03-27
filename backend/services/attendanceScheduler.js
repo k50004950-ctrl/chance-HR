@@ -1,6 +1,7 @@
 import { query, run } from '../config/database.js';
 import { sendPushToUser } from './webPush.js';
 import { createNotification } from '../routes/notifications.js';
+import { cleanExpiredData } from './dataRetentionService.js';
 
 // 한국 시간대 날짜/시간 가져오기
 const getKstNow = () => {
@@ -336,6 +337,9 @@ export const startAttendanceScheduler = () => {
 
   // 10:00 KST - 야간근무 자동 퇴근
   scheduleAtKstTime(10, 0, autoCheckoutNightShift, '야간근무 자동 퇴근');
+
+  // 03:00 KST - 데이터 보관기간 만료 데이터 자동 삭제
+  scheduleAtKstTime(3, 0, cleanExpiredData, '데이터 보관기간 자동 삭제');
 
   // 서버 시작 시 한 번 실행 (미처리 건 정리)
   autoCheckoutDayShift();

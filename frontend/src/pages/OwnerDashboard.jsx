@@ -39,6 +39,10 @@ import SettingsTab from '../components/owner/SettingsTab';
 import CommunityTab from '../components/owner/CommunityTab';
 import DashboardCharts from '../components/owner/DashboardCharts';
 import ManualCalcTab from '../components/owner/ManualCalcTab';
+import ContractTab from '../components/owner/ContractTab';
+import CalendarTab from '../components/owner/CalendarTab';
+import SeveranceTab from '../components/owner/SeveranceTab';
+import PastEmployeesTab from '../components/owner/PastEmployeesTab';
 import ExcelImportModal from '../components/owner/ExcelImportModal';
 
 const OwnerDashboard = () => {
@@ -2562,6 +2566,9 @@ const OwnerDashboard = () => {
                 <button className={`erp-nav-item ${activeTab === 'past-employees' ? 'active' : ''}`} onClick={() => setActiveTab('past-employees')}>
                   <span className="erp-nav-icon">📁</span> 서류 보관함
                 </button>
+                <button className={`erp-nav-item ${activeTab === 'contracts' ? 'active' : ''}`} onClick={() => setActiveTab('contracts')}>
+                  <span className="erp-nav-icon">📝</span> 근로계약서
+                </button>
               </div>
               <div className="erp-sidebar-section">
                 <div className="erp-sidebar-section-label">기타</div>
@@ -2650,6 +2657,7 @@ const OwnerDashboard = () => {
                    activeTab === 'past-employees' ? '서류 보관함' :
                    activeTab === 'matching' ? '매칭 요청' :
                    activeTab === 'community' ? '소통방' :
+                   activeTab === 'contracts' ? '근로계약서' :
                    activeTab === 'settings' ? '설정' : '더보기'}
                 </h2>
               </div>
@@ -3155,96 +3163,12 @@ const OwnerDashboard = () => {
             {/* PC 사이드바 네비게이션으로 대체됨 */}
 
             {activeTab === 'calendar' && (
-              <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h3 style={{ color: '#374151' }}>📅 캘린더</h3>
-                  <input
-                    type="month"
-                    className="form-input"
-                    style={{ width: 'auto' }}
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '16px', padding: '12px', background: '#f9fafb', borderRadius: '8px' }}>
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '12px', color: '#6b7280' }}>
-                    <span style={{ color: '#16a34a' }}>완료</span>
-                    <span style={{ color: '#f97316' }}>미완료</span>
-                    <span style={{ color: '#dc2626' }}>결근</span>
-                    <span style={{ color: '#2563eb' }}>연차</span>
-                    <span style={{ color: '#0ea5e9' }}>유급휴가</span>
-                    <span style={{ color: '#8b5cf6' }}>무급휴가</span>
-                    <span style={{ color: '#dc2626' }}>공휴일</span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '8px' }}>
-                  {['일', '월', '화', '수', '목', '금', '토'].map((label) => (
-                    <div
-                      key={label}
-                      style={{ textAlign: 'center', fontSize: '12px', color: '#6b7280', fontWeight: '600' }}
-                    >
-                      {label}
-                    </div>
-                  ))}
-                  {buildOwnerCalendarDays().map((day) => {
-                    if (day.empty) {
-                      return <div key={day.key} style={{ height: '120px' }} />;
-                    }
-                    return (
-                      <div
-                        key={day.key}
-                        style={{
-                          padding: '8px',
-                          borderRadius: '8px',
-                          border: '1px solid #e5e7eb',
-                          minHeight: '120px',
-                          background: day.holiday ? '#fef2f2' : 'white'
-                        }}
-                      >
-                        <div style={{ fontSize: '12px', fontWeight: '600', color: day.holiday ? '#dc2626' : '#374151' }}>
-                          {day.day}
-                        </div>
-                        {day.holiday && (
-                          <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '4px' }}>
-                            {day.holiday}
-                          </div>
-                        )}
-                        <div style={{ marginTop: '6px', fontSize: '11px', color: '#6b7280' }}>
-                          완료 {day.completed} / 미완료 {day.incomplete}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                          결근 {day.absent}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                          휴가 {day.annual + day.paid + day.unpaid}
-                        </div>
-                        {day.completedNames.length > 0 && (
-                          <div style={{ fontSize: '10px', color: '#15803d', marginTop: '4px' }}>
-                            완료: {formatNameList(day.completedNames)}
-                          </div>
-                        )}
-                        {day.absentNames.length > 0 && (
-                          <div style={{ fontSize: '10px', color: '#b91c1c', marginTop: '4px' }}>
-                            결근: {formatNameList(day.absentNames)}
-                          </div>
-                        )}
-                        {day.incompleteNames.length > 0 && (
-                          <div style={{ fontSize: '10px', color: '#c2410c', marginTop: '4px' }}>
-                            미완료: {formatNameList(day.incompleteNames)}
-                          </div>
-                        )}
-                        {day.leaveNames.length > 0 && (
-                          <div style={{ fontSize: '10px', color: '#1d4ed8', marginTop: '4px' }}>
-                            휴가: {formatNameList(day.leaveNames)}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <CalendarTab
+                selectedMonth={selectedMonth}
+                setSelectedMonth={setSelectedMonth}
+                buildOwnerCalendarDays={buildOwnerCalendarDays}
+                formatNameList={formatNameList}
+              />
             )}
 
             {/* 근로자 명부 (직원 관리 통합) */}
@@ -3823,249 +3747,29 @@ const OwnerDashboard = () => {
             )}
 
             {activeTab === 'severance' && (
-              <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h3 style={{ color: '#374151' }}>🧮 퇴직금 계산</h3>
-                </div>
-                <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>
-                  퇴직금은 오늘 기준으로 계산됩니다. (1년 이상 근무자만 표시)
-                </p>
-
-                {employees.length === 0 ? (
-                  <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
-                    등록된 직원이 없습니다.
-                  </p>
-                ) : (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>직원명</th>
-                          <th>입사일</th>
-                          <th>근속기간(년)</th>
-                          <th>퇴직금(당일퇴사)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {employees
-                          .filter((emp) => emp.employment_status !== 'resigned')
-                          .map((emp) => {
-                            const severancePay = getSeverancePayById(emp.id);
-                            return (
-                              <tr key={emp.id}>
-                                <td style={{ fontWeight: '600' }}>{emp.name}</td>
-                                <td>{formatDate(emp.hire_date)}</td>
-                                <td>{getYearsOfService(emp.hire_date)}</td>
-                                <td style={{ color: severancePay > 0 ? '#f59e0b' : '#9ca3af', fontWeight: severancePay > 0 ? '600' : '400' }}>
-                                  {severancePay > 0 ? formatCurrency(severancePay) : '1년 미만'}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
-                  <h4 style={{ color: '#374151', marginBottom: '12px' }}>🧾 과거 급여 수기 입력/조회</h4>
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                    <select
-                      className="form-select"
-                      value={pastPayrollEmployeeId || ''}
-                      onChange={(e) => setPastPayrollEmployeeId(e.target.value)}
-                    >
-                      <option value="">직원 선택</option>
-                      {employees.map((emp) => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.name} ({emp.username})
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      className="form-input"
-                      style={{ width: '110px' }}
-                      value={pastPayrollYear}
-                      onChange={(e) => setPastPayrollYear(Number(e.target.value))}
-                      min="2000"
-                      max="2100"
-                    />
-                    <select
-                      className="form-select"
-                      value={pastPayrollMonth}
-                      onChange={(e) => setPastPayrollMonth(e.target.value)}
-                    >
-                      <option value="">전체 월</option>
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <option key={i + 1} value={String(i + 1).padStart(2, '0')}>
-                          {i + 1}월
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {pastPayrollEmployeeId && (
-                    <>
-                      <div className="grid grid-2" style={{ marginBottom: '12px' }}>
-                        <div className="form-group">
-                          <label className="form-label">시작일</label>
-                          <input
-                            type="date"
-                            className="form-input"
-                            value={pastPayrollForm.start_date}
-                            onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, start_date: e.target.value })}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">종료일</label>
-                          <input
-                            type="date"
-                            className="form-input"
-                            value={pastPayrollForm.end_date}
-                            onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, end_date: e.target.value })}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">급여 유형</label>
-                          <select
-                            className="form-input"
-                            value={pastPayrollForm.salary_type}
-                            onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, salary_type: e.target.value })}
-                          >
-                            <option value="hourly">시급</option>
-                            <option value="monthly">월급</option>
-                            <option value="annual">연봉</option>
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">금액</label>
-                          <input
-                            type="number"
-                            className="form-input"
-                            placeholder="예: 2500000"
-                            value={pastPayrollForm.amount}
-                            onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, amount: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">비고</label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="예: 2023년 5월 수기 입력"
-                          value={pastPayrollForm.notes}
-                          onChange={(e) => setPastPayrollForm({ ...pastPayrollForm, notes: e.target.value })}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ marginBottom: '16px' }}
-                        onClick={() => handleAddPastPayroll(pastPayrollEmployeeId)}
-                      >
-                        + 과거 급여 기록 추가
-                      </button>
-
-                      {pastPayrollRecords.length > 0 ? (
-                        <div style={{ overflowX: 'auto' }}>
-                          <table className="table">
-                            <thead>
-                              <tr>
-                                <th>기간</th>
-                                <th>급여유형</th>
-                                <th>금액</th>
-                                <th>비고</th>
-                                <th>관리</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {pastPayrollRecords
-                                .filter((record) => {
-                                  if (!pastPayrollYear) return true;
-                                  const range = pastPayrollMonth
-                                    ? getMonthRange(pastPayrollYear, Number(pastPayrollMonth))
-                                    : {
-                                      start: new Date(pastPayrollYear, 0, 1),
-                                      end: new Date(pastPayrollYear, 11, 31, 23, 59, 59, 999)
-                                    };
-                                  if (!range) return true;
-                                  const start = new Date(record.start_date);
-                                  const end = new Date(record.end_date);
-                                  return start <= range.end && end >= range.start;
-                                })
-                                .map((record) => (
-                                  <tr key={record.id}>
-                                    <td style={{ fontSize: '12px' }}>
-                                      {formatDate(record.start_date)} ~ {formatDate(record.end_date)}
-                                    </td>
-                                    <td>{getSalaryTypeName(record.salary_type)}</td>
-                                    <td>{Number(record.amount).toLocaleString()}원</td>
-                                    <td>{record.notes || '-'}</td>
-                                    <td>
-                                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                        <button
-                                          type="button"
-                                          className="btn btn-primary"
-                                          style={{ fontSize: '12px', padding: '4px 8px' }}
-                                          onClick={async () => {
-                                            if (window.confirm('이 과거 급여 기록을 급여명세서로 생성하시겠습니까?')) {
-                                              try {
-                                                // 귀속월 계산 (종료일 기준)
-                                                const endDate = new Date(record.end_date);
-                                                const payrollMonth = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`;
-                                                
-                                                await salaryAPI.createSlip({
-                                                  workplaceId: selectedWorkplace,
-                                                  userId: pastPayrollEmployeeId,
-                                                  payrollMonth: payrollMonth,
-                                                  payDate: record.end_date,
-                                                  taxType: '4대보험',
-                                                  basePay: record.amount,
-                                                  nationalPension: 0,
-                                                  healthInsurance: 0,
-                                                  employmentInsurance: 0,
-                                                  longTermCare: 0,
-                                                  incomeTax: 0,
-                                                  localIncomeTax: 0
-                                                });
-                                                
-                                                setMessage({ 
-                                                  type: 'success', 
-                                                  text: `급여명세서가 생성되었습니다 (귀속월: ${payrollMonth}). 급여명세서 탭에서 확인하고 공제 항목을 수정한 후 배포하세요.` 
-                                                });
-                                              } catch (error) {
-                                                console.error('급여명세서 생성 오류:', error);
-                                                setMessage({ type: 'error', text: error.response?.data?.message || '급여명세서 생성에 실패했습니다.' });
-                                              }
-                                            }
-                                          }}
-                                        >
-                                          📝 명세서 생성
-                                        </button>
-                                        <button
-                                          type="button"
-                                          className="btn btn-danger"
-                                          style={{ fontSize: '12px', padding: '4px 8px' }}
-                                          onClick={() => handleDeletePastPayroll(record.id)}
-                                        >
-                                          삭제
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      ) : (
-                        <p style={{ color: '#9ca3af', fontSize: '12px' }}>등록된 과거 급여 기록이 없습니다.</p>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
+              <SeveranceTab
+                employees={employees}
+                getSeverancePayById={getSeverancePayById}
+                getYearsOfService={getYearsOfService}
+                formatDate={formatDate}
+                formatCurrency={formatCurrency}
+                pastPayrollEmployeeId={pastPayrollEmployeeId}
+                setPastPayrollEmployeeId={setPastPayrollEmployeeId}
+                pastPayrollYear={pastPayrollYear}
+                setPastPayrollYear={setPastPayrollYear}
+                pastPayrollMonth={pastPayrollMonth}
+                setPastPayrollMonth={setPastPayrollMonth}
+                pastPayrollForm={pastPayrollForm}
+                setPastPayrollForm={setPastPayrollForm}
+                handleAddPastPayroll={handleAddPastPayroll}
+                handleDeletePastPayroll={handleDeletePastPayroll}
+                pastPayrollRecords={pastPayrollRecords}
+                getMonthRange={getMonthRange}
+                getSalaryTypeName={getSalaryTypeName}
+                selectedWorkplace={selectedWorkplace}
+                salaryAPI={salaryAPI}
+                setMessage={setMessage}
+              />
             )}
 
             {/* V2: 매칭 요청 승인 */}
@@ -4085,71 +3789,12 @@ const OwnerDashboard = () => {
 
             {/* 과거 직원 관리 */}
             {activeTab === 'past-employees' && (
-              <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h3 style={{ color: '#374151' }}>📂 과거 직원 급여 기록</h3>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => openModal('pastEmployee', {})}
-                  >
-                    + 과거 직원 등록
-                  </button>
-                </div>
-
-                <p style={{ color: '#6b7280', marginBottom: '20px', fontSize: '14px' }}>
-                  퇴사한 직원의 급여 정보를 입력하고 퇴직금을 계산할 수 있습니다.
-                </p>
-
-                {pastEmployees && pastEmployees.length > 0 ? (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>이름</th>
-                          <th>입사일</th>
-                          <th>퇴사일</th>
-                          <th>근속기간</th>
-                          <th>평균 월급여</th>
-                          <th>퇴직금</th>
-                          <th>비고</th>
-                          <th>관리</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {pastEmployees.map((emp) => {
-                          const years = ((new Date(emp.resignation_date) - new Date(emp.hire_date)) / (1000 * 60 * 60 * 24 * 365.25)).toFixed(1);
-                          return (
-                            <tr key={emp.id}>
-                              <td style={{ fontWeight: '600' }}>{emp.name}</td>
-                              <td>{formatDate(emp.hire_date)}</td>
-                              <td>{formatDate(emp.resignation_date)}</td>
-                              <td>{years}년</td>
-                              <td>{Number(emp.average_monthly_salary).toLocaleString()}원</td>
-                              <td style={{ color: emp.severance_pay > 0 ? '#f59e0b' : '#9ca3af', fontWeight: '600' }}>
-                                {emp.severance_pay > 0 ? `${Number(emp.severance_pay).toLocaleString()}원` : '1년 미만'}
-                              </td>
-                              <td style={{ fontSize: '12px', color: '#6b7280' }}>{emp.notes || '-'}</td>
-                              <td>
-                                <button
-                                  className="btn btn-danger"
-                                  style={{ padding: '6px 12px', fontSize: '12px' }}
-                                  onClick={() => handleDeletePastEmployee(emp.id)}
-                                >
-                                  삭제
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
-                    등록된 과거 직원이 없습니다.
-                  </p>
-                )}
-              </div>
+              <PastEmployeesTab
+                pastEmployees={pastEmployees}
+                formatDate={formatDate}
+                handleDeletePastEmployee={handleDeletePastEmployee}
+                openModal={openModal}
+              />
             )}
 
             {activeTab === 'community' && (
@@ -4180,6 +3825,13 @@ const OwnerDashboard = () => {
                 handleDisablePush={handleDisablePush}
                 handleSendPushTest={handleSendPushTest}
                 handleEnablePush={handleEnablePush}
+              />
+            )}
+
+            {activeTab === 'contracts' && (
+              <ContractTab
+                selectedWorkplace={selectedWorkplace}
+                employees={employees}
               />
             )}
 

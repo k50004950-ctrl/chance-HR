@@ -951,6 +951,44 @@ export const initDatabase = async () => {
         )
       `);
 
+      // 근로계약서 테이블
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS labor_contracts (
+          id SERIAL PRIMARY KEY,
+          workplace_id INTEGER NOT NULL REFERENCES workplaces(id),
+          employee_id INTEGER NOT NULL REFERENCES users(id),
+          employer_name VARCHAR(100),
+          employee_name VARCHAR(100),
+          contract_start_date DATE NOT NULL,
+          contract_end_date DATE,
+          job_description TEXT,
+          work_location TEXT,
+          work_days VARCHAR(50),
+          work_start_time VARCHAR(10),
+          work_end_time VARCHAR(10),
+          salary_type VARCHAR(20),
+          salary_amount INTEGER,
+          payment_date VARCHAR(50),
+          social_insurance BOOLEAN DEFAULT true,
+          special_terms TEXT,
+          employer_signed BOOLEAN DEFAULT false,
+          employer_signed_at TIMESTAMP,
+          employee_signed BOOLEAN DEFAULT false,
+          employee_signed_at TIMESTAMP,
+          status VARCHAR(20) DEFAULT 'draft',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // users 테이블에 탈퇴 관련 컬럼 추가
+      try {
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false`);
+      } catch (e) {}
+      try {
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`);
+      } catch (e) {}
+
       // 성능 인덱스 추가
       const indexes = [
         'CREATE INDEX IF NOT EXISTS idx_attendance_user_wp_date ON attendance(user_id, workplace_id, date)',
@@ -959,7 +997,9 @@ export const initDatabase = async () => {
         'CREATE INDEX IF NOT EXISTS idx_leaves_user_status ON leaves(user_id, status)',
         'CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read)',
         'CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at)',
-        'CREATE INDEX IF NOT EXISTS idx_community_posts_category ON community_posts(category, created_at)'
+        'CREATE INDEX IF NOT EXISTS idx_community_posts_category ON community_posts(category, created_at)',
+        'CREATE INDEX IF NOT EXISTS idx_labor_contracts_workplace ON labor_contracts(workplace_id)',
+        'CREATE INDEX IF NOT EXISTS idx_labor_contracts_employee ON labor_contracts(employee_id)'
       ];
       for (const idx of indexes) {
         try { await pool.query(idx); } catch (e) { /* 이미 존재하면 무시 */ }
@@ -1699,6 +1739,38 @@ export const initDatabase = async () => {
           total_net REAL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (owner_id) REFERENCES users(id)
+        )
+      `);
+
+      // 근로계약서 테이블
+      await run(`
+        CREATE TABLE IF NOT EXISTS labor_contracts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          workplace_id INTEGER NOT NULL,
+          employee_id INTEGER NOT NULL,
+          employer_name TEXT,
+          employee_name TEXT,
+          contract_start_date DATE NOT NULL,
+          contract_end_date DATE,
+          job_description TEXT,
+          work_location TEXT,
+          work_days TEXT,
+          work_start_time TEXT,
+          work_end_time TEXT,
+          salary_type TEXT,
+          salary_amount INTEGER,
+          payment_date TEXT,
+          social_insurance INTEGER DEFAULT 1,
+          special_terms TEXT,
+          employer_signed INTEGER DEFAULT 0,
+          employer_signed_at DATETIME,
+          employee_signed INTEGER DEFAULT 0,
+          employee_signed_at DATETIME,
+          status TEXT DEFAULT 'draft',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (workplace_id) REFERENCES workplaces(id),
+          FOREIGN KEY (employee_id) REFERENCES users(id)
         )
       `);
 

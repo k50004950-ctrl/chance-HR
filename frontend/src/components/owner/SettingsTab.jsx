@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MapPicker from '../MapPicker';
+import { accountAPI } from '../../services/api';
 
 /**
  * Settings tab - extracted from OwnerDashboard
@@ -28,10 +29,34 @@ const SettingsTab = ({
   handleSendPushTest,
   handleEnablePush
 }) => {
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      alert('비밀번호를 입력해주세요.');
+      return;
+    }
+    setDeleteLoading(true);
+    try {
+      await accountAPI.deleteAccount(deletePassword);
+      alert('회원 탈퇴가 완료되었습니다.');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    } catch (error) {
+      const msg = error.response?.data?.message || '탈퇴 처리 중 오류가 발생했습니다.';
+      alert(msg);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   return (
     <>
       <div className="card">
-        <h3 style={{ marginTop: 0, color: '#374151' }}>🏢 사업장 주소/위치 수정</h3>
+        <h3 style={{ marginTop: 0, color: '#374151' }}>사업장 주소/위치 수정</h3>
         <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '12px' }}>
           주소 변경 시 위치(위도/경도)를 함께 저장해야 출퇴근 범위가 정확히 적용됩니다.
         </p>
@@ -94,7 +119,7 @@ const SettingsTab = ({
           {workplaceLocationForm.address && workplaceLocationForm.latitude && workplaceLocationForm.longitude && (
             <div className="form-group">
               <label className="form-label" style={{ marginBottom: '12px', display: 'block', fontSize: '16px', fontWeight: 'bold' }}>
-                🗺️ 지도에서 정확한 위치 설정
+                지도에서 정확한 위치 설정
               </label>
               <MapPicker
                 latitude={workplaceLocationForm.latitude}
@@ -145,21 +170,21 @@ const SettingsTab = ({
       </div>
 
       <div className="card" style={{ marginTop: '20px' }}>
-        <h3 style={{ marginTop: 0, color: '#374151' }}>🔔 출퇴근 알림 설정</h3>
+        <h3 style={{ marginTop: 0, color: '#374151' }}>출퇴근 알림 설정</h3>
         <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '16px' }}>
           직원이 출근/퇴근하면 브라우저로 무료 알림이 전송됩니다. 알림 허용이 필요합니다.
         </p>
         {!pushSupported && (
           <div style={{ padding: '12px', backgroundColor: '#fef2f2', borderRadius: '8px', marginBottom: '16px' }}>
             <p style={{ fontSize: '13px', color: '#dc2626', margin: 0 }}>
-              ⚠️ 현재 브라우저에서는 웹 푸시를 지원하지 않습니다.
+              현재 브라우저에서는 웹 푸시를 지원하지 않습니다.
             </p>
           </div>
         )}
         {pushSupported && !pushPublicKeyReady && (
           <div style={{ padding: '12px', backgroundColor: '#fef2f2', borderRadius: '8px', marginBottom: '16px' }}>
             <p style={{ fontSize: '13px', color: '#dc2626', margin: 0 }}>
-              ⚠️ 웹 푸시 키가 설정되지 않았습니다.
+              웹 푸시 키가 설정되지 않았습니다.
             </p>
           </div>
         )}
@@ -192,6 +217,80 @@ const SettingsTab = ({
           )}
         </div>
       </div>
+
+      {/* 회원 탈퇴 섹션 */}
+      <div className="card" style={{ marginTop: '20px', borderColor: '#fecaca' }}>
+        <h3 style={{ marginTop: 0, color: '#dc2626' }}>회원 탈퇴</h3>
+        <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '16px' }}>
+          탈퇴 시 개인정보가 삭제되며, 급여/세금 기록은 법적 보관 의무에 따라 5년간 보관 후 자동 삭제됩니다.
+        </p>
+        <button
+          className="btn"
+          style={{
+            backgroundColor: '#dc2626',
+            color: 'white',
+            border: 'none',
+            padding: '8px 20px',
+            borderRadius: '6px',
+            cursor: 'pointer'
+          }}
+          onClick={() => setShowDeleteModal(true)}
+        >
+          회원 탈퇴
+        </button>
+      </div>
+
+      {/* 탈퇴 확인 모달 */}
+      {showDeleteModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: '12px', padding: '24px',
+            maxWidth: '400px', width: '90%'
+          }}>
+            <h3 style={{ marginTop: 0, color: '#dc2626' }}>회원 탈퇴 확인</h3>
+            <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6 }}>
+              탈퇴 시 개인정보가 삭제되며, 급여/세금 기록은 법적 보관 의무에 따라 5년간 보관 후 자동 삭제됩니다.
+            </p>
+            <p style={{ fontSize: '14px', color: '#dc2626', fontWeight: 600 }}>
+              이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div className="form-group" style={{ marginTop: '16px' }}>
+              <label className="form-label">비밀번호 확인</label>
+              <input
+                type="password"
+                className="form-input"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder="비밀번호를 입력하세요"
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '16px', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => { setShowDeleteModal(false); setDeletePassword(''); }}
+                disabled={deleteLoading}
+              >
+                취소
+              </button>
+              <button
+                className="btn"
+                style={{
+                  backgroundColor: '#dc2626', color: 'white', border: 'none',
+                  padding: '8px 20px', borderRadius: '6px', cursor: 'pointer'
+                }}
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading || !deletePassword}
+              >
+                {deleteLoading ? '처리 중...' : '탈퇴하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

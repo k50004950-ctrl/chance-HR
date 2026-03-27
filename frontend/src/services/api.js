@@ -281,6 +281,21 @@ export const auditLogAPI = {
   getAll: (params) => api.get('/audit-logs', { params })
 };
 
+// 근로계약서 API
+export const contractsAPI = {
+  create: (data) => api.post('/contracts', data),
+  getByWorkplace: (workplaceId) => api.get(`/contracts/workplace/${workplaceId}`),
+  getByEmployee: (employeeId) => api.get(`/contracts/employee/${employeeId}`),
+  getById: (id) => api.get(`/contracts/${id}`),
+  sign: (id) => api.put(`/contracts/${id}/sign`),
+  downloadPdf: (id) => api.get(`/contracts/${id}/pdf`, { responseType: 'blob' })
+};
+
+// 회원 탈퇴 API
+export const accountAPI = {
+  deleteAccount: (password) => api.delete('/v2/auth/account', { data: { password } })
+};
+
 // V2 API를 위한 직접 axios 인스턴스 export
 export const apiClient = api;
 

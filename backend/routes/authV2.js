@@ -1464,4 +1464,89 @@ router.post('/employee/signup-with-invite', async (req, res) => {
 });
 
 
+// ============================================
+// 회원 탈퇴 (개인정보 익명화)
+// ============================================
+router.delete('/account', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id || req.user.userId;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: '비밀번호를 입력해주세요.'
+      });
+    }
+
+    // 사용자 확인
+    const user = await get('SELECT * FROM users WHERE id = ?', [userId]);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    // 비밀번호 확인
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        message: '비밀번호가 일치하지 않습니다.'
+      });
+    }
+
+    // 개인정보 익명화 (급여/세금 기록은 법적 보관 의무로 유지)
+    await run(
+      `UPDATE users SET
+        name = '탈퇴회원',
+        phone = NULL,
+        email = NULL,
+        ssn = NULL,
+        address = NULL,
+        emergency_contact = NULL,
+        emergency_phone = NULL,
+        is_deleted = true,
+        deleted_at = CURRENT_TIMESTAMP,
+        password = 'DELETED'
+      WHERE id = ?`,
+      [userId]
+    );
+
+    // employee_details 개인정보 익명화
+    await run(
+      `UPDATE employee_details SET
+        gender = NULL,
+        birth_date = NULL,
+        career = NULL,
+        nationality = NULL,
+        visa_type = NULL,
+        visa_expiry_date = NULL,
+        foreign_worker_id = NULL
+      WHERE user_id = ?`,
+      [userId]
+    );
+
+    // 푸시 구독 삭제
+    await run('DELETE FROM push_subscriptions WHERE user_id = ?', [userId]);
+
+    // 알림 삭제
+    await run('DELETE FROM notifications WHERE user_id = ?', [userId]);
+
+    console.log(`🗑️ 회원 탈퇴 처리 완료: user_id ${userId}`);
+
+    res.json({
+      success: true,
+      message: '회원 탈퇴가 완료되었습니다. 급여/세금 기록은 법적 보관 의무에 따라 5년간 보관 후 자동 삭제됩니다.'
+    });
+  } catch (error) {
+    console.error('회원 탈퇴 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
+    });
+  }
+});
+
 export default router;

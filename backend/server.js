@@ -38,6 +38,7 @@ import notificationsRoutes from './routes/notifications.js';
 import auditLogRoutes from './routes/auditLog.js';
 import leavesRoutes from './routes/leaves.js';
 import manualCalcRoutes from './routes/manualCalc.js';
+import contractsRoutes from './routes/contracts.js';
 import { startPaydayScheduler } from './services/payrollSchedule.js';
 import { startAttendanceScheduler } from './services/attendanceScheduler.js';
 import jwt from 'jsonwebtoken';
@@ -154,6 +155,7 @@ app.use('/api/notifications', cors(corsOptions), notificationsRoutes);
 app.use('/api/audit-logs', cors(corsOptions), auditLogRoutes);
 app.use('/api/leaves', cors(corsOptions), leavesRoutes);
 app.use('/api/manual-calc', cors(corsOptions), manualCalcRoutes);
+app.use('/api/contracts', cors(corsOptions), contractsRoutes);
 
 app.use('/api/rates-master', cors(corsOptions), ratesMasterRoutes);
 

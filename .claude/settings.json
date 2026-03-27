@@ -70,7 +70,23 @@
       "Bash(/dev/null __NEW_LINE_c02f5d888b526f26__ echo -e '\\\\n=== 직접 핸드폰번호 검색 ===' curl -s \"$BASE/v2/auth/companies/search?business_number=8131102832&owner_phone=00000000000\")",
       "Bash(curl -s \"https://charming-creation-production.up.railway.app/api/v2/auth/companies/search?business_number=8131102832&owner_phone=01068948240\")",
       "Bash(node --check routes/push.js)",
-      "Bash(node --check services/webPush.js)"
+      "Bash(node --check services/webPush.js)",
+      "Bash(node --check backend/routes/push.js)",
+      "Bash(node --check backend/routes/employees.js)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://charming-creation-production.up.railway.app/)",
+      "Bash(curl -s https://charming-creation-production.up.railway.app/api/health)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://charming-creation-production.up.railway.app/api/v2/auth/login)",
+      "Bash(curl -s https://charming-creation-production.up.railway.app/api/employees -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -v --max-time 10 https://charming-creation-production.up.railway.app/api/v2/auth/login)",
+      "Read(//dev/**)",
+      "Bash(curl -s --max-time 15 https://charming-creation-production.up.railway.app/)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTAxLCJ1c2VybmFtZSI6InNrYW44MjQwIiwibmFtZSI6IuydtOyEuO2YgSIsInJvbGUiOiJvd25lciIsIndvcmtwbGFjZV9pZCI6MjksImlhdCI6MTc3NDU5MTg4MywiZXhwIjoxNzc1MTk2NjgzfQ.UhO3Y1Onkp4mKjn2UO-55ngZIn8cr2NfmcGzd9r5dKo\" BASE=\"https://charming-creation-production.up.railway.app\" ORIGIN=\"-H Origin:$BASE\" __NEW_LINE_ebb5d3cfaa072cd7__ echo \"=== 직원 목록 ===\" curl -s --max-time 10 \"$BASE/api/employees\" -H \"Authorization: Bearer $TOKEN\" $ORIGIN)",
+      "Bash(/dev/null __NEW_LINE_ebb5d3cfaa072cd7__ echo '=== 알림 ===' curl -s --max-time 10 $BASE/api/notifications -H 'Authorization: Bearer $TOKEN' $ORIGIN)",
+      "Bash(/dev/null __NEW_LINE_ebb5d3cfaa072cd7__ echo '=== 엑셀 템플릿 ===' curl -s --max-time 10 -o /dev/null -w %{http_code} $BASE/api/employees/excel-template -H 'Authorization: Bearer $TOKEN' $ORIGIN __NEW_LINE_ebb5d3cfaa072cd7__ echo echo '=== 푸시 키 ===' curl -s --max-time 10 $BASE/api/push/public-key $ORIGIN)",
+      "Bash(find /Users/wy/Desktop/chancehr/backend -type f \\\\\\(-name *.js -o -name *.ts \\\\\\) ! -path */node_modules/* ! -path */.env*)",
+      "Bash(grep -r \"privacy\\\\|policy\\\\|terms\\\\|legal\" /Users/wy/Desktop/chancehr/backend --include=\"*.js\" --include=\"*.ts\" ! -path \"*/node_modules/*\" -i -l)",
+      "Bash(xargs ls:*)",
+      "Bash(curl -s --max-time 10 -o /dev/null -w \"%{http_code}\" https://charming-creation-production.up.railway.app/)"
     ]
   }
 }

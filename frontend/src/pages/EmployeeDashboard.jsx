@@ -7,9 +7,11 @@ import AnnouncementModal from '../components/AnnouncementModal';
 import Footer from '../components/Footer';
 import { Html5Qrcode } from 'html5-qrcode';
 import html2canvas from 'html2canvas';
+import { useTranslation } from 'react-i18next';
 import useIsMobile from '../hooks/useIsMobile';
 
 const EmployeeDashboard = () => {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -896,9 +898,9 @@ const EmployeeDashboard = () => {
                 ☰
               </button>
               <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700' }}>
-                {activeTab === 'attendance' ? '출퇴근' :
-                 activeTab === 'slips' ? '급여명세서' :
-                 activeTab === 'employer' ? '사업주 정보' : '소통방'}
+                {activeTab === 'attendance' ? t('employee.tabAttendance') :
+                 activeTab === 'slips' ? t('employee.tabSlips') :
+                 activeTab === 'employer' ? t('employee.tabEmployer') : t('employee.tabCommunity')}
               </h2>
             </div>
             <button
@@ -950,7 +952,7 @@ const EmployeeDashboard = () => {
                 disabled={loading}
                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                📄 재직증명서 발급
+                📄 {t('employee.issueCertificate')}
               </button>
               <button
                 onClick={async () => {
@@ -992,25 +994,25 @@ const EmployeeDashboard = () => {
               className={`nav-tab ${activeTab === 'attendance' ? 'active' : ''}`}
               onClick={() => setActiveTab('attendance')}
             >
-              📊 출퇴근
+              📊 {t('employee.tabAttendance')}
             </button>
             <button
               className={`nav-tab ${activeTab === 'slips' ? 'active' : ''}`}
               onClick={() => setActiveTab('slips')}
             >
-              📝 급여명세서
+              📝 {t('employee.tabSlips')}
             </button>
             <button
               className={`nav-tab ${activeTab === 'employer' ? 'active' : ''}`}
               onClick={() => setActiveTab('employer')}
             >
-              🏢 사업주
+              🏢 {t('employee.tabEmployer')}
             </button>
             <button
               className={`nav-tab ${activeTab === 'community' ? 'active' : ''}`}
               onClick={() => setActiveTab('community')}
             >
-              💬 커뮤니티
+              💬 {t('employee.tabCommunity')}
             </button>
           </div>
         )}
@@ -1021,7 +1023,7 @@ const EmployeeDashboard = () => {
         {/* 출퇴근 체크 카드 */}
         <div className="card" style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
-            <h3 style={{ margin: 0, color: '#374151' }}>📍 오늘의 출퇴근</h3>
+            <h3 style={{ margin: 0, color: '#374151' }}>📍 {t('employee.todayAttendance')}</h3>
             {employeeProfile?.employment_status !== 'resigned' && (
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button
@@ -1030,7 +1032,7 @@ const EmployeeDashboard = () => {
                   disabled={locationLoading}
                   style={{ padding: '8px 16px', fontSize: '14px' }}
                 >
-                  {locationLoading ? '확인 중...' : '📍 위치 확인'}
+                  {locationLoading ? t('employee.checking') : `📍 ${t('employee.checkLocation')}`}
                 </button>
                 <button
                   className="btn btn-primary"
@@ -1038,7 +1040,7 @@ const EmployeeDashboard = () => {
                   disabled={qrProcessing || loading}
                   style={{ padding: '8px 16px', fontSize: '14px' }}
                 >
-                  📷 QR 스캔
+                  📷 {t('employee.qrScan')}
                 </button>
               </div>
             )}
@@ -1055,10 +1057,10 @@ const EmployeeDashboard = () => {
             }}>
               <div style={{ fontSize: '48px', marginBottom: '12px' }}>👋</div>
               <div style={{ fontSize: '18px', fontWeight: '600', color: '#991b1b', marginBottom: '8px' }}>
-                퇴사 처리된 계정입니다
+                {t('employee.resignedAccount')}
               </div>
               <div style={{ fontSize: '14px', color: '#7f1d1d' }}>
-                출퇴근 체크가 불가능합니다.
+                {t('employee.cannotCheckAttendance')}
               </div>
               {employeeProfile?.resignation_date && (
                 <div style={{ fontSize: '13px', color: '#991b1b', marginTop: '12px' }}>
@@ -1108,7 +1110,7 @@ const EmployeeDashboard = () => {
               <span style={{ fontSize: '24px' }}>🔄</span>
               <div>
                 <div style={{ fontSize: '13px', color: '#92400e', fontWeight: '600' }}>
-                  유동 근무 (출퇴근 시간 자율)
+                  {t('employee.flexibleWork')}
                 </div>
               </div>
             </div>
@@ -1124,7 +1126,7 @@ const EmployeeDashboard = () => {
               border: '1px solid #dbeafe'
             }}>
               <div style={{ fontSize: '13px', color: '#1e40af', marginBottom: '4px', fontWeight: '600' }}>
-                📡 현재 위치 확인됨
+                📡 {t('employee.locationConfirmed')}
               </div>
               <div style={{ fontSize: '12px', color: '#6b7280' }}>
                 위도: {Number(currentLocation.latitude).toFixed(6)} / 경도: {Number(currentLocation.longitude).toFixed(6)}
@@ -1148,24 +1150,24 @@ const EmployeeDashboard = () => {
             return (
               <div className="grid grid-2" style={{ marginBottom: '20px' }}>
             <div style={{ padding: '20px', background: '#f0fdf4', borderRadius: '12px', border: '2px solid #d1fae5' }}>
-              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>🏢 출근 시간</div>
+              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>🏢 {t('employee.checkInTime')}</div>
               <div style={{ fontSize: '24px', fontWeight: '700', color: '#10b981' }}>
-                {todayStatus?.record?.check_in_time ? formatTime(todayStatus.record.check_in_time) : '미체크'}
+                {todayStatus?.record?.check_in_time ? formatTime(todayStatus.record.check_in_time) : t('employee.notChecked')}
               </div>
               {hasCheckInLocation && (
                 <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
-                  위치 기록됨 ✓
+                  {t('employee.locationRecorded')} ✓
                 </div>
               )}
             </div>
             <div style={{ padding: '20px', background: '#fef3c7', borderRadius: '12px', border: '2px solid #fde68a' }}>
-              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>🏠 퇴근 시간</div>
+              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>🏠 {t('employee.checkOutTime')}</div>
               <div style={{ fontSize: '24px', fontWeight: '700', color: '#f59e0b' }}>
-                {todayStatus?.record?.check_out_time ? formatTime(todayStatus.record.check_out_time) : '미체크'}
+                {todayStatus?.record?.check_out_time ? formatTime(todayStatus.record.check_out_time) : t('employee.notChecked')}
               </div>
               {hasCheckOutLocation && (
                 <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
-                  위치 기록됨 ✓
+                  {t('employee.locationRecorded')} ✓
                 </div>
               )}
             </div>
@@ -1181,19 +1183,19 @@ const EmployeeDashboard = () => {
             border: '1px dashed #d1d5db'
           }}>
             <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '8px' }}>
-              💡 출퇴근 체크 안내
+              💡 {t('employee.attendanceGuide')}
             </div>
-            <ul style={{ 
-              fontSize: '12px', 
-              color: '#6b7280', 
-              margin: 0, 
+            <ul style={{
+              fontSize: '12px',
+              color: '#6b7280',
+              margin: 0,
               paddingLeft: '20px',
               lineHeight: '1.6'
             }}>
-              <li>출퇴근 전에 반드시 "📍 위치 확인"을 먼저 해주세요</li>
-              <li>위치 인식이 어려울 경우 "📷 QR 스캔"으로 출퇴근할 수 있습니다</li>
-              <li>위치 권한을 허용해주세요</li>
-              <li>정확한 위치 확인을 위해 GPS를 켜주세요</li>
+              <li>{t('employee.guideLocation')}</li>
+              <li>{t('employee.guideQR')}</li>
+              <li>{t('employee.guidePermission')}</li>
+              <li>{t('employee.guideGPS')}</li>
             </ul>
           </div>
 
@@ -1210,21 +1212,21 @@ const EmployeeDashboard = () => {
                 boxShadow: todayStatus?.hasCheckedIn ? 'none' : '0 4px 6px rgba(16, 185, 129, 0.3)'
               }}
             >
-              {loading ? '처리 중...' : (todayStatus?.hasCheckedIn ? '✓ 출근 완료' : '🏢 출근 체크')}
+              {loading ? t('employee.processing') : (todayStatus?.hasCheckedIn ? `✓ ${t('employee.checkInDone')}` : `🏢 ${t('employee.checkIn')}`)}
             </button>
             <button
               className="btn btn-danger"
               onClick={handleCheckOut}
               disabled={loading || !todayStatus?.hasCheckedIn || todayStatus?.hasCheckedOut || !isLocationFresh()}
-              style={{ 
-                width: '100%', 
-                padding: '18px', 
+              style={{
+                width: '100%',
+                padding: '18px',
                 fontSize: '16px',
                 fontWeight: '600',
                 boxShadow: (!todayStatus?.hasCheckedIn || todayStatus?.hasCheckedOut) ? 'none' : '0 4px 6px rgba(239, 68, 68, 0.3)'
               }}
             >
-              {loading ? '처리 중...' : (todayStatus?.hasCheckedOut ? '✓ 퇴근 완료' : '🏠 퇴근 체크')}
+              {loading ? t('employee.processing') : (todayStatus?.hasCheckedOut ? `✓ ${t('employee.checkOutDone')}` : `🏠 ${t('employee.checkOut')}`)}
             </button>
           </div>
 
@@ -1237,7 +1239,7 @@ const EmployeeDashboard = () => {
               textAlign: 'center',
               color: 'white'
             }}>
-              <div style={{ fontSize: '14px', opacity: '0.9', marginBottom: '4px' }}>오늘 근무시간</div>
+              <div style={{ fontSize: '14px', opacity: '0.9', marginBottom: '4px' }}>{t('employee.todayWorkTime')}</div>
               <div style={{ fontSize: '32px', fontWeight: '700' }}>
                 {(Number(todayStatus.record.work_hours) || 0).toFixed(1)}시간
               </div>
@@ -1256,12 +1258,12 @@ const EmployeeDashboard = () => {
               style={{ maxWidth: '420px' }}
             >
               <div className="modal-header" style={{ background: '#2563eb', color: 'white' }}>
-                📷 QR 출퇴근 스캔
+                📷 {t('employee.qrAttendanceScan')}
               </div>
               <div style={{ padding: '20px' }}>
                 <div id="qr-reader" style={{ width: '100%' }} />
                 <p style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280' }}>
-                  카메라를 QR 코드에 맞추면 자동으로 출퇴근이 기록됩니다.
+                  {t('employee.qrGuide')}
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
                   <button
@@ -1279,20 +1281,20 @@ const EmployeeDashboard = () => {
         {/* 이번 달 급여 정보 */}
         {salaryInfo && (
           <div className="card" style={{ marginBottom: '24px' }}>
-            <h3 style={{ marginBottom: '20px', color: '#374151' }}>💰 이번 달 급여</h3>
+            <h3 style={{ marginBottom: '20px', color: '#374151' }}>💰 {t('employee.thisMonthSalary')}</h3>
             <div className="grid grid-3">
               <div className="stat-card">
-                <div className="stat-label">급여 유형</div>
+                <div className="stat-label">{t('employee.salaryType')}</div>
                 <div className="stat-value" style={{ fontSize: '20px' }}>
                   {getSalaryTypeName(salaryInfo.salaryInfo.type)}
                 </div>
               </div>
               <div className="stat-card">
-                <div className="stat-label">근무일수</div>
+                <div className="stat-label">{t('employee.workDays')}</div>
                 <div className="stat-value">{salaryInfo.workData.totalWorkDays}일</div>
               </div>
               <div className="stat-card">
-                <div className="stat-label">총 근무시간</div>
+                <div className="stat-label">{t('employee.totalWorkHours')}</div>
                 <div className="stat-value" style={{ fontSize: '20px' }}>
                   {salaryInfo.workData.totalWorkHours}h
                 </div>
@@ -1676,20 +1678,20 @@ const EmployeeDashboard = () => {
             {/* 이번 달 급여 정보 */}
             {salaryInfo && (
               <div className="card" style={{ marginBottom: '24px' }}>
-                <h3 style={{ marginBottom: '20px', color: '#374151' }}>💰 이번 달 급여</h3>
+                <h3 style={{ marginBottom: '20px', color: '#374151' }}>💰 {t('employee.thisMonthSalary')}</h3>
                 <div className="grid grid-3">
                   <div className="stat-card">
-                    <div className="stat-label">급여 유형</div>
+                    <div className="stat-label">{t('employee.salaryType')}</div>
                     <div className="stat-value" style={{ fontSize: '20px' }}>
                       {getSalaryTypeName(salaryInfo.salaryInfo.type)}
                     </div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-label">근무일수</div>
+                    <div className="stat-label">{t('employee.workDays')}</div>
                     <div className="stat-value">{salaryInfo.workData.totalWorkDays}일</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-label">총 근무시간</div>
+                    <div className="stat-label">{t('employee.totalWorkHours')}</div>
                     <div className="stat-value" style={{ fontSize: '20px' }}>
                       {salaryInfo.workData.totalWorkHours}h
                     </div>
@@ -1716,7 +1718,7 @@ const EmployeeDashboard = () => {
         {/* 사업주 정보 탭 */}
         {activeTab === 'employer' && (
           <div className="card">
-            <h3 style={{ margin: '0 0 20px 0', color: '#374151', fontSize: window.innerWidth < 768 ? '18px' : '20px' }}>🏢 사업주 정보</h3>
+            <h3 style={{ margin: '0 0 20px 0', color: '#374151', fontSize: window.innerWidth < 768 ? '18px' : '20px' }}>🏢 {t('employee.employerInfo')}</h3>
 
             {currentEmployer ? (
               <div>
@@ -1728,7 +1730,7 @@ const EmployeeDashboard = () => {
                   color: 'white',
                   marginBottom: '24px'
                 }}>
-                  <div style={{ fontSize: '11px', opacity: '0.9', marginBottom: '8px' }}>현재 근무 중</div>
+                  <div style={{ fontSize: '11px', opacity: '0.9', marginBottom: '8px' }}>{t('employee.currentlyWorking')}</div>
                   <h4 style={{ 
                     margin: '0 0 16px 0', 
                     fontSize: window.innerWidth < 768 ? '20px' : '24px', 
@@ -1744,7 +1746,7 @@ const EmployeeDashboard = () => {
                       gap: '12px',
                       flexWrap: window.innerWidth < 768 ? 'wrap' : 'nowrap'
                     }}>
-                      <span style={{ opacity: '0.9', flexShrink: 0 }}>사업자등록번호</span>
+                      <span style={{ opacity: '0.9', flexShrink: 0 }}>{t('employee.businessNumber')}</span>
                       <span style={{ fontWeight: '600', textAlign: 'right' }}>{currentEmployer.business_number}</span>
                     </div>
                     <div style={{ 
@@ -1753,7 +1755,7 @@ const EmployeeDashboard = () => {
                       justifyContent: 'space-between',
                       gap: '8px'
                     }}>
-                      <span style={{ opacity: '0.9', flexShrink: 0 }}>주소</span>
+                      <span style={{ opacity: '0.9', flexShrink: 0 }}>{t('employee.address')}</span>
                       <span style={{ 
                         fontWeight: '600', 
                         textAlign: window.innerWidth < 768 ? 'left' : 'right',
@@ -1764,7 +1766,7 @@ const EmployeeDashboard = () => {
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-                      <span style={{ opacity: '0.9', flexShrink: 0 }}>입사일</span>
+                      <span style={{ opacity: '0.9', flexShrink: 0 }}>{t('employee.joinDate')}</span>
                       <span style={{ fontWeight: '600' }}>{new Date(currentEmployer.start_date).toLocaleDateString('ko-KR')}</span>
                     </div>
                     {currentEmployer.position && (
@@ -1886,12 +1888,12 @@ const EmployeeDashboard = () => {
         {activeTab === 'community' && (
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, color: '#374151' }}>💬 근로자 커뮤니티</h3>
+              <h3 style={{ margin: 0, color: '#374151' }}>💬 {t('employee.community')}</h3>
               <button
                 className="btn btn-primary"
                 onClick={() => openCommunityModal('create')}
               >
-                ✏️ 글 작성
+                ✏️ {t('employee.writePost')}
               </button>
             </div>
 
@@ -1901,7 +1903,7 @@ const EmployeeDashboard = () => {
               </div>
             ) : communityPosts.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: '#6b7280' }}>
-                작성된 게시글이 없습니다.
+                {t('employee.noPosts')}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -2462,10 +2464,10 @@ const EmployeeDashboard = () => {
             </div>
             <div className="mobile-sidebar-menu">
               {[
-                { tab: 'attendance', icon: '📊', label: '출퇴근' },
-                { tab: 'slips', icon: '📝', label: '급여명세서' },
-                { tab: 'employer', icon: '🏢', label: '사업주 정보' },
-                { tab: 'community', icon: '💬', label: '소통방' },
+                { tab: 'attendance', icon: '📊', label: t('employee.tabAttendance') },
+                { tab: 'slips', icon: '📝', label: t('employee.tabSlips') },
+                { tab: 'employer', icon: '🏢', label: t('employee.tabEmployer') },
+                { tab: 'community', icon: '💬', label: t('employee.tabCommunity') },
               ].map(({ tab, icon, label }) => (
                 <button
                   key={tab}

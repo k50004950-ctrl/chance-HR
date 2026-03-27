@@ -185,6 +185,14 @@ export const initDatabase = async () => {
         await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_manual BOOLEAN DEFAULT false');
       } catch (e) { /* 이미 존재 */ }
 
+      // 비밀번호 재설정 토큰 컬럼 추가
+      try {
+        await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_hash VARCHAR(255)');
+      } catch (e) { /* 이미 존재 */ }
+      try {
+        await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMP');
+      } catch (e) { /* 이미 존재 */ }
+
       // SSN 컬럼 크기 확장 (암호화 값 저장용)
       try {
         await pool.query('ALTER TABLE users ALTER COLUMN ssn TYPE VARCHAR(255)');
@@ -1053,6 +1061,14 @@ export const initDatabase = async () => {
           FOREIGN KEY (workplace_id) REFERENCES workplaces(id)
         )
       `);
+
+      // 비밀번호 재설정 토큰 컬럼 추가 (SQLite)
+      try {
+        await run('ALTER TABLE users ADD COLUMN reset_token_hash TEXT');
+      } catch (e) { /* 이미 존재 */ }
+      try {
+        await run('ALTER TABLE users ADD COLUMN reset_token_expires DATETIME');
+      } catch (e) { /* 이미 존재 */ }
 
       // Notifications 테이블
       await run(`

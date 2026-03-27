@@ -1,10 +1,20 @@
 import express from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { query, run } from '../config/database.js';
 import { decryptSSN } from '../utils/crypto.js';
 import { passwordResetLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
+
+// 보안 토큰 생성 유틸리티
+function generateResetToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 // 아이디 찾기 (이름 + 이메일)
 router.post('/find-username', async (req, res) => {
@@ -95,7 +105,15 @@ router.post('/verify-reset-by-name', async (req, res) => {
       return res.status(400).json({ success: false, message: '주민등록번호 뒤 7자리가 일치하지 않습니다.' });
     }
 
-    const resetToken = Buffer.from(`${user.id}:${Date.now()}`).toString('base64');
+    // 보안 토큰 생성 및 DB 저장
+    const resetToken = generateResetToken();
+    const tokenHash = hashToken(resetToken);
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30분
+
+    await run(
+      'UPDATE users SET reset_token_hash = ?, reset_token_expires = ? WHERE id = ?',
+      [tokenHash, expiresAt, user.id]
+    );
 
     res.json({
       success: true,
@@ -133,10 +151,17 @@ router.post('/verify-reset-password', async (req, res) => {
 
     const user = users[0];
 
-    // 임시 토큰 생성 (실제로는 JWT 사용 권장)
-    const resetToken = Buffer.from(`${user.id}:${Date.now()}`).toString('base64');
+    // 보안 토큰 생성 및 DB 저장
+    const resetToken = generateResetToken();
+    const tokenHash = hashToken(resetToken);
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30분
 
-    res.json({ 
+    await run(
+      'UPDATE users SET reset_token_hash = ?, reset_token_expires = ? WHERE id = ?',
+      [tokenHash, expiresAt, user.id]
+    );
+
+    res.json({
       success: true,
       resetToken,
       userId: user.id,
@@ -163,37 +188,54 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: '비밀번호는 4자 이상이어야 합니다.' });
     }
 
-    // 토큰 검증 (간단한 타임스탬프 체크)
-    try {
-      const decoded = Buffer.from(resetToken, 'base64').toString('utf-8');
-      const [tokenUserId, timestamp] = decoded.split(':');
-      
-      if (parseInt(tokenUserId) !== parseInt(userId)) {
-        return res.status(400).json({ success: false, message: '유효하지 않은 토큰입니다.' });
-      }
+    // DB에서 사용자의 저장된 토큰 해시 및 만료시간 조회
+    const users = await query(
+      'SELECT id, reset_token_hash, reset_token_expires FROM users WHERE id = ?',
+      [userId]
+    );
 
-      // 토큰 유효시간 체크 (10분)
-      if (Date.now() - parseInt(timestamp) > 10 * 60 * 1000) {
-        return res.status(400).json({ success: false, message: '토큰이 만료되었습니다. 다시 시도해주세요.' });
-      }
-    } catch (e) {
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    const user = users[0];
+
+    // 토큰이 발급되었는지 확인
+    if (!user.reset_token_hash || !user.reset_token_expires) {
+      return res.status(400).json({ success: false, message: '유효하지 않은 토큰입니다.' });
+    }
+
+    // 만료시간 확인 (30분)
+    if (new Date() > new Date(user.reset_token_expires)) {
+      // 만료된 토큰 삭제
+      await run(
+        'UPDATE users SET reset_token_hash = NULL, reset_token_expires = NULL WHERE id = ?',
+        [userId]
+      );
+      return res.status(400).json({ success: false, message: '토큰이 만료되었습니다. 다시 시도해주세요.' });
+    }
+
+    // 토큰 해시 비교 (timing-safe)
+    const providedHash = hashToken(resetToken);
+    const storedHash = user.reset_token_hash;
+    if (!crypto.timingSafeEqual(Buffer.from(providedHash), Buffer.from(storedHash))) {
       return res.status(400).json({ success: false, message: '유효하지 않은 토큰입니다.' });
     }
 
     // 비밀번호 해시화
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // 비밀번호 업데이트
+    // 비밀번호 업데이트 + 토큰 즉시 삭제 (일회용)
     await run(
-      'UPDATE users SET password = ? WHERE id = ?',
+      'UPDATE users SET password = ?, reset_token_hash = NULL, reset_token_expires = NULL WHERE id = ?',
       [hashedPassword, userId]
     );
 
-    console.log(`✅ 비밀번호 재설정 완료: User ID ${userId}`);
+    console.log(`비밀번호 재설정 완료: User ID ${userId}`);
 
-    res.json({ 
-      success: true, 
-      message: '비밀번호가 재설정되었습니다. 새 비밀번호로 로그인해주세요.' 
+    res.json({
+      success: true,
+      message: '비밀번호가 재설정되었습니다. 새 비밀번호로 로그인해주세요.'
     });
 
   } catch (error) {

@@ -1,17 +1,20 @@
 import rateLimit from 'express-rate-limit';
-import { RedisStore } from 'rate-limit-redis';
-import { getRedis } from '../config/redis.js';
 
 // Redis store 생성 (REDIS_URL이 있을 때만)
-function createStore(prefix) {
-  const redis = getRedis();
-  if (redis._isMemoryFallback) {
-    return undefined; // express-rate-limit 기본 인메모리 store 사용
+async function createStore(prefix) {
+  if (!process.env.REDIS_URL) return undefined;
+  try {
+    const { getRedis } = await import('../config/redis.js');
+    const { RedisStore } = await import('rate-limit-redis');
+    const redis = getRedis();
+    if (redis._isMemoryFallback) return undefined;
+    return new RedisStore({
+      sendCommand: (...args) => redis.call(...args),
+      prefix: `rl:${prefix}:`
+    });
+  } catch {
+    return undefined;
   }
-  return new RedisStore({
-    sendCommand: (...args) => redis.call(...args),
-    prefix: `rl:${prefix}:`
-  });
 }
 
 // 로그인 시도 제한: 15분에 10회

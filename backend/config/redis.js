@@ -1,8 +1,7 @@
 // Redis 클라이언트 + 인메모리 폴백
 // REDIS_URL 환경변수가 있으면 Redis 사용, 없으면 인메모리 Map 사용
 
-import Redis from 'ioredis';
-
+let Redis = null;
 let redisClient = null;
 
 /**
@@ -86,6 +85,9 @@ export function getRedis() {
 
   if (process.env.REDIS_URL) {
     try {
+      if (!Redis) {
+        Redis = (await import('ioredis')).default;
+      }
       redisClient = new Redis(process.env.REDIS_URL, {
         maxRetriesPerRequest: 3,
         retryStrategy(times) {

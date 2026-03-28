@@ -4,6 +4,16 @@
 let Redis = null;
 let redisClient = null;
 
+// REDIS_URL이 있을 때만 ioredis 동적 로드
+if (process.env.REDIS_URL) {
+  import('ioredis').then(mod => {
+    Redis = mod.default;
+    console.log('✅ ioredis 모듈 로드 완료');
+  }).catch(() => {
+    console.warn('⚠️ ioredis 모듈 없음, 인메모리 폴백 사용');
+  });
+}
+
 /**
  * 인메모리 폴백 객체 (Redis API 호환)
  * get/set/del/expire 메서드를 가진 Map 기반 객체
@@ -83,11 +93,8 @@ function createMemoryStore() {
 export function getRedis() {
   if (redisClient) return redisClient;
 
-  if (process.env.REDIS_URL) {
+  if (process.env.REDIS_URL && Redis) {
     try {
-      if (!Redis) {
-        Redis = (await import('ioredis')).default;
-      }
       redisClient = new Redis(process.env.REDIS_URL, {
         maxRetriesPerRequest: 3,
         retryStrategy(times) {

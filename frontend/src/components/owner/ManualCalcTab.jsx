@@ -63,10 +63,11 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
   };
 
   // 요율 가져오기 (DB 우선, 없으면 기본값)
+  // DB는 소수점 형태로 저장 (예: 0.0475 = 4.75%)
   const getRate = (key, fallback) => {
     if (!rates) return fallback;
     const val = parseFloat(rates[key]);
-    return isNaN(val) ? fallback : val / 100; // DB는 % 단위 (예: 4.5 → 0.045)
+    return isNaN(val) ? fallback : val;
   };
 
   const calculate = useCallback(() => {

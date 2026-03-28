@@ -84,8 +84,8 @@ const DashboardCharts = ({ employees, attendance, selectedMonth, isMobile }) => 
           <h4 style={{ margin: '0 0 12px', color: '#374151', fontSize: '14px' }}>
             📊 {selectedMonth} 출근 현황
           </h4>
-          <div style={{ width: '100%', height: chartHeight }}>
-            <ResponsiveContainer>
+          <div style={{ width: '100%', minWidth: 50, height: chartHeight, minHeight: 50 }}>
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={attendanceChartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={isMobile ? 4 : 2} />
@@ -108,8 +108,8 @@ const DashboardCharts = ({ employees, attendance, selectedMonth, isMobile }) => 
               <h4 style={{ margin: '0 0 8px', color: '#374151', fontSize: '14px', textAlign: 'center' }}>
                 👥 직원 현황
               </h4>
-              <div style={{ width: '100%', height: isMobile ? 160 : 200 }}>
-                <ResponsiveContainer>
+              <div style={{ width: '100%', minWidth: 50, height: isMobile ? 160 : 200, minHeight: 50 }}>
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={employeeStatusData}
@@ -136,8 +136,8 @@ const DashboardCharts = ({ employees, attendance, selectedMonth, isMobile }) => 
               <h4 style={{ margin: '0 0 8px', color: '#374151', fontSize: '14px', textAlign: 'center' }}>
                 💰 급여 유형
               </h4>
-              <div style={{ width: '100%', height: isMobile ? 160 : 200 }}>
-                <ResponsiveContainer>
+              <div style={{ width: '100%', minWidth: 50, height: isMobile ? 160 : 200, minHeight: 50 }}>
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={salaryTypeData}

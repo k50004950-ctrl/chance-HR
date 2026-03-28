@@ -138,7 +138,7 @@ router.post('/', authenticate, requirePremium('contracts'), authorizeRole('owner
 // ============================================
 // 2. 사업장의 모든 계약서 조회
 // ============================================
-router.get('/workplace/:workplaceId', authenticate, requirePremium('contracts'), async (req, res) => {
+router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
   try {
     const { workplaceId } = req.params;
     const contracts = await query(
@@ -160,7 +160,7 @@ router.get('/workplace/:workplaceId', authenticate, requirePremium('contracts'),
 // ============================================
 // 3. 직원별 계약서 조회
 // ============================================
-router.get('/employee/:employeeId', authenticate, requirePremium('contracts'), async (req, res) => {
+router.get('/employee/:employeeId', authenticate, async (req, res) => {
   try {
     const { employeeId } = req.params;
     const contracts = await query(
@@ -182,7 +182,7 @@ router.get('/employee/:employeeId', authenticate, requirePremium('contracts'), a
 // ============================================
 // 4. 특정 계약서 조회
 // ============================================
-router.get('/:id', authenticate, requirePremium('contracts'), async (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     // Non-numeric IDs pass through

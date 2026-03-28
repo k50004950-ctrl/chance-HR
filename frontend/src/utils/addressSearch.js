@@ -42,10 +42,10 @@ export const ensureKakaoMapsLoaded = () => {
     });
   }
 
-  const appKey = import.meta.env.VITE_KAKAO_MAPS_KEY || 'f08c77bfb5eb0bcf42a30ed4982c94f2';
+  const appKey = import.meta.env.VITE_KAKAO_MAPS_KEY;
   if (!appKey) {
-    console.error('❌ Kakao Maps API 키 없음');
-    return Promise.reject(new Error('Kakao Maps API 키가 설정되지 않았습니다.'));
+    console.warn('Kakao Maps API 키가 설정되지 않았습니다. VITE_KAKAO_MAPS_KEY 환경변수를 설정하세요.');
+    return Promise.reject(new Error('Kakao Maps API 키가 설정되지 않았습니다. 관리자에게 문의하세요.'));
   }
 
   console.log('🗺️ Kakao Maps 스크립트 로딩 시작...');

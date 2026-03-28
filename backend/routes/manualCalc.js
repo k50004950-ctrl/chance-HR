@@ -1,12 +1,11 @@
 import express from 'express';
 import { query, run, get } from '../config/database.js';
 import { authenticate, authorizeRole } from '../middleware/auth.js';
-import { requirePremium } from '../middleware/planCheck.js';
 
 const router = express.Router();
 
 // 저장
-router.post('/', authenticate, requirePremium('manual_calc'), authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
+router.post('/', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
   try {
     const { title, workers, results, total_gross, total_deductions, total_net, workplace_id } = req.body;
 
@@ -27,7 +26,7 @@ router.post('/', authenticate, requirePremium('manual_calc'), authorizeRole(['ow
 });
 
 // 목록 조회
-router.get('/', authenticate, requirePremium('manual_calc'), async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const rows = await query(
       `SELECT id, title, total_gross, total_deductions, total_net, created_at
@@ -45,7 +44,7 @@ router.get('/', authenticate, requirePremium('manual_calc'), async (req, res) =>
 });
 
 // 상세 조회
-router.get('/:id', authenticate, requirePremium('manual_calc'), async (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
     const row = await get(
       `SELECT * FROM manual_calculations WHERE id = ? AND owner_id = ?`,
@@ -65,7 +64,7 @@ router.get('/:id', authenticate, requirePremium('manual_calc'), async (req, res)
 });
 
 // 삭제
-router.delete('/:id', authenticate, requirePremium('manual_calc'), async (req, res) => {
+router.delete('/:id', authenticate, async (req, res) => {
   try {
     await run(
       `DELETE FROM manual_calculations WHERE id = ? AND owner_id = ?`,

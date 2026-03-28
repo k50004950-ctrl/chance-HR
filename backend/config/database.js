@@ -795,10 +795,10 @@ export const initDatabase = async () => {
         ]);
         console.log('✅ 2026년 기본 보험 요율이 등록되었습니다.');
       } else {
-        // 기존 데이터의 장기요양보험률 수정 (12.95% → 13.14%)
+        // 기존 데이터의 2026년 요율 정확값 수정
         await pool.query(
-          "UPDATE insurance_rates SET long_term_care_rate = $1 WHERE year = $2 AND long_term_care_rate < $1",
-          [0.1314, 2026]
+          "UPDATE insurance_rates SET long_term_care_rate = $1, health_insurance_rate = $2 WHERE year = $3",
+          [0.1314, 0.03595, 2026]
         );
       }
 

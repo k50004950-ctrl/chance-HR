@@ -21,7 +21,6 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
       daysPerMonth: '22',
       overtimeHours: '0',
       taxType: '4대보험',
-      includeWeeklyHolidayPay: true,
     };
   }
 
@@ -92,16 +91,16 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
         basePay = amount * totalHours;
         overtimePay = overtime > 0 ? Math.round(amount * 1.5 * overtime) : 0;
 
-        // 주휴수당: 주 15시간 이상 근무 시 지급
+        // 주휴수당: 주 15시간 이상 근무 시 법정 의무 지급 (근로기준법 제55조)
         // 공식: (주 소정근로시간 / 40) × 8 × 시급 × (월/주 환산 ≒ 4.345주)
-        if (w.includeWeeklyHolidayPay && weeklyHours >= 15) {
+        if (weeklyHours >= 15) {
           const weeklyAllowance = (Math.min(weeklyHours, 40) / 40) * 8 * amount;
           weeklyHolidayPay = Math.round(weeklyAllowance * 4.345); // 월 평균 4.345주
         }
       } else if (w.salaryType === 'daily') {
         basePay = amount * days;
-        // 일급자: 주 15시간 이상 시 주휴수당
-        if (w.includeWeeklyHolidayPay && weeklyHours >= 15) {
+        // 일급자: 주 15시간 이상 시 주휴수당 (법정 의무)
+        if (weeklyHours >= 15) {
           const dailyWeeklyHours = weeklyHours; // 주당 근무시간 입력값 사용
           const weeklyAllowance = (Math.min(dailyWeeklyHours, 40) / 40) * amount;
           weeklyHolidayPay = Math.round(weeklyAllowance * 4.345);
@@ -359,13 +358,11 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
                     </select>
                   </div>
                 </div>
-                <div style={{ marginTop: '8px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#4b5563' }}>
-                    <input type="checkbox" checked={w.includeWeeklyHolidayPay}
-                      onChange={e => updateWorker(w.id, 'includeWeeklyHolidayPay', e.target.checked)} />
-                    주휴수당 포함 {w.weeklyHours >= 15 ? '' : '(주 15시간 미만 — 미해당)'}
-                  </label>
-                </div>
+                {parseFloat(w.weeklyHours) >= 15 && (
+                  <div style={{ marginTop: '8px', fontSize: '12px', color: '#3b82f6' }}>
+                    주휴수당 자동 적용 (근로기준법 제55조, 주 15시간 이상)
+                  </div>
+                )}
               </>
             )}
             {w.salaryType === 'daily' && (
@@ -379,7 +376,6 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
                   <label style={labelStyle}>주당 근무시간</label>
                   <input type="number" value={w.weeklyHours} onChange={e => updateWorker(w.id, 'weeklyHours', e.target.value)}
                     placeholder="40" style={inputStyle} />
-                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>주휴수당 계산용</span>
                 </div>
                 <div>
                   <label style={labelStyle}>세금 유형</label>
@@ -390,13 +386,11 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
                   </select>
                 </div>
               </div>
-              <div style={{ marginTop: '8px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#4b5563' }}>
-                  <input type="checkbox" checked={w.includeWeeklyHolidayPay}
-                    onChange={e => updateWorker(w.id, 'includeWeeklyHolidayPay', e.target.checked)} />
-                  주휴수당 포함 {w.weeklyHours >= 15 ? '' : '(주 15시간 미만 — 미해당)'}
-                </label>
-              </div></>
+              {parseFloat(w.weeklyHours) >= 15 && (
+                <div style={{ marginTop: '8px', fontSize: '12px', color: '#3b82f6' }}>
+                  주휴수당 자동 적용 (근로기준법 제55조, 주 15시간 이상)
+                </div>
+              )}</>
             )}
             {w.salaryType === 'monthly' && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px', marginTop: '10px' }}>

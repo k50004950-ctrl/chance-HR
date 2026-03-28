@@ -753,14 +753,14 @@ export const initDatabase = async () => {
         CREATE TABLE IF NOT EXISTS insurance_rates (
           id SERIAL PRIMARY KEY,
           year INTEGER NOT NULL,
-          national_pension_rate DECIMAL(5, 4) NOT NULL,
+          national_pension_rate DECIMAL(7, 5) NOT NULL,
           national_pension_min DECIMAL(15, 2) DEFAULT 0,
           national_pension_max DECIMAL(15, 2) DEFAULT 0,
-          health_insurance_rate DECIMAL(5, 4) NOT NULL,
+          health_insurance_rate DECIMAL(7, 5) NOT NULL,
           health_insurance_min DECIMAL(15, 2) DEFAULT 0,
           health_insurance_max DECIMAL(15, 2) DEFAULT 0,
-          long_term_care_rate DECIMAL(5, 4) NOT NULL,
-          employment_insurance_rate DECIMAL(5, 4) NOT NULL,
+          long_term_care_rate DECIMAL(7, 5) NOT NULL,
+          employment_insurance_rate DECIMAL(7, 5) NOT NULL,
           effective_from DATE NOT NULL,
           effective_to DATE,
           notes TEXT,
@@ -795,7 +795,11 @@ export const initDatabase = async () => {
         ]);
         console.log('✅ 2026년 기본 보험 요율이 등록되었습니다.');
       } else {
-        // 2026년 요율 정확값으로 항상 업데이트
+        // 컬럼 정밀도 확장 (DECIMAL(5,4) → DECIMAL(7,5)) 후 정확값 업데이트
+        await pool.query(`ALTER TABLE insurance_rates ALTER COLUMN national_pension_rate TYPE DECIMAL(7,5)`).catch(() => {});
+        await pool.query(`ALTER TABLE insurance_rates ALTER COLUMN health_insurance_rate TYPE DECIMAL(7,5)`).catch(() => {});
+        await pool.query(`ALTER TABLE insurance_rates ALTER COLUMN long_term_care_rate TYPE DECIMAL(7,5)`).catch(() => {});
+        await pool.query(`ALTER TABLE insurance_rates ALTER COLUMN employment_insurance_rate TYPE DECIMAL(7,5)`).catch(() => {});
         await pool.query(
           `UPDATE insurance_rates
            SET national_pension_rate = 0.0475,
@@ -804,7 +808,7 @@ export const initDatabase = async () => {
                employment_insurance_rate = 0.009
            WHERE year = 2026`,
         );
-        console.log('✅ 2026년 보험 요율 정확값 확인/수정 완료');
+        console.log('✅ 2026년 보험 요율 정밀도 확장 + 정확값 수정 완료');
       }
 
       // 2025년 기본 요율 데이터 삽입

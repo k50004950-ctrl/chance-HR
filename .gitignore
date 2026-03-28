@@ -26,12 +26,11 @@ yarn-error.log*
 Thumbs.db
 
 # Build outputs
-dist/
 build/
 frontend/dist/
 frontend/build/
-backend/dist/
 backend/dist-ts/
+# backend/dist/ 는 Railway 배포용으로 git에 포함
 
 # IDE
 .vscode/

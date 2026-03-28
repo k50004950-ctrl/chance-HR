@@ -191,7 +191,7 @@ if (existsSync(frontendDistPath)) {
 // ========================================
 app.get('*', (req, res) => {
   // API 요청이나 정적 파일 요청은 fallback하지 않음
-  if (req.path.startsWith('/api/') || req.path.startsWith('/api-docs') || req.path.startsWith('/uploads/') ||
+  if (req.path.startsWith('/api/') || req.path === '/api-docs' || req.path.startsWith('/api-docs/') || req.path.startsWith('/uploads/') ||
       req.path.includes('.js') || req.path.includes('.css') || 
       req.path.includes('.png') || req.path.includes('.jpg') || 
       req.path.includes('.ico') || req.path.includes('.svg') ||

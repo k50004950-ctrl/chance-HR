@@ -46,16 +46,12 @@ export function decrypt(encryptedText) {
 
   const text = String(encryptedText);
 
-  // If the text doesn't look encrypted (no colons), return as-is (legacy plain text)
-  if (!text.includes(':')) {
+  // Only attempt decryption if the value looks like a valid encrypted string
+  if (!isEncrypted(text)) {
     return text;
   }
 
   const parts = text.split(':');
-  if (parts.length !== 3) {
-    // Not in expected format, return as-is
-    return text;
-  }
 
   try {
     const key = getEncryptionKey();
@@ -70,8 +66,7 @@ export function decrypt(encryptedText) {
 
     return decrypted;
   } catch (error) {
-    // Decryption failed - likely legacy plain text that happens to contain colons
-    console.warn('SSN decryption failed, returning as-is:', error.message);
+    // Decryption failed - return as-is without logging (may be legacy data)
     return text;
   }
 }

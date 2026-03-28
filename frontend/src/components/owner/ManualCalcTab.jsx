@@ -122,11 +122,24 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
         longTermCare = Math.round(healthInsurance * ltciRate);
         employmentInsurance = Math.round(monthlyPay * eiRate);
 
+        // 과세표준 = 총 지급액 - 4대보험 근로자 부담분
         const taxBase = monthlyPay - nationalPension - healthInsurance - longTermCare - employmentInsurance;
-        if (taxBase > 1500000) {
-          incomeTax = Math.round((taxBase - 1500000) * 0.06 + (Math.min(taxBase, 1500000) - 1060000) * 0.06);
-          if (incomeTax < 0) incomeTax = 0;
+
+        // 2026년 근로소득 간이세액표 (부양가족 1명/본인 기준)
+        if (taxBase > 5000000) {
+          // 500만원 초과: 731,400 + (과세표준 - 500만) × 35%
+          incomeTax = Math.round(731400 + (taxBase - 5000000) * 0.35);
+        } else if (taxBase > 3000000) {
+          // 300만~500만원: 251,400 + (과세표준 - 300만) × 24%
+          incomeTax = Math.round(251400 + (taxBase - 3000000) * 0.24);
+        } else if (taxBase > 1500000) {
+          // 150만~300만원: 26,400 + (과세표준 - 150만) × 15%
+          incomeTax = Math.round(26400 + (taxBase - 1500000) * 0.15);
+        } else if (taxBase > 1060000) {
+          // 106만~150만원: (과세표준 - 106만) × 6%
+          incomeTax = Math.round((taxBase - 1060000) * 0.06);
         }
+        // ~106만원: 0원 (기본값 유지)
         localIncomeTax = Math.round(incomeTax * 0.1);
       } else if (w.taxType === '프리랜서') {
         incomeTax = Math.round(monthlyPay * 0.03);

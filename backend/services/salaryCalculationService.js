@@ -34,6 +34,23 @@ export const buildAttendanceDateSet = (records) => {
   return set;
 };
 
+/**
+ * 주휴수당 계산 공통 함수
+ * @param {number} totalWorkHours - 총 근로 시간
+ * @param {number} amount - 시급
+ * @param {string} startDate - 시작일
+ * @param {string} endDate - 종료일
+ * @returns {number} 주휴수당
+ */
+export const calculateWeeklyHolidayPay = (totalWorkHours, amount, startDate, endDate) => {
+  if (totalWorkHours < 15) return 0;
+  const days = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
+  const weeks = Math.ceil(days / 7);
+  const avgWeeklyHours = totalWorkHours / (weeks || 1);
+  const weeklyHolidayHours = Math.min(avgWeeklyHours / 5, 8);
+  return weeklyHolidayHours * weeks * amount;
+};
+
 export const parseNumber = (value) => {
   if (!value) return 0;
   const numeric = String(value).replace(/,/g, '');
@@ -115,13 +132,8 @@ export const calculateSalary = ({
     );
     calculatedSalary = totalWorkHours * amount;
 
-    if (weeklyHolidayType === 'separate' && totalWorkHours >= 15) {
-      const days = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
-      const weeks = Math.ceil(days / 7);
-      const avgWeeklyHours = totalWorkHours / (weeks || 1);
-      const weeklyHolidayHours = Math.min(avgWeeklyHours / 5, 8);
-      const weeklyHolidayPay = weeklyHolidayHours * weeks * amount;
-      calculatedSalary += weeklyHolidayPay;
+    if (weeklyHolidayType === 'separate') {
+      calculatedSalary += calculateWeeklyHolidayPay(totalWorkHours, amount, startDate, endDate);
     }
   }
   // Monthly
@@ -255,12 +267,8 @@ export const calculateMonthlyBasePay = ({ salaryInfo, attendanceRecords, startDa
     basePay = totalWorkHours * salaryInfo.amount;
 
     const weeklyHolidayType = salaryInfo.weekly_holiday_type || 'included';
-    if (weeklyHolidayType === 'separate' && totalWorkHours >= 15) {
-      const days = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
-      const weeks = Math.ceil(days / 7);
-      const avgWeeklyHours = totalWorkHours / (weeks || 1);
-      const weeklyHolidayHours = Math.min(avgWeeklyHours / 5, 8);
-      basePay += weeklyHolidayHours * weeks * salaryInfo.amount;
+    if (weeklyHolidayType === 'separate') {
+      basePay += calculateWeeklyHolidayPay(totalWorkHours, salaryInfo.amount, startDate, endDate);
     }
   } else if (salaryInfo.salary_type === 'monthly') {
     basePay = salaryInfo.amount;
@@ -327,12 +335,8 @@ export const calculateEmployeeSalary = async ({ employeeId, startDate, endDate }
   if (salaryInfo.salary_type === 'hourly') {
     baseSalaryAmount = result.totalWorkHours * salaryInfo.amount;
     const weeklyHolidayType = salaryInfo.weekly_holiday_type || 'included';
-    if (weeklyHolidayType === 'separate' && result.totalWorkHours >= 15) {
-      const days = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
-      const weeks = Math.ceil(days / 7);
-      const avgWeeklyHours = result.totalWorkHours / (weeks || 1);
-      const weeklyHolidayHours = Math.min(avgWeeklyHours / 5, 8);
-      weeklyHolidayPayAmount = weeklyHolidayHours * weeks * salaryInfo.amount;
+    if (weeklyHolidayType === 'separate') {
+      weeklyHolidayPayAmount = calculateWeeklyHolidayPay(result.totalWorkHours, salaryInfo.amount, startDate, endDate);
     }
   } else {
     baseSalaryAmount = result.calculatedSalary;

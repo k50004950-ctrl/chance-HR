@@ -89,9 +89,11 @@ router.post('/send-code', async (req, res) => {
     // 실제 운영환경에서는 여기서 SMS API 호출
     // await sendSMS(cleanPhone, `[찬스 출퇴근] 인증번호: ${code}`);
 
-    // 개발용: 콘솔에 출력 (개인정보 마스킹)
-    const maskedPhone = cleanPhone.slice(0, 3) + '****' + cleanPhone.slice(-4);
-    console.log(`📱 SMS 인증번호 발송: ${maskedPhone} (${purpose}, 5분 만료)`);
+    // 개발용: 콘솔에 출력 (프로덕션에서는 인증번호 관련 로그 미출력)
+    if (process.env.NODE_ENV !== 'production') {
+      const maskedPhone = cleanPhone.slice(0, 3) + '****' + cleanPhone.slice(-4);
+      console.log(`📱 SMS 인증번호 발송: ${maskedPhone} (${purpose}, 5분 만료)`);
+    }
 
     res.json({
       success: true,

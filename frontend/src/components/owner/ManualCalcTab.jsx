@@ -17,9 +17,11 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
       salaryType: 'hourly',
       amount: '',
       totalHours: '',
+      weeklyHours: '40',
       daysPerMonth: '22',
       overtimeHours: '0',
       taxType: '4대보험',
+      includeWeeklyHolidayPay: true,
     };
   }
 
@@ -69,26 +71,47 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
   };
 
   const calculate = useCallback(() => {
-    const npsRate = getRate('national_pension_rate', 0.045);
-    const nhisRate = getRate('health_insurance_rate', 0.03545);
-    const ltciRate = getRate('long_term_care_rate', 0.1295);
-    const eiRate = getRate('employment_insurance_rate', 0.009);
+    // 2026년 요율 (DB 우선, 없으면 2026년 법정 기본값)
+    const npsRate = getRate('national_pension_rate', 0.0475);      // 국민연금 4.75% (2026년)
+    const nhisRate = getRate('health_insurance_rate', 0.03595);    // 건강보험 3.595% (2026년)
+    const ltciRate = getRate('long_term_care_rate', 0.1314);       // 장기요양 13.14% (건강보험료 대비, 2026년)
+    const eiRate = getRate('employment_insurance_rate', 0.009);    // 고용보험 0.9% (2026년)
 
     const calculated = workers.map(w => {
       const amount = parseFloat(w.amount) || 0;
       const totalHours = parseFloat(w.totalHours) || 0;
+      const weeklyHours = parseFloat(w.weeklyHours) || 0;
       const days = parseFloat(w.daysPerMonth) || 22;
       const overtime = parseFloat(w.overtimeHours) || 0;
 
-      let monthlyPay = 0;
+      let basePay = 0;
+      let weeklyHolidayPay = 0;
+      let overtimePay = 0;
+
       if (w.salaryType === 'hourly') {
-        monthlyPay = amount * totalHours;
-        if (overtime > 0) monthlyPay += amount * 1.5 * overtime;
+        basePay = amount * totalHours;
+        overtimePay = overtime > 0 ? Math.round(amount * 1.5 * overtime) : 0;
+
+        // 주휴수당: 주 15시간 이상 근무 시 지급
+        // 공식: (주 소정근로시간 / 40) × 8 × 시급 × (월/주 환산 ≒ 4.345주)
+        if (w.includeWeeklyHolidayPay && weeklyHours >= 15) {
+          const weeklyAllowance = (Math.min(weeklyHours, 40) / 40) * 8 * amount;
+          weeklyHolidayPay = Math.round(weeklyAllowance * 4.345); // 월 평균 4.345주
+        }
       } else if (w.salaryType === 'daily') {
-        monthlyPay = amount * days;
+        basePay = amount * days;
+        // 일급자: 주 15시간 이상 시 주휴수당
+        if (w.includeWeeklyHolidayPay && weeklyHours >= 15) {
+          const dailyWeeklyHours = weeklyHours; // 주당 근무시간 입력값 사용
+          const weeklyAllowance = (Math.min(dailyWeeklyHours, 40) / 40) * amount;
+          weeklyHolidayPay = Math.round(weeklyAllowance * 4.345);
+        }
       } else {
-        monthlyPay = amount;
+        basePay = amount;
+        // 월급자: 주휴수당 이미 포함된 것으로 간주
       }
+
+      const monthlyPay = basePay + weeklyHolidayPay + overtimePay;
 
       let nationalPension = 0, healthInsurance = 0, longTermCare = 0, employmentInsurance = 0;
       let incomeTax = 0, localIncomeTax = 0;
@@ -114,7 +137,8 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
       const netPay = monthlyPay - totalDeductions;
 
       return {
-        ...w, monthlyPay, nationalPension, healthInsurance, longTermCare,
+        ...w, basePay, weeklyHolidayPay, overtimePay, monthlyPay,
+        nationalPension, healthInsurance, longTermCare,
         employmentInsurance, incomeTax, localIncomeTax, totalDeductions, netPay
       };
     });
@@ -216,7 +240,10 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
             <h3 style={{ margin: 0, color: '#1f2937', fontSize: '18px' }}>✏️ 수기 급여계산</h3>
             <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: '13px' }}>
               직원 등록 없이 빠르게 급여를 계산합니다
-              {rates && <span style={{ color: '#3b82f6' }}> (DB 요율 적용중)</span>}
+              {rates
+                ? <span style={{ color: '#3b82f6' }}> (DB 요율 적용중)</span>
+                : <span style={{ color: '#9ca3af' }}> (2026년 법정 기본요율 적용)</span>
+              }
             </p>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -305,35 +332,56 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
             </div>
 
             {w.salaryType === 'hourly' && (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
-                <div>
-                  <label style={labelStyle}>총 근무시간</label>
-                  <input type="number" value={w.totalHours} onChange={e => updateWorker(w.id, 'totalHours', e.target.value)}
-                    placeholder="176" style={inputStyle} />
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                  <div>
+                    <label style={labelStyle}>총 근무시간</label>
+                    <input type="number" value={w.totalHours} onChange={e => updateWorker(w.id, 'totalHours', e.target.value)}
+                      placeholder="176" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>연장근로(시간)</label>
+                    <input type="number" value={w.overtimeHours} onChange={e => updateWorker(w.id, 'overtimeHours', e.target.value)}
+                      placeholder="0" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>주당 근무시간</label>
+                    <input type="number" value={w.weeklyHours} onChange={e => updateWorker(w.id, 'weeklyHours', e.target.value)}
+                      placeholder="40" style={inputStyle} />
+                    <span style={{ fontSize: '11px', color: '#9ca3af' }}>주휴수당 계산용</span>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>세금 유형</label>
+                    <select value={w.taxType} onChange={e => updateWorker(w.id, 'taxType', e.target.value)} style={inputStyle}>
+                      <option value="4대보험">4대보험</option>
+                      <option value="프리랜서">프리랜서 (3.3%)</option>
+                      <option value="없음">세금 없음</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label style={labelStyle}>연장근로(시간)</label>
-                  <input type="number" value={w.overtimeHours} onChange={e => updateWorker(w.id, 'overtimeHours', e.target.value)}
-                    placeholder="0" style={inputStyle} />
+                <div style={{ marginTop: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#4b5563' }}>
+                    <input type="checkbox" checked={w.includeWeeklyHolidayPay}
+                      onChange={e => updateWorker(w.id, 'includeWeeklyHolidayPay', e.target.checked)} />
+                    주휴수당 포함 {w.weeklyHours >= 15 ? '' : '(주 15시간 미만 — 미해당)'}
+                  </label>
                 </div>
-                <div>
-                  <label style={labelStyle}>세금 유형</label>
-                  <select value={w.taxType} onChange={e => updateWorker(w.id, 'taxType', e.target.value)} style={inputStyle}>
-                    <option value="4대보험">4대보험</option>
-                    <option value="프리랜서">프리랜서 (3.3%)</option>
-                    <option value="없음">세금 없음</option>
-                  </select>
-                </div>
-              </div>
+              </>
             )}
             {w.salaryType === 'daily' && (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr', gap: '10px', marginTop: '10px' }}>
+              <><div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
                 <div>
                   <label style={labelStyle}>월 근무일수</label>
                   <input type="number" value={w.daysPerMonth} onChange={e => updateWorker(w.id, 'daysPerMonth', e.target.value)}
                     placeholder="22" style={inputStyle} />
                 </div>
                 <div>
+                  <label style={labelStyle}>주당 근무시간</label>
+                  <input type="number" value={w.weeklyHours} onChange={e => updateWorker(w.id, 'weeklyHours', e.target.value)}
+                    placeholder="40" style={inputStyle} />
+                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>주휴수당 계산용</span>
+                </div>
+                <div>
                   <label style={labelStyle}>세금 유형</label>
                   <select value={w.taxType} onChange={e => updateWorker(w.id, 'taxType', e.target.value)} style={inputStyle}>
                     <option value="4대보험">4대보험</option>
@@ -342,6 +390,13 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
                   </select>
                 </div>
               </div>
+              <div style={{ marginTop: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#4b5563' }}>
+                  <input type="checkbox" checked={w.includeWeeklyHolidayPay}
+                    onChange={e => updateWorker(w.id, 'includeWeeklyHolidayPay', e.target.checked)} />
+                  주휴수당 포함 {w.weeklyHours >= 15 ? '' : '(주 15시간 미만 — 미해당)'}
+                </label>
+              </div></>
             )}
             {w.salaryType === 'monthly' && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px', marginTop: '10px' }}>
@@ -416,6 +471,15 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
                   👤 직원으로 저장
                 </button>
               </div>
+              {/* 지급 내역 (주휴수당 포함) */}
+              {(r.weeklyHolidayPay > 0 || r.overtimePay > 0) && (
+                <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#6b7280', marginBottom: '8px', flexWrap: 'wrap' }}>
+                  <span>기본급 {formatCurrency(r.basePay)}</span>
+                  {r.weeklyHolidayPay > 0 && <span style={{ color: '#3b82f6' }}>+ 주휴수당 {formatCurrency(r.weeklyHolidayPay)}</span>}
+                  {r.overtimePay > 0 && <span style={{ color: '#f59e0b' }}>+ 연장수당 {formatCurrency(r.overtimePay)}</span>}
+                  <span>= 총 {formatCurrency(r.monthlyPay)}</span>
+                </div>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '8px', fontSize: '13px' }}>
                 <div><span style={{ color: '#6b7280' }}>월 지급액</span><br /><strong>{formatCurrency(r.monthlyPay)}</strong></div>
                 {r.taxType === '4대보험' && (

@@ -795,11 +795,16 @@ export const initDatabase = async () => {
         ]);
         console.log('✅ 2026년 기본 보험 요율이 등록되었습니다.');
       } else {
-        // 기존 데이터의 2026년 요율 정확값 수정
+        // 2026년 요율 정확값으로 항상 업데이트
         await pool.query(
-          "UPDATE insurance_rates SET long_term_care_rate = $1, health_insurance_rate = $2 WHERE year = $3",
-          [0.1314, 0.03595, 2026]
+          `UPDATE insurance_rates
+           SET national_pension_rate = 0.0475,
+               health_insurance_rate = 0.03595,
+               long_term_care_rate = 0.1314,
+               employment_insurance_rate = 0.009
+           WHERE year = 2026`,
         );
+        console.log('✅ 2026년 보험 요율 정확값 확인/수정 완료');
       }
 
       // 2025년 기본 요율 데이터 삽입

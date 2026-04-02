@@ -21,6 +21,7 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
       daysPerMonth: '22',
       overtimeHours: '0',
       taxType: '4대보험',
+      includeWeeklyHoliday: true,
     };
   }
 
@@ -93,16 +94,16 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
         basePay = amount * totalHours;
         overtimePay = overtime > 0 ? Math.round(amount * 1.5 * overtime) : 0;
 
-        // 주휴수당: 주 15시간 이상 근무 시 법정 의무 지급 (근로기준법 제55조)
+        // 주휴수당: 주 15시간 이상 + 토글 ON일 때 지급 (근로기준법 제55조)
         // 공식: (주 소정근로시간 / 40) × 8 × 시급 × (월/주 환산 ≒ 4.345주)
-        if (weeklyHours >= 15) {
+        if (w.includeWeeklyHoliday && weeklyHours >= 15) {
           const weeklyAllowance = (Math.min(weeklyHours, 40) / 40) * 8 * amount;
           weeklyHolidayPay = Math.round(weeklyAllowance * 4.345); // 월 평균 4.345주
         }
       } else if (w.salaryType === 'daily') {
         basePay = amount * days;
-        // 일급자: 주 15시간 이상 시 주휴수당 (법정 의무)
-        if (weeklyHours >= 15) {
+        // 일급자: 주 15시간 이상 + 토글 ON일 때 주휴수당
+        if (w.includeWeeklyHoliday && weeklyHours >= 15) {
           const dailyWeeklyHours = weeklyHours; // 주당 근무시간 입력값 사용
           const weeklyAllowance = (Math.min(dailyWeeklyHours, 40) / 40) * amount;
           weeklyHolidayPay = Math.round(weeklyAllowance * 4.345);
@@ -373,8 +374,22 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
                     </select>
                   </div>
                 </div>
-                <div style={{ marginTop: '8px', fontSize: '12px', color: '#3b82f6' }}>
-                  주휴수당 자동 적용 (주 {parseFloat(w.weeklyHours) || 40}시간 기준, 근로기준법 제55조)
+                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: w.includeWeeklyHoliday ? '#3b82f6' : '#9ca3af' }}>
+                    <input type="checkbox" checked={w.includeWeeklyHoliday}
+                      onChange={e => updateWorker(w.id, 'includeWeeklyHoliday', e.target.checked)} />
+                    주휴수당 {w.includeWeeklyHoliday ? '포함' : '미포함'}
+                  </label>
+                  {w.includeWeeklyHoliday && (
+                    <span style={{ fontSize: '12px', color: '#3b82f6' }}>
+                      (주 {parseFloat(w.weeklyHours) || 40}시간 기준, 근로기준법 제55조)
+                    </span>
+                  )}
+                  {!w.includeWeeklyHoliday && (
+                    <span style={{ fontSize: '12px', color: '#ef4444' }}>
+                      주 15시간 미만 또는 주휴수당 미적용 대상
+                    </span>
+                  )}
                 </div>
               </>
             )}

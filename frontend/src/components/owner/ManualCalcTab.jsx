@@ -80,7 +80,12 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
     const calculated = workers.map(w => {
       const amount = parseFloat(w.amount) || 0;
       const totalHours = parseFloat(w.totalHours) || 0;
-      const weeklyHours = parseFloat(w.weeklyHours) || 0;
+      // 주당 근무시간: 직접 입력값 우선, 없거나 기본값(40)이면 총근무시간에서 자동 추정
+      const inputWeeklyHours = parseFloat(w.weeklyHours) || 0;
+      const totalHoursVal = parseFloat(w.totalHours) || 0;
+      const weeklyHours = totalHoursVal > 0
+        ? Math.min(Math.round(totalHoursVal / 4.345 * 10) / 10, 40)  // 총시간/4.345주, 최대 40시간
+        : inputWeeklyHours;
       const days = parseFloat(w.daysPerMonth) || 22;
       const overtime = parseFloat(w.overtimeHours) || 0;
 
@@ -346,7 +351,7 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
 
             {w.salaryType === 'hourly' && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
                   <div>
                     <label style={labelStyle}>총 근무시간</label>
                     <input type="number" value={w.totalHours} onChange={e => updateWorker(w.id, 'totalHours', e.target.value)}
@@ -358,12 +363,6 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
                       placeholder="0" style={inputStyle} />
                   </div>
                   <div>
-                    <label style={labelStyle}>주당 근무시간</label>
-                    <input type="number" value={w.weeklyHours} onChange={e => updateWorker(w.id, 'weeklyHours', e.target.value)}
-                      placeholder="40" style={inputStyle} />
-                    <span style={{ fontSize: '11px', color: '#9ca3af' }}>주휴수당 계산용</span>
-                  </div>
-                  <div>
                     <label style={labelStyle}>세금 유형</label>
                     <select value={w.taxType} onChange={e => updateWorker(w.id, 'taxType', e.target.value)} style={inputStyle}>
                       <option value="4대보험">4대보험</option>
@@ -372,9 +371,9 @@ const ManualCalcTab = ({ formatCurrency, isMobile, selectedWorkplace, onEmployee
                     </select>
                   </div>
                 </div>
-                {parseFloat(w.weeklyHours) >= 15 && (
+                {parseFloat(w.totalHours) > 0 && (
                   <div style={{ marginTop: '8px', fontSize: '12px', color: '#3b82f6' }}>
-                    주휴수당 자동 적용 (근로기준법 제55조, 주 15시간 이상)
+                    주휴수당 자동 적용 (주 {Math.min(Math.round(parseFloat(w.totalHours) / 4.345 * 10) / 10, 40)}시간 추정, 근로기준법 제55조)
                   </div>
                 )}
               </>

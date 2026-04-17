@@ -99,6 +99,14 @@ router.post('/upgrade', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, message: '사업장을 선택해주세요.' });
     }
 
+    // 사업장 소유권 확인 (super_admin 제외)
+    if (req.user.role !== 'super_admin') {
+      const workplace = await get('SELECT owner_id FROM workplaces WHERE id = ?', [workplace_id]);
+      if (!workplace || workplace.owner_id !== req.user.id) {
+        return res.status(403).json({ success: false, message: '본인 소유 사업장만 업그레이드할 수 있습니다.' });
+      }
+    }
+
     // Deactivate existing plans
     await run(
       `UPDATE subscription_plans SET is_active = false WHERE workplace_id = ?`,

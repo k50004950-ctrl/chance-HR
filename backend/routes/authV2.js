@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { run, get, all } from '../config/database.js';
 import { authenticate, authorizeRole } from '../middleware/auth.js';
 import { encryptSSN } from '../utils/crypto.js';
@@ -1099,19 +1100,34 @@ router.post('/owner/create-workplace', authenticate, authorizeRole(['owner', 'ad
 // ============================================
 
 // 1. 초대 링크 생성 (사업주 전용)
-router.post('/owner/create-invite', async (req, res) => {
+router.post('/owner/create-invite', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
   let { workplaceId, companyId, expiresInDays, maxUses, ownerId } = req.body;
 
   console.log('📨 초대 링크 생성 요청:', { workplaceId, companyId, ownerId, expiresInDays, maxUses });
 
   try {
+    // ownerId는 반드시 요청자 본인 (super_admin 제외)
+    if (req.user.role !== 'super_admin') {
+      ownerId = req.user.id;
+    } else if (!ownerId) {
+      ownerId = req.user.id;
+    }
+
     if (!workplaceId || !ownerId) {
       console.error('❌ 필수 파라미터 누락');
-      return res.status(400).json({ 
-        success: false, 
+      return res.status(400).json({
+        success: false,
         message: '사업장 ID와 사업주 ID가 필요합니다.',
         debug: { workplaceId, companyId, ownerId }
       });
+    }
+
+    // 사업장 소유권 검증 (super_admin은 예외)
+    if (req.user.role !== 'super_admin') {
+      const ownedWp = await get('SELECT owner_id FROM workplaces WHERE id = ?', [workplaceId]);
+      if (!ownedWp || ownedWp.owner_id !== req.user.id) {
+        return res.status(403).json({ success: false, message: '본인 소유 사업장만 초대할 수 있습니다.' });
+      }
     }
     
     // companyId가 없으면 자동 생성 (V1 사용자 지원)
@@ -1188,8 +1204,8 @@ router.post('/owner/create-invite', async (req, res) => {
       console.log(`🎉 자동 회사 생성 완료: companyId ${companyId}`);
     }
 
-    // 고유 토큰 생성 (UUID 형식)
-    const token = `INV-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    // 고유 토큰 생성 (CSPRNG)
+    const token = `INV-${crypto.randomBytes(24).toString('hex')}`;
     
     // 만료일 계산 (기본 7일)
     const expiresAt = expiresInDays 
@@ -1228,10 +1244,18 @@ router.post('/owner/create-invite', async (req, res) => {
 });
 
 // 2. 초대 링크 목록 조회 (사업주 전용)
-router.get('/owner/invites/:workplaceId', async (req, res) => {
+router.get('/owner/invites/:workplaceId', authenticate, authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
   const { workplaceId } = req.params;
 
   try {
+    // 사업장 소유권 검증
+    if (req.user.role !== 'super_admin') {
+      const ownedWp = await get('SELECT owner_id FROM workplaces WHERE id = ?', [workplaceId]);
+      if (!ownedWp || ownedWp.owner_id !== req.user.id) {
+        return res.status(403).json({ success: false, message: '본인 소유 사업장만 조회할 수 있습니다.' });
+      }
+    }
+
     const invitations = await all(
       `SELECT 
         wi.*,
@@ -1279,6 +1303,23 @@ router.delete('/owner/invite/:token', authenticate, authorizeRole(['owner', 'adm
   const { token } = req.params;
 
   try {
+    // 초대장 소속 사업장 소유권 확인
+    if (req.user.role !== 'super_admin') {
+      const inv = await get(
+        `SELECT wi.workplace_id, w.owner_id
+         FROM workplace_invitations wi
+         LEFT JOIN workplaces w ON wi.workplace_id = w.id
+         WHERE wi.token = ?`,
+        [token]
+      );
+      if (!inv) {
+        return res.status(404).json({ success: false, message: '초대 링크를 찾을 수 없습니다.' });
+      }
+      if (inv.owner_id !== req.user.id) {
+        return res.status(403).json({ success: false, message: '본인 소유 사업장의 초대만 비활성화할 수 있습니다.' });
+      }
+    }
+
     await run(
       `UPDATE workplace_invitations SET is_active = 0 WHERE token = ?`,
       [token]

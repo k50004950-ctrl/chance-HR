@@ -239,11 +239,33 @@ router.post('/register', authenticate, authorizeRole(['admin', 'super_admin', 'o
       return res.status(400).json({ success: false, message: '필수 정보를 입력해주세요.' });
     }
 
+    // 역할 할당 권한 검증 (권한 상승 차단)
+    const callerRole = req.user.role;
+    const allowedRolesByCaller = {
+      owner: ['employee'],
+      admin: ['employee', 'owner'],
+      super_admin: ['employee', 'owner', 'admin', 'super_admin']
+    };
+    const allowed = allowedRolesByCaller[callerRole] || [];
+    if (!allowed.includes(role)) {
+      return res.status(403).json({ success: false, message: '해당 역할을 생성할 권한이 없습니다.' });
+    }
+
+    // owner는 자신의 사업장으로만 직원 등록 가능
+    let finalWorkplaceId = workplace_id;
+    if (callerRole === 'owner') {
+      if (!finalWorkplaceId) finalWorkplaceId = req.user.workplace_id;
+      const workplace = await get('SELECT owner_id FROM workplaces WHERE id = ?', [finalWorkplaceId]);
+      if (!workplace || workplace.owner_id !== req.user.id) {
+        return res.status(403).json({ success: false, message: '본인 소유 사업장만 지정할 수 있습니다.' });
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await run(
       'INSERT INTO users (username, password, name, role, phone, email, workplace_id, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [username, hashedPassword, name, role, phone, email, workplace_id, 'approved']
+      [username, hashedPassword, name, role, phone, email, finalWorkplaceId, 'approved']
     );
 
     res.status(201).json({

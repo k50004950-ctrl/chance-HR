@@ -238,6 +238,14 @@ router.put('/:id/approve', authenticate, authorizeRole(['owner', 'admin', 'super
       return res.status(404).json({ success: false, message: '휴가 신청을 찾을 수 없습니다.' });
     }
 
+    // 사업장 소유권 확인 (owner는 자신의 사업장만)
+    if (req.user.role === 'owner') {
+      const workplace = await get('SELECT owner_id FROM workplaces WHERE id = ?', [leave.workplace_id]);
+      if (!workplace || workplace.owner_id !== req.user.id) {
+        return res.status(403).json({ success: false, message: '해당 사업장의 휴가만 처리할 수 있습니다.' });
+      }
+    }
+
     if (leave.status !== 'pending') {
       return res.status(400).json({
         success: false,

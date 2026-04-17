@@ -455,7 +455,7 @@ router.get('/today', authenticate, async (req, res) => {
   }
 });
 
-// 특정 직원의 출퇴근 기록 조회 (관리자/사업주)
+// 특정 직원의 출퇴근 기록 조회 (관리자/사업주/본인)
 router.get('/employee/:employeeId', authenticate, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
@@ -472,6 +472,12 @@ router.get('/employee/:employeeId', authenticate, async (req, res) => {
       if (!workplace || workplace.owner_id !== req.user.id) {
         return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
+    } else if (req.user.role === 'employee') {
+      if (req.user.id !== parseInt(employeeId, 10)) {
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+      }
+    } else if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     let sql = 'SELECT * FROM attendance WHERE user_id = ?';
@@ -504,6 +510,8 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       if (!workplace || workplace.owner_id !== req.user.id) {
         return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
+    } else if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     let sql = `

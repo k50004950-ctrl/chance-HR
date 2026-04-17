@@ -1,11 +1,15 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import { run, get, query } from '../config/database.js';
+import { authenticate, authorizeRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// 테스트 데이터 생성 API (개발/테스트용)
-router.get('/create-test-data', async (req, res) => {
+// 테스트 데이터 생성 API (개발/테스트용, super_admin만)
+router.get('/create-test-data', authenticate, authorizeRole(['super_admin']), async (req, res) => {
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED !== 'true') {
+    return res.status(404).json({ success: false, message: 'Not Found' });
+  }
   try {
     console.log('테스트 데이터 생성 시작...');
     

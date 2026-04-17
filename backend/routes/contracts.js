@@ -6,6 +6,28 @@ import { generateContractPDF } from '../utils/contractPdfGenerator.js';
 
 const router = express.Router();
 
+// 계약서 접근 권한 헬퍼: 직원 본인 OR 해당 사업장 owner OR admin/super_admin
+async function canAccessContract(user, contract) {
+  if (!contract) return false;
+  if (user.role === 'super_admin' || user.role === 'admin') return true;
+  const userId = user.id || user.userId;
+  if (user.role === 'employee' && contract.employee_id === userId) return true;
+  if (user.role === 'owner') {
+    const wp = await get('SELECT owner_id FROM workplaces WHERE id = ?', [contract.workplace_id]);
+    return wp && wp.owner_id === userId;
+  }
+  return false;
+}
+
+async function canAccessWorkplace(user, workplaceId) {
+  if (user.role === 'super_admin' || user.role === 'admin') return true;
+  if (user.role === 'owner') {
+    const wp = await get('SELECT owner_id FROM workplaces WHERE id = ?', [workplaceId]);
+    return wp && wp.owner_id === (user.id || user.userId);
+  }
+  return false;
+}
+
 // ============================================
 // 1. 근로계약서 생성 (사업주만)
 // ============================================
@@ -141,6 +163,11 @@ router.post('/', authenticate, requirePremium('contracts'), authorizeRole('owner
 router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
   try {
     const { workplaceId } = req.params;
+
+    if (!(await canAccessWorkplace(req.user, workplaceId))) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+    }
+
     const contracts = await query(
       `SELECT lc.*, u.name as employee_display_name
        FROM labor_contracts lc
@@ -163,6 +190,24 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
 router.get('/employee/:employeeId', authenticate, async (req, res) => {
   try {
     const { employeeId } = req.params;
+    const userId = req.user.id || req.user.userId;
+
+    // 본인이거나 admin/super_admin이 아니면 owner 소유 확인 필요
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      if (req.user.role === 'employee') {
+        if (userId !== parseInt(employeeId, 10)) {
+          return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+        }
+      } else if (req.user.role === 'owner') {
+        const emp = await get('SELECT workplace_id FROM users WHERE id = ?', [employeeId]);
+        if (!emp || !(await canAccessWorkplace(req.user, emp.workplace_id))) {
+          return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+        }
+      } else {
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+      }
+    }
+
     const contracts = await query(
       `SELECT lc.*, u.name as employee_display_name
        FROM labor_contracts lc
@@ -198,6 +243,10 @@ router.get('/:id', authenticate, async (req, res) => {
 
     if (!contract) {
       return res.status(404).json({ success: false, message: '계약서를 찾을 수 없습니다.' });
+    }
+
+    if (!(await canAccessContract(req.user, contract))) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     res.json({ success: true, contract });
@@ -291,6 +340,10 @@ router.get('/:id/pdf', authenticate, requirePremium('contracts'), async (req, re
 
     if (!contract) {
       return res.status(404).json({ success: false, message: '계약서를 찾을 수 없습니다.' });
+    }
+
+    if (!(await canAccessContract(req.user, contract))) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const pdfBuffer = await generateContractPDF(contract);

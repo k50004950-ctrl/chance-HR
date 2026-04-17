@@ -4,8 +4,11 @@ import bcrypt from 'bcryptjs';
 import { query, run } from '../config/database.js';
 import { decryptSSN } from '../utils/crypto.js';
 import { passwordResetLimiter } from '../middleware/rateLimiter.js';
+import { getRedis } from '../config/redis.js';
 
 const router = express.Router();
+
+const EMAIL_VERIFY_KEY_PREFIX = 'verify:email:';
 
 // 보안 토큰 생성 유틸리티
 function generateResetToken() {
@@ -128,7 +131,7 @@ router.post('/verify-reset-by-name', async (req, res) => {
   }
 });
 
-// 비밀번호 재설정 - 인증 확인
+// 비밀번호 재설정 - 인증 확인 (이메일 OTP 선행 필요)
 router.post('/verify-reset-password', async (req, res) => {
   try {
     const { username, email } = req.body;
@@ -138,6 +141,23 @@ router.post('/verify-reset-password', async (req, res) => {
     }
 
     const lowerEmail = email.toLowerCase().trim();
+
+    // 이메일 OTP 선행 인증 검증 (email-verification.js에서 'reset-password' purpose로 verified=true가 되어 있어야 함)
+    try {
+      const redis = getRedis();
+      const raw = await redis.get(`${EMAIL_VERIFY_KEY_PREFIX}${lowerEmail}`);
+      const otp = raw ? JSON.parse(raw) : null;
+      const isValid = otp
+        && otp.verified === true
+        && otp.purpose === 'reset-password'
+        && (!otp.expiresAt || Date.now() <= otp.expiresAt);
+      if (!isValid) {
+        return res.status(400).json({ success: false, message: '이메일 인증을 먼저 완료해주세요.' });
+      }
+    } catch (e) {
+      console.error('이메일 인증 상태 확인 오류:', e);
+      return res.status(500).json({ success: false, message: '인증 확인에 실패했습니다.' });
+    }
 
     // 사용자 확인
     const users = await query(
@@ -160,6 +180,11 @@ router.post('/verify-reset-password', async (req, res) => {
       'UPDATE users SET reset_token_hash = ?, reset_token_expires = ? WHERE id = ?',
       [tokenHash, expiresAt, user.id]
     );
+
+    // OTP 소비 (재사용 방지)
+    try {
+      await getRedis().del(`${EMAIL_VERIFY_KEY_PREFIX}${lowerEmail}`);
+    } catch (e) { /* 무시 */ }
 
     res.json({
       success: true,

@@ -89,12 +89,19 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
   try {
     const workplaceId = req.params.workplaceId;
 
-    // 권한 확인
+    // 권한 확인 (모든 역할)
     if (req.user.role === 'owner') {
       const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [workplaceId]);
       if (!workplace || workplace.owner_id !== req.user.id) {
         return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
+    } else if (req.user.role === 'employee') {
+      // 직원은 본인 사업장만 조회 가능
+      if (parseInt(workplaceId, 10) !== req.user.workplace_id) {
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+      }
+    } else if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
   const employees = await query(`
@@ -166,6 +173,12 @@ router.get('/:id', authenticate, async (req, res, next) => {
       if (!workplace || workplace.owner_id !== req.user.id) {
         return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
+    } else if (req.user.role === 'employee') {
+      if (req.user.id !== parseInt(req.params.id, 10)) {
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+      }
+    } else if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     // Decrypt SSN

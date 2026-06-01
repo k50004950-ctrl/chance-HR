@@ -10,6 +10,7 @@ import ResetPassword from './pages/ResetPassword';
 
 // Lazy-loaded pages (code splitting)
 const Signup = lazy(() => import('./pages/Signup'));
+const SignupV2 = lazy(() => import('./pages/SignupV2'));
 const InviteSignup = lazy(() => import('./pages/InviteSignup'));
 const EmployeeMatchRequest = lazy(() => import('./pages/EmployeeMatchRequest'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
@@ -73,7 +74,7 @@ const AppRouter = () => {
       <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
       <Route path="/signup" element={user ? <Navigate to="/" /> : <Signup />} />
       <Route path="/login-v2" element={<Navigate to="/login" />} />
-      <Route path="/signup-v2" element={<Navigate to="/signup" />} />
+      <Route path="/signup-v2" element={user ? <Navigate to="/" /> : <SignupV2 />} />
       <Route path="/find-username" element={user ? <Navigate to="/" /> : <FindUsername />} />
       <Route path="/reset-password" element={user ? <Navigate to="/" /> : <ResetPassword />} />
       <Route path="/invite/:token" element={<InviteSignup />} />

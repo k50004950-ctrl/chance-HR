@@ -31,6 +31,7 @@ function SignupV2() {
 
   const [errors, setErrors] = useState({});
   const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [consent, setConsent] = useState({ privacy: false, service: false, marketing: false });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -67,6 +68,13 @@ function SignupV2() {
       newErrors.email = '이메일 인증을 완료해주세요.';
     }
 
+    if (!consent.privacy) {
+      newErrors.privacy = '개인정보 수집·이용에 동의해주세요.';
+    }
+    if (!consent.service) {
+      newErrors.service = '서비스 이용 동의가 필요합니다.';
+    }
+
     if (isOwner) {
       if (!formData.business_number.trim()) {
         newErrors.business_number = '사업자등록번호를 입력해주세요.';
@@ -99,7 +107,10 @@ function SignupV2() {
         phone: '00000000000',
         business_number: formData.business_number ? formData.business_number.replace(/-/g, '') : undefined,
         ssn: formData.ssn ? formData.ssn.replace(/-/g, '') : undefined,
-        address: formData.address || undefined
+        address: formData.address || undefined,
+        privacy_consent: consent.privacy,
+        service_consent: consent.service,
+        marketing_consent: consent.marketing
       };
 
       const response = await apiClient.post('/v2/auth/signup', cleanedData);
@@ -279,6 +290,58 @@ function SignupV2() {
                 {errors.address && <p style={errorStyle}>{errors.address}</p>}
               </div>
             )}
+
+            {/* 약관 동의 */}
+            <div style={{ marginTop: '8px', marginBottom: '20px', padding: '16px', background: '#f9fafb', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+              <label style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', cursor: 'pointer', marginBottom: '12px' }}>
+                <input
+                  type="checkbox"
+                  checked={consent.privacy}
+                  onChange={(e) => { setConsent(prev => ({ ...prev, privacy: e.target.checked })); if (errors.privacy) setErrors(prev => ({ ...prev, privacy: '' })); }}
+                  style={{ marginTop: '3px' }}
+                />
+                <span style={{ fontSize: '13px', color: '#333', lineHeight: '1.6' }}>
+                  <strong>[필수]</strong> 개인정보 수집·이용에 동의합니다.{' '}
+                  <a href="#/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: '#667eea', fontWeight: 600 }}>
+                    개인정보처리방침 보기
+                  </a>
+                  <br />
+                  <span style={{ color: '#888', fontSize: '12px' }}>
+                    수집 항목: 아이디, 비밀번호, 이름, 이메일{isOwner ? ', 사업자등록번호' : ', 주민등록번호, 주소'} / 목적: 회원가입 및 본인확인, 서비스 제공
+                  </span>
+                </span>
+              </label>
+              {errors.privacy && <p style={{ ...errorStyle, marginTop: '-6px', marginBottom: '10px' }}>{errors.privacy}</p>}
+
+              <label style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', cursor: 'pointer', marginBottom: '12px' }}>
+                <input
+                  type="checkbox"
+                  checked={consent.service}
+                  onChange={(e) => { setConsent(prev => ({ ...prev, service: e.target.checked })); if (errors.service) setErrors(prev => ({ ...prev, service: '' })); }}
+                  style={{ marginTop: '3px' }}
+                />
+                <span style={{ fontSize: '13px', color: '#333', lineHeight: '1.6' }}>
+                  <strong>[필수]</strong> 서비스 이용 및 책임 한계에 동의합니다.
+                  <br />
+                  <span style={{ color: '#888', fontSize: '12px' }}>
+                    본 서비스의 급여·수당·퇴직금 계산은 관리 편의를 위한 참고용 자동 계산이며, 세무·노무·4대보험 신고를 대행하거나 보장하지 않습니다. 최종 책임은 이용자(사업주)에게 있습니다.
+                  </span>
+                </span>
+              </label>
+              {errors.service && <p style={{ ...errorStyle, marginTop: '-6px', marginBottom: '10px' }}>{errors.service}</p>}
+
+              <label style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={consent.marketing}
+                  onChange={(e) => setConsent(prev => ({ ...prev, marketing: e.target.checked }))}
+                  style={{ marginTop: '3px' }}
+                />
+                <span style={{ fontSize: '13px', color: '#333', lineHeight: '1.6' }}>
+                  <span style={{ color: '#888' }}>[선택]</span> 마케팅 정보 수신에 동의합니다.
+                </span>
+              </label>
+            </div>
 
             {/* 회원가입 버튼 */}
             <button

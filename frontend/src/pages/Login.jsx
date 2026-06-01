@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import Footer from '../components/Footer';
 
 const Login = () => {
   const { t } = useTranslation();
@@ -223,6 +224,8 @@ const Login = () => {
         }}>
           <p style={{ fontWeight: '600' }}>{t('auth.contact')}</p>
         </div>
+
+        <Footer simple={true} />
       </div>
     </div>
   );

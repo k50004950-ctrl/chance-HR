@@ -25,6 +25,15 @@ const Footer = ({ simple = false }) => {
         <div style={{ marginBottom: '8px' }}>
           {t('footer.email')}
         </div>
+        <div style={{ marginBottom: '8px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <Link to="/privacy-policy" style={{ color: '#667eea', textDecoration: 'none', fontSize: '12px' }}>
+            {t('footer.privacyPolicy')}
+          </Link>
+          <span style={{ color: '#ddd' }}>|</span>
+          <Link to="/system-guide" style={{ color: '#667eea', textDecoration: 'none', fontSize: '12px' }}>
+            {t('footer.userGuide')}
+          </Link>
+        </div>
         <div style={{ color: '#999', fontSize: '11px' }}>
           &copy; 2020-{new Date().getFullYear()} {t('footer.copyright')}
         </div>

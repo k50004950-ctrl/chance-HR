@@ -72,7 +72,10 @@ router.post('/signup', signupLimiter, async (req, res) => {
     business_number,  // 사업주는 필수, 근로자는 선택
     ssn,  // 근로자 주민등록번호
     email,  // 근로자 이메일
-    address  // 근로자 주소
+    address,  // 근로자 주소
+    privacy_consent,  // 개인정보 수집·이용 동의 (필수)
+    service_consent,  // 서비스 이용 동의 (필수)
+    marketing_consent  // 마케팅 수신 동의 (선택)
   } = req.body;
 
   try {
@@ -85,9 +88,17 @@ router.post('/signup', signupLimiter, async (req, res) => {
     }
 
     if (!['owner', 'employee'].includes(role)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: '유효하지 않은 역할입니다.' 
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 역할입니다.'
+      });
+    }
+
+    // 필수 동의 검증 (개인정보 수집·이용 동의 + 서비스 이용 동의)
+    if (!privacy_consent || !service_consent) {
+      return res.status(400).json({
+        success: false,
+        message: '개인정보 수집·이용 및 서비스 이용 동의가 필요합니다.'
       });
     }
 
@@ -143,10 +154,12 @@ router.post('/signup', signupLimiter, async (req, res) => {
 
     // 사용자 생성 (근로자는 ssn, email, address 포함 - SSN은 암호화)
     const encryptedSSN = encryptSSN(ssn);
+    const nowIso = new Date().toISOString();
     const result = await run(
       `INSERT INTO users (
-        username, password, name, phone, role, business_number, ssn, email, address, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        username, password, name, phone, role, business_number, ssn, email, address, created_at,
+        service_consent, service_consent_date, marketing_consent, marketing_consent_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?)`,
       [
         username,
         hashedPassword,
@@ -156,7 +169,11 @@ router.post('/signup', signupLimiter, async (req, res) => {
         business_number || null,
         encryptedSSN,
         email || null,
-        address || null
+        address || null,
+        true,
+        nowIso,
+        !!marketing_consent,
+        marketing_consent ? nowIso : null
       ]
     );
 

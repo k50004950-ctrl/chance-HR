@@ -36,8 +36,9 @@ const ResetPassword = () => {
 
     if (method === 'name') {
       if (!name.trim()) { setError('이름을 입력해주세요.'); return; }
-      if (!ssnLast7 || ssnLast7.replace(/-/g,'').length !== 7) {
-        setError('주민등록번호 뒤 7자리를 입력해주세요.');
+      const len = ssnLast7.replace(/-/g,'').length;
+      if (len !== 7 && len !== 10) {
+        setError('근로자는 주민등록번호 뒤 7자리, 사업주는 사업자등록번호 10자리를 입력해주세요.');
         return;
       }
     }
@@ -48,7 +49,7 @@ const ResetPassword = () => {
       if (method === 'email') {
         response = await api.post('/account/verify-reset-password', { username, email });
       } else {
-        response = await api.post('/account/verify-reset-by-name', { username, name, ssnLast7 });
+        response = await api.post('/account/verify-reset-by-name', { username, name, credential: ssnLast7, ssnLast7 });
       }
 
       setResetToken(response.data.resetToken);
@@ -56,7 +57,7 @@ const ResetPassword = () => {
       setUserName(response.data.name);
       setStep(2);
     } catch (err) {
-      setError(err.response?.data?.error || '계정 확인에 실패했습니다.');
+      setError(err.response?.data?.message || err.response?.data?.error || '계정 확인에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -194,20 +195,20 @@ const ResetPassword = () => {
                   />
                 </div>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={labelStyle}>주민등록번호 뒤 7자리 <span style={{ color: 'red' }}>*</span></label>
+                  <label style={labelStyle}>본인확인 번호 <span style={{ color: 'red' }}>*</span></label>
                   <input
                     type="password"
                     value={ssnLast7}
                     onChange={(e) => {
-                      const v = e.target.value.replace(/\D/g, '').slice(0, 7);
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 10);
                       setSsnLast7(v);
                     }}
-                    placeholder="예: 1234567"
-                    maxLength={7}
+                    placeholder="근로자: 주민번호 뒤 7자리 / 사업주: 사업자번호 10자리"
+                    maxLength={10}
                     style={inputStyle}
                   />
                   <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                    주민등록번호 뒤 7자리 (숫자만 입력)
+                    근로자는 주민등록번호 뒤 7자리, 사업주는 사업자등록번호 10자리 (숫자만 입력)
                   </small>
                 </div>
                 <div style={{
@@ -219,7 +220,7 @@ const ResetPassword = () => {
                   fontSize: '13px',
                   color: '#92400e'
                 }}>
-                  🔒 아이디 + 이름 + 주민등록번호로 본인 확인 후 재설정됩니다.
+                  🔒 아이디 + 이름 + 본인확인 번호(근로자: 주민번호 뒤 7자리 / 사업주: 사업자등록번호)로 확인 후 재설정됩니다.
                 </div>
               </>
             )}

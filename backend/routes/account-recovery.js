@@ -71,20 +71,18 @@ router.post('/find-username', async (req, res) => {
 // 비밀번호 재설정 - 이름 + 주민등록번호 뒤 7자리 인증 (이메일 없는 경우 대안)
 router.post('/verify-reset-by-name', async (req, res) => {
   try {
-    const { username, name, ssnLast7 } = req.body;
+    const { username, name } = req.body;
+    // credential: 근로자=주민번호 뒤 7자리, 사업주=사업자등록번호 10자리 (구버전 호환: ssnLast7)
+    const rawCredential = (req.body.credential ?? req.body.ssnLast7 ?? '').toString();
+    const credential = rawCredential.replace(/-/g, '').trim();
 
-    if (!username || !name || !ssnLast7) {
-      return res.status(400).json({ success: false, message: '아이디, 이름, 주민등록번호 뒤 7자리를 모두 입력해주세요.' });
-    }
-
-    // 주민등록번호 뒤 7자리 형식 검증
-    if (!/^\d{7}$/.test(ssnLast7.replace(/-/g, ''))) {
-      return res.status(400).json({ success: false, message: '주민등록번호 뒤 7자리를 정확히 입력해주세요.' });
+    if (!username || !name || !credential) {
+      return res.status(400).json({ success: false, message: '아이디, 이름, 본인확인 번호를 모두 입력해주세요.' });
     }
 
     // 아이디 + 이름으로 계정 조회
     const users = await query(
-      'SELECT id, username, name, ssn FROM users WHERE username = ? AND name = ?',
+      'SELECT id, username, name, role, ssn, business_number FROM users WHERE username = ? AND name = ?',
       [username.trim(), name.trim()]
     );
 
@@ -94,18 +92,31 @@ router.post('/verify-reset-by-name', async (req, res) => {
 
     const user = users[0];
 
-    // 주민등록번호 확인 (복호화 후 비교)
-    const decryptedSSN = decryptSSN(user.ssn);
-    if (!decryptedSSN) {
-      return res.status(400).json({ success: false, message: '주민등록번호가 등록되지 않은 계정입니다. 관리자에게 문의해주세요.' });
-    }
-
-    const storedSsnClean = decryptedSSN.replace(/-/g, '');
-    const inputSsnClean = ssnLast7.replace(/-/g, '');
-    const storedLast7 = storedSsnClean.slice(-7);
-
-    if (storedLast7 !== inputSsnClean) {
-      return res.status(400).json({ success: false, message: '주민등록번호 뒤 7자리가 일치하지 않습니다.' });
+    if (user.role === 'owner') {
+      // 사업주: 사업자등록번호 10자리로 본인확인
+      if (!/^\d{10}$/.test(credential)) {
+        return res.status(400).json({ success: false, message: '사업주는 사업자등록번호 10자리를 입력해주세요.' });
+      }
+      const storedBizNum = (user.business_number || '').replace(/-/g, '');
+      if (!storedBizNum) {
+        return res.status(400).json({ success: false, message: '사업자등록번호가 등록되지 않은 계정입니다. 이메일로 찾기를 이용하거나 관리자에게 문의해주세요.' });
+      }
+      if (storedBizNum !== credential) {
+        return res.status(400).json({ success: false, message: '사업자등록번호가 일치하지 않습니다.' });
+      }
+    } else {
+      // 근로자 등: 주민등록번호 뒤 7자리로 본인확인
+      if (!/^\d{7}$/.test(credential)) {
+        return res.status(400).json({ success: false, message: '근로자는 주민등록번호 뒤 7자리를 입력해주세요.' });
+      }
+      const decryptedSSN = decryptSSN(user.ssn);
+      if (!decryptedSSN) {
+        return res.status(400).json({ success: false, message: '주민등록번호가 등록되지 않은 계정입니다. 이메일로 찾기를 이용하거나 관리자에게 문의해주세요.' });
+      }
+      const storedLast7 = decryptedSSN.replace(/-/g, '').slice(-7);
+      if (storedLast7 !== credential) {
+        return res.status(400).json({ success: false, message: '주민등록번호 뒤 7자리가 일치하지 않습니다.' });
+      }
     }
 
     // 보안 토큰 생성 및 DB 저장

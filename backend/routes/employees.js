@@ -922,6 +922,9 @@ router.delete('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owne
     await run('DELETE FROM salary_slips WHERE user_id = ?', [employeeId]);
     await run('DELETE FROM salary_history WHERE user_id = ?', [employeeId]);
     await run('DELETE FROM employee_past_payroll WHERE user_id = ?', [employeeId]);
+    await run('DELETE FROM payroll_finalized WHERE employee_id = ?', [employeeId]);
+    await run('DELETE FROM leaves WHERE user_id = ?', [employeeId]);
+    await run('DELETE FROM labor_contracts WHERE employee_id = ?', [employeeId]);
     await run('DELETE FROM push_subscriptions WHERE user_id = ?', [employeeId]);
     await run('DELETE FROM salary_info WHERE user_id = ?', [employeeId]);
     await run('DELETE FROM attendance WHERE user_id = ?', [employeeId]);

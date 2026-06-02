@@ -131,12 +131,24 @@ export const createSlip = async (data) => {
 };
 
 export const updateSlip = async (id, data) => {
-  const {
-    payrollMonth, payDate, taxType, basePay, dependentsCount,
-    nationalPension, healthInsurance, employmentInsurance, longTermCare,
-    incomeTax, localIncomeTax,
-    employerNationalPension, employerHealthInsurance, employerEmploymentInsurance, employerLongTermCare
-  } = data;
+  const existing = await get('SELECT * FROM salary_slips WHERE id = ?', [id]);
+  if (!existing) return;
+
+  const payrollMonth = data.payrollMonth ?? data.payroll_month ?? existing.payroll_month;
+  const payDate = data.payDate ?? data.pay_date ?? existing.pay_date;
+  const taxType = data.taxType ?? data.tax_type ?? existing.tax_type;
+  const basePay = data.basePay ?? data.base_pay ?? existing.base_pay;
+  const dependentsCount = data.dependentsCount ?? data.dependents_count ?? existing.dependents_count;
+  const nationalPension = data.nationalPension ?? data.national_pension ?? existing.national_pension;
+  const healthInsurance = data.healthInsurance ?? data.health_insurance ?? existing.health_insurance;
+  const employmentInsurance = data.employmentInsurance ?? data.employment_insurance ?? existing.employment_insurance;
+  const longTermCare = data.longTermCare ?? data.long_term_care ?? existing.long_term_care;
+  const incomeTax = data.incomeTax ?? data.income_tax ?? existing.income_tax;
+  const localIncomeTax = data.localIncomeTax ?? data.local_income_tax ?? existing.local_income_tax;
+  const employerNationalPension = data.employerNationalPension ?? data.employer_national_pension ?? existing.employer_national_pension;
+  const employerHealthInsurance = data.employerHealthInsurance ?? data.employer_health_insurance ?? existing.employer_health_insurance;
+  const employerEmploymentInsurance = data.employerEmploymentInsurance ?? data.employer_employment_insurance ?? existing.employer_employment_insurance;
+  const employerLongTermCare = data.employerLongTermCare ?? data.employer_long_term_care ?? existing.employer_long_term_care;
 
   let totalDeductions = 0;
   let netPay = parseFloat(basePay) || 0;

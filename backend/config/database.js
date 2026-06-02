@@ -873,6 +873,16 @@ export const initDatabase = async () => {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+      await pool.query('ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS like_count INTEGER DEFAULT 0');
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS community_post_likes (
+          id SERIAL PRIMARY KEY,
+          post_id INTEGER NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(post_id, user_id)
+        )
+      `);
 
       // Rates_master 테이블 (요율 마스터)
       await pool.query(`
@@ -1034,6 +1044,8 @@ export const initDatabase = async () => {
         'CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read)',
         'CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at)',
         'CREATE INDEX IF NOT EXISTS idx_community_posts_category ON community_posts(category, created_at)',
+        'CREATE INDEX IF NOT EXISTS idx_community_likes_post_id ON community_post_likes(post_id)',
+        'CREATE INDEX IF NOT EXISTS idx_community_likes_user_id ON community_post_likes(user_id)',
         'CREATE INDEX IF NOT EXISTS idx_labor_contracts_workplace ON labor_contracts(workplace_id)',
         'CREATE INDEX IF NOT EXISTS idx_labor_contracts_employee ON labor_contracts(employee_id)'
       ];
@@ -1666,6 +1678,22 @@ export const initDatabase = async () => {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+      try {
+        await run('ALTER TABLE community_posts ADD COLUMN like_count INTEGER DEFAULT 0');
+      } catch (error) {
+        if (!String(error.message || '').includes('duplicate column name')) throw error;
+      }
+      await run(`
+        CREATE TABLE IF NOT EXISTS community_post_likes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          post_id INTEGER NOT NULL,
+          user_id INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (post_id) REFERENCES community_posts(id) ON DELETE CASCADE,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          UNIQUE(post_id, user_id)
         )
       `);
 

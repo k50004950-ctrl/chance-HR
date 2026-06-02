@@ -45,7 +45,7 @@ if (USE_POSTGRES) {
   db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
       console.error('데이터베이스 연결 오류:', err.message);
-    } else {
+    } else if (process.env.NODE_ENV !== 'test') {
       console.log('SQLite 데이터베이스에 연결되었습니다.');
     }
   });

@@ -190,7 +190,7 @@ const FindUsername = () => {
                   marginBottom: '10px'
                 }}>
                   <div style={{ marginBottom: '5px' }}>
-                    <strong>아이디:</strong> {user.fullUsername}
+                    <strong>아이디:</strong> {user.username}
                   </div>
                   <div style={{ marginBottom: '5px', fontSize: '14px', color: '#666' }}>
                     <strong>역할:</strong> {user.role}

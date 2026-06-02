@@ -92,7 +92,10 @@ router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']),
       return res.status(400).json({ success: false, message: '필수 정보를 입력해주세요.' });
     }
 
-    const finalOwnerId = req.user.role === 'admin' ? owner_id : req.user.id;
+    const finalOwnerId = ['admin', 'super_admin'].includes(req.user.role) ? owner_id : req.user.id;
+    if (!finalOwnerId) {
+      return res.status(400).json({ success: false, message: '사업주 정보가 필요합니다.' });
+    }
 
     const result = await run(
       'INSERT INTO workplaces (name, address, latitude, longitude, radius, default_off_days, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?)',

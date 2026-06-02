@@ -111,7 +111,7 @@ async function canAccessWorkplace(user, workplaceId) {
  *       400:
  *         description: 필수 항목 누락
  */
-router.post('/', authenticate, requirePremium('contracts'), authorizeRole('owner', 'admin'), async (req, res) => {
+router.post('/', authenticate, requirePremium('contracts'), authorizeRole(['owner', 'admin', 'super_admin']), async (req, res) => {
   try {
     const {
       workplace_id, employee_id, employer_name, employee_name,
@@ -126,6 +126,16 @@ router.post('/', authenticate, requirePremium('contracts'), authorizeRole('owner
         success: false,
         message: '필수 항목(사업장, 직원, 계약 시작일)을 입력해주세요.'
       });
+    }
+    if (!(await canAccessWorkplace(req.user, workplace_id))) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+    }
+    const employee = await get(
+      "SELECT id FROM users WHERE id = ? AND workplace_id = ? AND role = 'employee'",
+      [employee_id, workplace_id]
+    );
+    if (!employee) {
+      return res.status(400).json({ success: false, message: '해당 사업장 소속 직원을 선택해주세요.' });
     }
 
     const result = await run(

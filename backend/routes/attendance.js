@@ -15,9 +15,21 @@ const getKstDateString = () =>
 
 const generateQrToken = () => crypto.randomBytes(16).toString('hex');
 
+async function canAccessWorkplace(user, workplaceId) {
+  if (['admin', 'super_admin'].includes(user.role)) return true;
+  if (user.role !== 'owner') return false;
+
+  const workplace = await get('SELECT id FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, user.id]);
+  return !!workplace;
+}
+
 // 출근 체크
 router.post('/check-in', authenticate, validateCheckIn, async (req, res) => {
   try {
+    if (req.user.role !== 'employee') {
+      return res.status(403).json({ success: false, message: '근로자 계정만 출근 체크할 수 있습니다.' });
+    }
+
     const { latitude, longitude, accuracy } = req.body;
     const userId = req.user.id;
     const workplaceId = req.user.workplace_id;
@@ -130,7 +142,7 @@ router.post('/qr/generate', authenticate, async (req, res) => {
   try {
     const { workplaceId, regenerate } = req.body;
 
-    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+    if (!['owner', 'admin', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
@@ -143,7 +155,7 @@ router.post('/qr/generate', authenticate, async (req, res) => {
       return res.status(404).json({ success: false, message: '사업장을 찾을 수 없습니다.' });
     }
 
-    if (req.user.role === 'owner' && workplace.owner_id !== req.user.id) {
+    if (!await canAccessWorkplace(req.user, workplaceId)) {
       return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
@@ -175,12 +187,20 @@ router.post('/qr/generate', authenticate, async (req, res) => {
 // 퇴근 체크
 router.post('/check-out', authenticate, async (req, res) => {
   try {
+    if (req.user.role !== 'employee') {
+      return res.status(403).json({ success: false, message: '근로자 계정만 퇴근 체크할 수 있습니다.' });
+    }
+
     const { latitude, longitude, accuracy } = req.body;
     const userId = req.user.id;
     const workplaceId = req.user.workplace_id;
 
     if (!latitude || !longitude) {
       return res.status(400).json({ success: false, message: '위치 정보가 필요합니다.' });
+    }
+
+    if (!workplaceId) {
+      return res.status(400).json({ success: false, message: '사업장이 지정되지 않았습니다.' });
     }
 
     // 사업장 정보 조회
@@ -544,7 +564,7 @@ router.put('/:id', authenticate, async (req, res) => {
     const { check_in_time, check_out_time, leave_type } = req.body;
 
     // 사업주만 수정 가능
-    if (req.user.role !== 'owner' && req.user.role !== 'admin') {
+    if (!['owner', 'admin', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ success: false, message: '권한이 없습니다. 사업주만 근무시간을 수정할 수 있습니다.' });
     }
 
@@ -555,11 +575,8 @@ router.put('/:id', authenticate, async (req, res) => {
     }
 
     // 사업주 권한 확인
-    if (req.user.role === 'owner') {
-      const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [record.workplace_id]);
-      if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
-      }
+    if (!await canAccessWorkplace(req.user, record.workplace_id)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     // 휴가 처리

@@ -17,6 +17,14 @@ const __dirname = dirname(__filename);
 
 const router = express.Router();
 
+async function canManageWorkplace(user, workplaceId) {
+  if (['admin', 'super_admin'].includes(user.role)) return true;
+  if (user.role !== 'owner') return false;
+
+  const workplace = await get('SELECT id, owner_id FROM workplaces WHERE id = ?', [workplaceId]);
+  return !!workplace && workplace.owner_id === user.id;
+}
+
 // 파일 업로드 설정
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -250,6 +258,9 @@ router.post('/manual', authenticate, authorizeRole(['owner', 'admin', 'super_adm
     if (!workplace_id) {
       return res.status(400).json({ success: false, message: '사업장 정보가 필요합니다.' });
     }
+    if (!await canManageWorkplace(req.user, workplace_id)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+    }
 
     // Generate a unique placeholder username (not for login - just for DB uniqueness)
     const timestamp = Date.now();
@@ -370,6 +381,9 @@ router.post('/excel-import', authenticate, authorizeRole(['owner', 'admin', 'sup
     if (!workplaceId) {
       return res.status(400).json({ success: false, message: '사업장을 선택해주세요.' });
     }
+    if (!await canManageWorkplace(req.user, workplaceId)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+    }
 
     const wb = xlsx.read(req.file.buffer, { type: 'buffer' });
     const ws = wb.Sheets[wb.SheetNames[0]];
@@ -489,11 +503,8 @@ router.post('/', authenticate, authorizeRole(['admin', 'super_admin', 'owner']),
     }
 
     // 권한 확인
-    if (req.user.role === 'owner') {
-      const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [workplace_id]);
-      if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
-      }
+    if (!await canManageWorkplace(req.user, workplace_id)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -581,11 +592,6 @@ router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']
   try {
     const employeeId = req.params.id;
     
-    console.log('=== 전체 req.body ===');
-    console.log(req.body);
-    console.log('=== 전체 req.files ===');
-    console.log(req.files);
-    
     let {
       name, phone, email, ssn, address, emergency_contact, emergency_phone,
       hire_date, gender, birth_date, career, job_type, employment_renewal_date,
@@ -610,7 +616,11 @@ router.put('/:id', authenticate, authorizeRole(['admin', 'super_admin', 'owner']
       }
     }
 
-    console.log('받은 데이터:', { salary_type, amount, tax_type, weekly_holiday_pay, weekly_holiday_type, overtime_pay });
+    console.log('직원 정보 수정 요청:', {
+      employeeId,
+      fields: Object.keys(req.body || {}),
+      fileFields: Object.keys(req.files || {})
+    });
 
     // 권한 확인
     const employee = await get("SELECT workplace_id FROM users WHERE id = ? AND role = 'employee'", [employeeId]);

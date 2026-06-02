@@ -5,6 +5,14 @@ import { sendPushToOwner, sendPushToUser } from '../services/webPush.js';
 
 const router = express.Router();
 
+async function canAccessWorkplace(user, workplaceId) {
+  if (['admin', 'super_admin'].includes(user.role)) return true;
+  if (user.role !== 'owner') return false;
+
+  const workplace = await get('SELECT id FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, user.id]);
+  return !!workplace;
+}
+
 // Helper: calculate days for a leave request
 function calculateDays(leaveType, startDate, endDate) {
   if (leaveType === 'half_am' || leaveType === 'half_pm') {
@@ -42,6 +50,10 @@ function calculateAnnualEntitlement(hireDate) {
 // 1. 휴가 신청 (직원)
 router.post('/', authenticate, async (req, res) => {
   try {
+    if (req.user.role !== 'employee') {
+      return res.status(403).json({ success: false, message: '근로자 계정만 휴가를 신청할 수 있습니다.' });
+    }
+
     const userId = req.user.id;
     const { leave_type, start_date, end_date, reason } = req.body;
 
@@ -185,12 +197,9 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
     const { status, year } = req.query;
     const targetYear = year || new Date().getFullYear();
 
-    // 사업장 소유권 확인: owner는 자신의 사업장만, super_admin은 모두 가능
-    if (req.user.role !== 'super_admin') {
-      const workplace = await get('SELECT id FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, req.user.id]);
-      if (!workplace) {
-        return res.status(403).json({ success: false, message: '해당 사업장에 대한 권한이 없습니다.' });
-      }
+    // 사업장 소유권 확인: owner는 자신의 사업장만, admin/super_admin은 모두 가능
+    if (!await canAccessWorkplace(req.user, workplaceId)) {
+      return res.status(403).json({ success: false, message: '해당 사업장에 대한 권한이 없습니다.' });
     }
 
     let sql = `
@@ -240,8 +249,7 @@ router.put('/:id/approve', authenticate, authorizeRole(['owner', 'admin', 'super
 
     // 사업장 소유권 확인 (owner는 자신의 사업장만)
     if (req.user.role === 'owner') {
-      const workplace = await get('SELECT owner_id FROM workplaces WHERE id = ?', [leave.workplace_id]);
-      if (!workplace || workplace.owner_id !== req.user.id) {
+      if (!await canAccessWorkplace(req.user, leave.workplace_id)) {
         return res.status(403).json({ success: false, message: '해당 사업장의 휴가만 처리할 수 있습니다.' });
       }
     }
@@ -326,8 +334,7 @@ router.get('/annual-summary/:userId', authenticate, async (req, res) => {
       }
     } else if (req.user.role === 'owner') {
       const targetUser = await get('SELECT workplace_id FROM users WHERE id = ?', [userId]);
-      const ownerWorkplace = await get('SELECT id FROM workplaces WHERE owner_id = ?', [req.user.id]);
-      if (!targetUser || !ownerWorkplace || targetUser.workplace_id !== ownerWorkplace.id) {
+      if (!targetUser || !await canAccessWorkplace(req.user, targetUser.workplace_id)) {
         return res.status(403).json({ success: false, message: '해당 직원에 대한 권한이 없습니다.' });
       }
     }

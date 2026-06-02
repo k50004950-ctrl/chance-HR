@@ -68,12 +68,24 @@ export const getEmployeeSlips = async (userId, month) => {
 
 export const createSlip = async (data) => {
   const {
-    workplaceId, userId, payrollMonth, payDate, taxType,
-    basePay, dependentsCount,
+    workplaceId: workplaceIdInput, workplace_id,
+    userId: userIdInput, user_id,
+    payrollMonth: payrollMonthInput, payroll_month,
+    payDate: payDateInput, pay_date,
+    taxType: taxTypeInput, tax_type,
+    basePay: basePayInput, base_pay,
+    dependentsCount: dependentsCountInput, dependents_count,
     nationalPension, healthInsurance, employmentInsurance, longTermCare,
     incomeTax, localIncomeTax,
     employerNationalPension, employerHealthInsurance, employerEmploymentInsurance, employerLongTermCare
   } = data;
+  const workplaceId = workplaceIdInput ?? workplace_id;
+  const userId = userIdInput ?? user_id;
+  const payrollMonth = payrollMonthInput ?? payroll_month;
+  const payDate = payDateInput ?? pay_date;
+  const taxType = taxTypeInput ?? tax_type;
+  const basePay = basePayInput ?? base_pay;
+  const dependentsCount = dependentsCountInput ?? dependents_count;
 
   let totalDeductions = 0;
   let netPay = parseFloat(basePay) || 0;
@@ -249,7 +261,7 @@ export const getSlipPdf = async (slipId) => {
 export const sendSlipEmail = async (slipId) => {
   const slip = await get(SLIP_EMAIL_SQL, [slipId]);
   if (!slip) return { error: 'not_found' };
-  if (!slip.email) return { error: 'no_email' };
+  if (!slip.email) return { error: 'no_email', slip };
 
   const pdfBuffer = await generatePayslipPDF({
     slip,

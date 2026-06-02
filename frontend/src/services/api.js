@@ -144,6 +144,7 @@ export const salaryAPI = {
   updateSlip: (id, data) => api.put(`/salary/slips/${id}`, data),
   deleteSlip: (id) => api.delete(`/salary/slips/${id}`),
   publishSlip: (id) => api.put(`/salary/slips/${id}/publish`),
+  createMonthlySlips: ({ workplaceId, month, employeeIds }) => api.post(`/salary/slips/generate/${workplaceId}`, { payrollMonth: month, employeeIds }),
   generateMonthlySlips: (workplaceId, data) => api.post(`/salary/slips/generate/${workplaceId}`, data),
   generateEmployeeHistory: (userId) => api.post(`/salary/slips/generate-history/${userId}`),
   getPayrollLedger: (workplaceId, payrollMonth) => api.get(`/salary/payroll-ledger/${workplaceId}/${payrollMonth}`),
@@ -246,8 +247,9 @@ export const emailAPI = {
 // 계정 복구 API (이메일 기반)
 export const accountRecoveryAPI = {
   findUsername: (name, email) => api.post('/account/find-username', { name, email }),
-  verifyForPasswordReset: (username, email) => api.post('/account/verify-for-password-reset', { username, email }),
-  resetPassword: (token, newPassword) => api.post('/account/reset-password', { token, newPassword })
+  verifyForPasswordReset: (username, email) => api.post('/account/verify-reset-password', { username, email }),
+  verifyForPasswordResetByIdentity: (data) => api.post('/account/verify-reset-by-name', data),
+  resetPassword: (userId, newPassword, resetToken) => api.post('/account/reset-password', { userId, newPassword, resetToken })
 };
 
 export const notificationsAPI = {

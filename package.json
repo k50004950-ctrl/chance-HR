@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "npm start --prefix backend",
-    "build": "npm run build --prefix frontend && cp -r frontend/dist backend/ && cp -r frontend/dist .",
+    "clean": "rm -rf frontend/dist backend/dist dist",
+    "build": "npm run clean && npm run build --prefix frontend && cp -r frontend/dist backend/ && cp -r frontend/dist .",
     "install-all": "npm install --prefix frontend && npm install --prefix backend",
     "postinstall": "npm install --prefix frontend && npm install --prefix backend && npm run build",
     "test:load": "artillery run tests/load/scenarios.yml",
@@ -20,5 +21,9 @@
   "devDependencies": {
     "artillery": "^2.0.30",
     "sharp": "^0.34.5"
+  },
+  "overrides": {
+    "@tootallnate/once": "^2.0.1",
+    "tar": "^7.5.2"
   }
 }

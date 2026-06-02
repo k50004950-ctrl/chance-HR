@@ -15,7 +15,8 @@ async function checkInfo() {
 
     // 1. users 테이블 확인
     const user = await pool.query(`
-      SELECT id, username, name, phone, ssn, email, address
+      SELECT id, username, name, phone, email, address,
+             CASE WHEN ssn IS NOT NULL AND ssn LIKE '%:%:%' THEN true ELSE false END AS ssn_encrypted
       FROM users
       WHERE username = '김테스트';
     `);

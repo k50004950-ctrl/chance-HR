@@ -6,10 +6,11 @@ import api from '../services/api';
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1: 인증, 2: 비밀번호 재설정
-  const [method, setMethod] = useState('email'); // 'email' | 'name'
+  const [method, setMethod] = useState('email'); // 'email' | 'identity'
+  const [accountType, setAccountType] = useState('owner'); // 'owner' | 'employee'
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
-  const [ssnLast7, setSsnLast7] = useState('');
+  const [identityNumber, setIdentityNumber] = useState('');
   const [email, setEmail] = useState('');
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -34,11 +35,14 @@ const ResetPassword = () => {
       return;
     }
 
-    if (method === 'name') {
+    if (method === 'identity') {
       if (!name.trim()) { setError('이름을 입력해주세요.'); return; }
-      const len = ssnLast7.replace(/-/g,'').length;
-      if (len !== 7 && len !== 10) {
-        setError('근로자는 주민등록번호 뒤 7자리, 사업주는 사업자등록번호 10자리를 입력해주세요.');
+      const digits = identityNumber.replace(/\D/g, '');
+      const expectedLength = accountType === 'owner' ? 10 : 7;
+      if (digits.length !== expectedLength) {
+        setError(accountType === 'owner'
+          ? '사업자등록번호 10자리를 입력해주세요.'
+          : '주민등록번호 뒤 7자리를 입력해주세요.');
         return;
       }
     }
@@ -49,7 +53,12 @@ const ResetPassword = () => {
       if (method === 'email') {
         response = await api.post('/account/verify-reset-password', { username, email });
       } else {
-        response = await api.post('/account/verify-reset-by-name', { username, name, credential: ssnLast7, ssnLast7 });
+        response = await api.post('/account/verify-reset-by-name', {
+          username,
+          name,
+          accountType,
+          credential: identityNumber
+        });
       }
 
       setResetToken(response.data.resetToken);
@@ -148,15 +157,15 @@ const ResetPassword = () => {
               </button>
               <button
                 type="button"
-                onClick={() => { setMethod('name'); setError(''); }}
+                onClick={() => { setMethod('identity'); setError(''); }}
                 style={{
                   flex: 1, padding: '10px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
-                  background: method === 'name' ? 'white' : 'transparent',
-                  color: method === 'name' ? '#667eea' : '#6b7280',
-                  boxShadow: method === 'name' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none'
+                  background: method === 'identity' ? 'white' : 'transparent',
+                  color: method === 'identity' ? '#667eea' : '#6b7280',
+                  boxShadow: method === 'identity' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none'
                 }}
               >
-                👤 이름으로 찾기
+                👤 이름/등록번호로 찾기
               </button>
             </div>
 
@@ -181,9 +190,35 @@ const ResetPassword = () => {
               />
             )}
 
-            {/* 이름 + 주민번호 인증 방법 */}
-            {method === 'name' && (
+            {/* 이름 + 등록번호 인증 방법 */}
+            {method === 'identity' && (
               <>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', background: '#f3f4f6', borderRadius: '10px', padding: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setAccountType('owner'); setIdentityNumber(''); setError(''); }}
+                    style={{
+                      flex: 1, padding: '9px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
+                      background: accountType === 'owner' ? 'white' : 'transparent',
+                      color: accountType === 'owner' ? '#667eea' : '#6b7280',
+                      boxShadow: accountType === 'owner' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none'
+                    }}
+                  >
+                    사업주
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAccountType('employee'); setIdentityNumber(''); setError(''); }}
+                    style={{
+                      flex: 1, padding: '9px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
+                      background: accountType === 'employee' ? 'white' : 'transparent',
+                      color: accountType === 'employee' ? '#667eea' : '#6b7280',
+                      boxShadow: accountType === 'employee' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none'
+                    }}
+                  >
+                    근로자
+                  </button>
+                </div>
                 <div style={{ marginBottom: '16px' }}>
                   <label style={labelStyle}>이름 (실명) <span style={{ color: 'red' }}>*</span></label>
                   <input
@@ -195,20 +230,25 @@ const ResetPassword = () => {
                   />
                 </div>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={labelStyle}>본인확인 번호 <span style={{ color: 'red' }}>*</span></label>
+                  <label style={labelStyle}>
+                    {accountType === 'owner' ? '사업자등록번호' : '주민등록번호 뒤 7자리'} <span style={{ color: 'red' }}>*</span>
+                  </label>
                   <input
                     type="password"
-                    value={ssnLast7}
+                    value={identityNumber}
                     onChange={(e) => {
-                      const v = e.target.value.replace(/\D/g, '').slice(0, 10);
-                      setSsnLast7(v);
+                      const maxLength = accountType === 'owner' ? 10 : 7;
+                      const v = e.target.value.replace(/\D/g, '').slice(0, maxLength);
+                      setIdentityNumber(v);
                     }}
-                    placeholder="근로자: 주민번호 뒤 7자리 / 사업주: 사업자번호 10자리"
-                    maxLength={10}
+                    placeholder={accountType === 'owner' ? '사업자등록번호 10자리' : '주민등록번호 뒤 7자리'}
+                    maxLength={accountType === 'owner' ? 10 : 7}
                     style={inputStyle}
                   />
                   <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                    근로자는 주민등록번호 뒤 7자리, 사업주는 사업자등록번호 10자리 (숫자만 입력)
+                    {accountType === 'owner'
+                      ? '사업주 회원가입 때 입력한 사업자등록번호 10자리를 입력하세요.'
+                      : '근로자 회원가입 때 입력한 주민등록번호 뒤 7자리를 입력하세요.'}
                   </small>
                 </div>
                 <div style={{
@@ -220,7 +260,7 @@ const ResetPassword = () => {
                   fontSize: '13px',
                   color: '#92400e'
                 }}>
-                  🔒 아이디 + 이름 + 본인확인 번호(근로자: 주민번호 뒤 7자리 / 사업주: 사업자등록번호)로 확인 후 재설정됩니다.
+                  🔒 아이디 + 이름 + {accountType === 'owner' ? '사업자등록번호' : '주민등록번호 뒤 7자리'}로 확인 후 재설정됩니다.
                 </div>
               </>
             )}

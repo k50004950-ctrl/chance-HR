@@ -1632,7 +1632,7 @@ const OwnerDashboard = () => {
       resignation_date: normalizeDate(data.resignation_date),
       workplace_id: selectedWorkplace
     };
-    console.log('모달 열기 - formData:', newFormData);
+    console.log('모달 열기:', { modalType: type, hasEmployeeId: !!newFormData.id });
     setFormData(newFormData);
     if (type === 'employee') {
       setPastPayrollEnabled(false);
@@ -1934,8 +1934,10 @@ const OwnerDashboard = () => {
       });
 
       // === 2026-01-14 최종 수정 ===
-      console.log('🚀 [최종] 전송할 FormData:', Object.fromEntries(formDataToSend.entries()));
-      console.log('🚀 FormData 전체 항목 수:', Array.from(formDataToSend.entries()).length);
+      console.log('직원 저장 요청:', {
+        mode: formData.id ? 'update' : 'create',
+        fieldCount: Array.from(formDataToSend.keys()).length
+      });
 
       if (formData.id) {
         const response = await employeeAPI.update(formData.id, formDataToSend);

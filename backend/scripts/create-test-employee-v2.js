@@ -18,7 +18,7 @@ async function createTestEmployee() {
     };
 
     console.log('📋 회원가입 데이터:');
-    console.log(JSON.stringify(employee, null, 2));
+    console.log(JSON.stringify({ ...employee, password: '[REDACTED]', ssn: '[REDACTED]' }, null, 2));
     console.log('');
 
     const response = await axios.post(`${API_URL}/api/v2/auth/signup`, employee);
@@ -30,7 +30,7 @@ async function createTestEmployee() {
       console.log(`   - 아이디: ${employee.username}`);
       console.log(`   - 비밀번호: ${employee.password}`);
       console.log(`   - 이름: ${employee.name}`);
-      console.log(`   - 주민등록번호: ${employee.ssn}`);
+      console.log('   - 주민등록번호: [REDACTED]');
       console.log(`   - 이메일: ${employee.email}`);
       console.log(`   - 주소: ${employee.address}`);
     } else {

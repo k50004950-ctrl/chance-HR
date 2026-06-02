@@ -33,11 +33,26 @@ export const requirePremium = (featureName: PremiumFeature) => async (req: AuthR
       return next();
     }
 
-    const workplaceId = req.body?.workplace_id || req.params?.workplaceId || req.user?.workplace_id;
+    let workplaceId = req.body?.workplace_id || req.body?.workplaceId || req.params?.workplaceId || req.user?.workplace_id;
 
     if (!workplaceId) {
-      // If no workplace context, let it pass (other middleware will catch auth issues)
-      return next();
+      if (req.params?.slipId) {
+        const slip = await get('SELECT workplace_id FROM salary_slips WHERE id = ?', [req.params.slipId]) as { workplace_id?: number } | undefined;
+        workplaceId = slip?.workplace_id;
+      } else if (featureName === 'contracts' && req.params?.id) {
+        const contract = await get('SELECT workplace_id FROM labor_contracts WHERE id = ?', [req.params.id]) as { workplace_id?: number } | undefined;
+        workplaceId = contract?.workplace_id;
+      }
+    }
+
+    if (!workplaceId) {
+      res.status(400).json({
+        success: false,
+        message: '프리미엄 기능 확인을 위한 사업장 정보가 필요합니다.',
+        code: 'WORKPLACE_REQUIRED',
+        feature: featureName
+      });
+      return;
     }
 
     const plan = await get(

@@ -1,6 +1,7 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 import dotenv from 'dotenv';
+import { encryptSSN } from '../utils/crypto.js';
 
 dotenv.config();
 
@@ -13,21 +14,24 @@ async function updateInfo() {
   try {
     console.log('🔧 김테스트 계정 정보 업데이트 중...\n');
 
+    const encryptedSSN = encryptSSN('9001011234567');
+
     // 김테스트 계정 업데이트
     await pool.query(`
       UPDATE users
       SET 
-        ssn = '9001011234567',
-        email = 'test@example.com',
-        address = '서울시 강남구 테헤란로 123'
+        ssn = $1,
+        email = $2,
+        address = $3
       WHERE username = '김테스트';
-    `);
+    `, [encryptedSSN, 'test@example.com', '서울시 강남구 테헤란로 123']);
 
     console.log('✅ users 테이블 업데이트 완료!');
 
     // 확인
     const result = await pool.query(`
-      SELECT id, username, name, phone, ssn, email, address
+      SELECT id, username, name, phone, email, address,
+             CASE WHEN ssn IS NOT NULL AND ssn LIKE '%:%:%' THEN true ELSE false END AS ssn_encrypted
       FROM users
       WHERE username = '김테스트';
     `);

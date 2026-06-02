@@ -10,6 +10,29 @@ import { loginLimiter, signupLimiter } from '../middleware/rateLimiter.js';
 import { JWT_SECRET_SAFE as JWT_SECRET } from '../config/constants.js';
 const router = express.Router();
 
+function isSelfOrAdmin(user, userId) {
+  return ['admin', 'super_admin'].includes(user.role) || Number(user.id) === Number(userId);
+}
+
+async function canManageCompany(user, companyId) {
+  if (['admin', 'super_admin'].includes(user.role)) return true;
+  if (user.role !== 'owner') return false;
+
+  const admin = await get(
+    'SELECT id FROM company_admins WHERE company_id = ? AND user_id = ?',
+    [companyId, user.id]
+  );
+  return !!admin;
+}
+
+async function canManageWorkplace(user, workplaceId) {
+  if (['admin', 'super_admin'].includes(user.role)) return true;
+  if (user.role !== 'owner') return false;
+
+  const workplace = await get('SELECT id FROM workplaces WHERE id = ? AND owner_id = ?', [workplaceId, user.id]);
+  return !!workplace;
+}
+
 // ============================================
 // 1. 독립 회원가입 (사업주 / 근로자 공통)
 // ============================================
@@ -528,6 +551,10 @@ router.get('/owner/match-requests/:companyId', authenticate, authorizeRole(['own
   const { companyId } = req.params;
 
   try {
+    if (!await canManageCompany(req.user, companyId)) {
+      return res.status(403).json({ success: false, message: '해당 회사에 대한 권한이 없습니다.' });
+    }
+
     const requests = await all(
       `SELECT 
         cer.id,
@@ -580,6 +607,20 @@ router.post('/owner/match-approve', authenticate, authorizeRole(['owner', 'admin
       });
     }
 
+    const targetRelation = await get(
+      'SELECT user_id, company_id FROM company_employee_relations WHERE id = ?',
+      [relationId]
+    );
+    if (!targetRelation) {
+      return res.status(404).json({
+        success: false,
+        message: '매칭 요청을 찾을 수 없습니다.'
+      });
+    }
+    if (!await canManageCompany(req.user, targetRelation.company_id)) {
+      return res.status(403).json({ success: false, message: '해당 회사에 대한 권한이 없습니다.' });
+    }
+
     if (approve) {
       // 먼저 relation 정보 가져오기
       const relation = await get(
@@ -588,13 +629,6 @@ router.post('/owner/match-approve', authenticate, authorizeRole(['owner', 'admin
          WHERE id = ?`,
         [relationId]
       );
-
-      if (!relation) {
-        return res.status(404).json({ 
-          success: false, 
-          message: '매칭 요청을 찾을 수 없습니다.' 
-        });
-      }
 
       // workplace_id가 없으면 회사의 workplace 찾기
       let workplaceId = relation.workplace_id;
@@ -708,6 +742,20 @@ router.post('/employee/resign', authenticate, async (req, res) => {
       });
     }
 
+    const relation = await get(
+      'SELECT user_id FROM company_employee_relations WHERE id = ?',
+      [relationId]
+    );
+    if (!relation) {
+      return res.status(404).json({
+        success: false,
+        message: '고용 관계를 찾을 수 없습니다.'
+      });
+    }
+    if (req.user.role !== 'employee' || Number(relation.user_id) !== Number(req.user.id)) {
+      return res.status(403).json({ success: false, message: '본인의 고용 관계만 퇴사 처리할 수 있습니다.' });
+    }
+
     // 퇴사 처리: end_date 설정, status를 'resigned'로 변경
     await run(
       `UPDATE company_employee_relations 
@@ -718,11 +766,6 @@ router.post('/employee/resign', authenticate, async (req, res) => {
 
     // 🔗 기존 시스템 호환성: users 테이블도 업데이트
     try {
-      const relation = await get(
-        'SELECT user_id FROM company_employee_relations WHERE id = ?',
-        [relationId]
-      );
-
       if (relation) {
         await run(
           `UPDATE users 
@@ -770,6 +813,10 @@ router.get('/employee/my-employment/:userId', authenticate, async (req, res) => 
   const { userId } = req.params;
 
   try {
+    if (!isSelfOrAdmin(req.user, userId)) {
+      return res.status(403).json({ success: false, message: '본인의 고용 이력만 조회할 수 있습니다.' });
+    }
+
     const employments = await all(
       `SELECT 
         cer.id as relation_id,
@@ -814,6 +861,10 @@ router.get('/employee/my-payslips/:userId', authenticate, async (req, res) => {
   const { userId } = req.params;
 
   try {
+    if (!isSelfOrAdmin(req.user, userId)) {
+      return res.status(403).json({ success: false, message: '본인의 급여명세서만 조회할 수 있습니다.' });
+    }
+
     const payslips = await all(
       `SELECT 
         ss.id,
@@ -855,6 +906,10 @@ router.get('/owner/my-companies/:userId', authenticate, async (req, res) => {
   const { userId } = req.params;
 
   try {
+    if (!isSelfOrAdmin(req.user, userId)) {
+      return res.status(403).json({ success: false, message: '본인의 회사 정보만 조회할 수 있습니다.' });
+    }
+
     let companies = await all(
       `SELECT 
         c.id,
@@ -997,6 +1052,10 @@ router.get('/owner/employees/:companyId', authenticate, authorizeRole(['owner', 
   const { companyId } = req.params;
 
   try {
+    if (!await canManageCompany(req.user, companyId)) {
+      return res.status(403).json({ success: false, message: '해당 회사에 대한 권한이 없습니다.' });
+    }
+
     const employees = await all(
       `SELECT 
         cer.id as relation_id,
@@ -1042,9 +1101,19 @@ router.post('/owner/create-workplace', authenticate, authorizeRole(['owner', 'ad
   let { companyId, ownerId, name, address, phone, latitude, longitude, radius, business_number } = req.body;
 
   try {
+    if (req.user.role === 'owner') {
+      ownerId = req.user.id;
+    } else if (!ownerId) {
+      ownerId = req.user.id;
+    }
+
     // 필수 항목 체크 (companyId는 제외 - 자동 생성 가능)
     if (!ownerId || !name || !business_number || !address || !latitude || !longitude || !radius) {
       return res.status(400).json({ success: false, message: '필수 항목을 모두 입력해주세요.' });
+    }
+
+    if (companyId && !await canManageCompany(req.user, companyId)) {
+      return res.status(403).json({ success: false, message: '해당 회사에 대한 권한이 없습니다.' });
     }
 
     // companyId가 없으면 자동 생성 (V1 사용자 지원)
@@ -1077,6 +1146,18 @@ router.post('/owner/create-workplace', authenticate, authorizeRole(['owner', 'ad
         `UPDATE users SET company_id = ? WHERE id = ?`,
         [companyId, ownerId]
       );
+
+      const existingAdmin = await get(
+        'SELECT id FROM company_admins WHERE company_id = ? AND user_id = ?',
+        [companyId, ownerId]
+      );
+      if (!existingAdmin) {
+        await run(
+          `INSERT INTO company_admins (company_id, user_id, role, granted_at)
+           VALUES (?, ?, 'owner', CURRENT_TIMESTAMP)`,
+          [companyId, ownerId]
+        );
+      }
 
       console.log(`✅ 회사 자동 생성 완료: ${name} (company_id: ${companyId})`);
     }
@@ -1123,8 +1204,8 @@ router.post('/owner/create-invite', authenticate, authorizeRole(['owner', 'admin
   console.log('📨 초대 링크 생성 요청:', { workplaceId, companyId, ownerId, expiresInDays, maxUses });
 
   try {
-    // ownerId는 반드시 요청자 본인 (super_admin 제외)
-    if (req.user.role !== 'super_admin') {
+    // owner는 반드시 요청자 본인, admin/super_admin은 지정 ownerId 허용
+    if (req.user.role === 'owner') {
       ownerId = req.user.id;
     } else if (!ownerId) {
       ownerId = req.user.id;
@@ -1139,12 +1220,9 @@ router.post('/owner/create-invite', authenticate, authorizeRole(['owner', 'admin
       });
     }
 
-    // 사업장 소유권 검증 (super_admin은 예외)
-    if (req.user.role !== 'super_admin') {
-      const ownedWp = await get('SELECT owner_id FROM workplaces WHERE id = ?', [workplaceId]);
-      if (!ownedWp || ownedWp.owner_id !== req.user.id) {
-        return res.status(403).json({ success: false, message: '본인 소유 사업장만 초대할 수 있습니다.' });
-      }
+    // 사업장 소유권 검증
+    if (!await canManageWorkplace(req.user, workplaceId)) {
+      return res.status(403).json({ success: false, message: '본인 소유 사업장만 초대할 수 있습니다.' });
     }
     
     // companyId가 없으면 자동 생성 (V1 사용자 지원)
@@ -1221,6 +1299,10 @@ router.post('/owner/create-invite', authenticate, authorizeRole(['owner', 'admin
       console.log(`🎉 자동 회사 생성 완료: companyId ${companyId}`);
     }
 
+    if (companyId && !await canManageCompany(req.user, companyId)) {
+      return res.status(403).json({ success: false, message: '해당 회사에 대한 권한이 없습니다.' });
+    }
+
     // 고유 토큰 생성 (CSPRNG)
     const token = `INV-${crypto.randomBytes(24).toString('hex')}`;
     
@@ -1266,11 +1348,8 @@ router.get('/owner/invites/:workplaceId', authenticate, authorizeRole(['owner', 
 
   try {
     // 사업장 소유권 검증
-    if (req.user.role !== 'super_admin') {
-      const ownedWp = await get('SELECT owner_id FROM workplaces WHERE id = ?', [workplaceId]);
-      if (!ownedWp || ownedWp.owner_id !== req.user.id) {
-        return res.status(403).json({ success: false, message: '본인 소유 사업장만 조회할 수 있습니다.' });
-      }
+    if (!await canManageWorkplace(req.user, workplaceId)) {
+      return res.status(403).json({ success: false, message: '본인 소유 사업장만 조회할 수 있습니다.' });
     }
 
     const invitations = await all(
@@ -1321,20 +1400,18 @@ router.delete('/owner/invite/:token', authenticate, authorizeRole(['owner', 'adm
 
   try {
     // 초대장 소속 사업장 소유권 확인
-    if (req.user.role !== 'super_admin') {
-      const inv = await get(
-        `SELECT wi.workplace_id, w.owner_id
-         FROM workplace_invitations wi
-         LEFT JOIN workplaces w ON wi.workplace_id = w.id
-         WHERE wi.token = ?`,
-        [token]
-      );
-      if (!inv) {
-        return res.status(404).json({ success: false, message: '초대 링크를 찾을 수 없습니다.' });
-      }
-      if (inv.owner_id !== req.user.id) {
-        return res.status(403).json({ success: false, message: '본인 소유 사업장의 초대만 비활성화할 수 있습니다.' });
-      }
+    const inv = await get(
+      `SELECT wi.workplace_id, w.owner_id
+       FROM workplace_invitations wi
+       LEFT JOIN workplaces w ON wi.workplace_id = w.id
+       WHERE wi.token = ?`,
+      [token]
+    );
+    if (!inv) {
+      return res.status(404).json({ success: false, message: '초대 링크를 찾을 수 없습니다.' });
+    }
+    if (!await canManageWorkplace(req.user, inv.workplace_id)) {
+      return res.status(403).json({ success: false, message: '본인 소유 사업장의 초대만 비활성화할 수 있습니다.' });
     }
 
     await run(

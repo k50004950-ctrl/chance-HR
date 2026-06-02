@@ -55,7 +55,10 @@ export const useSalaryFinalize = () => {
       setFinalizing(true);
       setFinalizeError(null);
 
-      const response = await salaryAPI.createSlip(workplaceId, slipData);
+      const response = await salaryAPI.createSlip({
+        ...slipData,
+        workplace_id: slipData.workplace_id || workplaceId
+      });
 
       return {
         success: true,

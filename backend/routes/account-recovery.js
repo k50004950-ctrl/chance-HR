@@ -3,12 +3,17 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { query, run } from '../config/database.js';
 import { decryptSSN } from '../utils/crypto.js';
+import {
+  getRecoveryCredentialRequirement,
+  normalizeRecoveryCredential
+} from '../utils/accountRecovery.js';
 import { passwordResetLimiter } from '../middleware/rateLimiter.js';
 import { getRedis } from '../config/redis.js';
 
 const router = express.Router();
 
 const EMAIL_VERIFY_KEY_PREFIX = 'verify:email:';
+const RECOVERY_ACCOUNT_TYPES = ['owner', 'employee'];
 
 // 보안 토큰 생성 유틸리티
 function generateResetToken() {
@@ -68,16 +73,19 @@ router.post('/find-username', async (req, res) => {
   }
 });
 
-// 비밀번호 재설정 - 이름 + 주민등록번호 뒤 7자리 인증 (이메일 없는 경우 대안)
+// 비밀번호 재설정 - 이름 + 본인확인 번호 인증 (이메일 없는 경우 대안)
 router.post('/verify-reset-by-name', async (req, res) => {
   try {
-    const { username, name } = req.body;
+    const { username, name, accountType } = req.body;
     // credential: 근로자=주민번호 뒤 7자리, 사업주=사업자등록번호 10자리 (구버전 호환: ssnLast7)
-    const rawCredential = (req.body.credential ?? req.body.ssnLast7 ?? '').toString();
-    const credential = rawCredential.replace(/-/g, '').trim();
+    const credential = normalizeRecoveryCredential(req.body.credential ?? req.body.ssnLast7);
 
     if (!username || !name || !credential) {
       return res.status(400).json({ success: false, message: '아이디, 이름, 본인확인 번호를 모두 입력해주세요.' });
+    }
+
+    if (accountType && !RECOVERY_ACCOUNT_TYPES.includes(accountType)) {
+      return res.status(400).json({ success: false, message: '계정 유형을 다시 선택해주세요.' });
     }
 
     // 아이디 + 이름으로 계정 조회
@@ -91,31 +99,38 @@ router.post('/verify-reset-by-name', async (req, res) => {
     }
 
     const user = users[0];
+    const recoveryRole = user.role === 'owner' ? 'owner' : 'employee';
 
-    if (user.role === 'owner') {
+    if (accountType && accountType !== recoveryRole) {
+      return res.status(400).json({ success: false, message: '선택한 계정 유형과 가입 정보가 일치하지 않습니다.' });
+    }
+
+    if (recoveryRole === 'owner') {
       // 사업주: 사업자등록번호 10자리로 본인확인
-      if (!/^\d{10}$/.test(credential)) {
-        return res.status(400).json({ success: false, message: '사업주는 사업자등록번호 10자리를 입력해주세요.' });
+      const requirement = getRecoveryCredentialRequirement('owner');
+      if (!requirement.pattern.test(credential)) {
+        return res.status(400).json({ success: false, message: requirement.invalidMessage });
       }
       const storedBizNum = (user.business_number || '').replace(/-/g, '');
       if (!storedBizNum) {
-        return res.status(400).json({ success: false, message: '사업자등록번호가 등록되지 않은 계정입니다. 이메일로 찾기를 이용하거나 관리자에게 문의해주세요.' });
+        return res.status(400).json({ success: false, message: requirement.missingMessage });
       }
       if (storedBizNum !== credential) {
-        return res.status(400).json({ success: false, message: '사업자등록번호가 일치하지 않습니다.' });
+        return res.status(400).json({ success: false, message: requirement.mismatchMessage });
       }
     } else {
       // 근로자 등: 주민등록번호 뒤 7자리로 본인확인
-      if (!/^\d{7}$/.test(credential)) {
-        return res.status(400).json({ success: false, message: '근로자는 주민등록번호 뒤 7자리를 입력해주세요.' });
+      const requirement = getRecoveryCredentialRequirement('employee');
+      if (!requirement.pattern.test(credential)) {
+        return res.status(400).json({ success: false, message: requirement.invalidMessage });
       }
       const decryptedSSN = decryptSSN(user.ssn);
       if (!decryptedSSN) {
-        return res.status(400).json({ success: false, message: '주민등록번호가 등록되지 않은 계정입니다. 이메일로 찾기를 이용하거나 관리자에게 문의해주세요.' });
+        return res.status(400).json({ success: false, message: requirement.missingMessage });
       }
       const storedLast7 = decryptedSSN.replace(/-/g, '').slice(-7);
       if (storedLast7 !== credential) {
-        return res.status(400).json({ success: false, message: '주민등록번호 뒤 7자리가 일치하지 않습니다.' });
+        return res.status(400).json({ success: false, message: requirement.mismatchMessage });
       }
     }
 
@@ -137,7 +152,7 @@ router.post('/verify-reset-by-name', async (req, res) => {
       name: user.name
     });
   } catch (error) {
-    console.error('이름+주민번호 인증 오류:', error);
+    console.error('이름+본인확인 번호 인증 오류:', error);
     res.status(500).json({ success: false, message: '인증에 실패했습니다.' });
   }
 });

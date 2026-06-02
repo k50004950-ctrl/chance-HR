@@ -500,8 +500,11 @@ router.put('/owner/reset-employee-password', authenticate, async (req, res) => {
     }
 
     // 사업주 본인 사업장 소속 확인
-    if (req.user.role === 'owner' && employee.workplace_id !== req.user.workplace_id) {
-      return res.status(403).json({ success: false, message: '본인 사업장 소속 직원만 초기화할 수 있습니다.' });
+    if (req.user.role === 'owner') {
+      const workplace = await get('SELECT id FROM workplaces WHERE id = ? AND owner_id = ?', [employee.workplace_id, req.user.id]);
+      if (!workplace) {
+        return res.status(403).json({ success: false, message: '본인 사업장 소속 직원만 초기화할 수 있습니다.' });
+      }
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);

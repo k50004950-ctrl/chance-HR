@@ -66,7 +66,7 @@ router.get('/list', async (req, res) => {
 router.post('/', authenticateToken, requireRole('super_admin'), async (req, res) => {
   try {
     console.log('📋 POST /api/rates-master 요청 수신');
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('Request fields:', Object.keys(req.body || {}));
     console.log('User:', req.user?.username, 'Role:', req.user?.role);
     
     const {

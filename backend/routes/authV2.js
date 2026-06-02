@@ -1579,8 +1579,8 @@ router.post('/employee/signup-with-invite', async (req, res) => {
     // 사용자 생성 (주민번호 암호화, 주소 포함)
     const userResult = await run(
       `INSERT INTO users (
-        username, password, name, phone, ssn, address, role, workplace_id, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, 'employee', ?, CURRENT_TIMESTAMP)`,
+        username, password, name, phone, ssn, address, role, workplace_id, employment_status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, 'employee', ?, 'active', CURRENT_TIMESTAMP)`,
       [username, hashedPassword, name, phone, encryptedSSN, address, invitation.workplace_id]
     );
     const userId = userResult.id || userResult.lastID; // PostgreSQL은 id, SQLite는 lastID
@@ -1588,8 +1588,8 @@ router.post('/employee/signup-with-invite', async (req, res) => {
     // 직원 상세 정보 생성 (급여통장 정보 포함)
     await run(
       `INSERT INTO employee_details (
-        user_id, workplace_id, bank_name, account_number, account_holder, employment_status, created_at
-      ) VALUES (?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP)`,
+        user_id, workplace_id, bank_name, account_number, account_holder, created_at
+      ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       [userId, invitation.workplace_id, bank_name, account_number, account_holder]
     );
 

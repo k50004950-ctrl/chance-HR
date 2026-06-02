@@ -24,7 +24,6 @@ const InviteSignup = () => {
     account_holder: ''
   });
   const [privacyConsent, setPrivacyConsent] = useState(false);
-  const [locationConsent, setLocationConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -462,7 +461,7 @@ const InviteSignup = () => {
             }}>
               <p><strong>수집 항목:</strong> 성명, 아이디, 비밀번호, 전화번호, 주민등록번호, 주소, 은행명, 계좌번호, 예금주명</p>
               <p><strong>수집 목적:</strong> 근로계약 관리, 급여 계산 및 지급, 4대보험 신고, 근태관리</p>
-              <p><strong>보유 기간:</strong> 근로관계 종료 후 관련 법령에 따라 3~5년간 보관 후 파기</p>
+              <p><strong>보유 기간:</strong> 근로관계·급여·세금 관련 법령상 보존이 필요한 기간 동안 보관 후 파기</p>
               <p style={{ marginTop: '8px' }}>주민등록번호는 소득세법 제145조에 따른 원천징수 및 4대보험 신고를 위해 수집하며, AES-256 암호화하여 저장합니다. 동의를 거부할 수 있으나, 이 경우 회원가입이 제한됩니다.</p>
             </div>
             <label style={{ display: 'flex', gap: '10px', alignItems: 'center', cursor: 'pointer' }}>
@@ -475,16 +474,9 @@ const InviteSignup = () => {
                 [필수] 개인정보 수집·이용에 동의합니다.
               </span>
             </label>
-            <label style={{ display: 'flex', gap: '10px', alignItems: 'center', cursor: 'pointer', marginTop: '8px' }}>
-              <input
-                type="checkbox"
-                checked={locationConsent}
-                onChange={(e) => setLocationConsent(e.target.checked)}
-              />
-              <span style={{ fontSize: '13px', color: '#374151' }}>
-                [선택] 위치정보 수집·이용에 동의합니다. (출퇴근 기록용)
-              </span>
-            </label>
+            <p style={{ fontSize: '12px', color: '#6b7280', margin: '10px 0 0', lineHeight: '1.6' }}>
+              위치정보 수집·이용 동의는 출퇴근 기능 이용 전 별도 화면에서 진행됩니다.
+            </p>
           </div>
 
           <button

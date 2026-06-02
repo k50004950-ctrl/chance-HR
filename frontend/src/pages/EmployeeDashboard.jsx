@@ -2333,18 +2333,18 @@ const EmployeeDashboard = () => {
                   </h5>
                   <div style={{ marginBottom: '12px' }}>
                     <strong>■ 수집하는 개인정보 항목</strong><br/>
-                    이름, 주민등록번호, 연락처(전화번호), 이메일, 주소, 비상연락처
+                    이름, 주민등록번호, 연락처(전화번호), 주소, 급여 지급 및 인사관리에 필요한 정보
                   </div>
                   <div style={{ marginBottom: '12px' }}>
                     <strong>■ 수집·이용 목적</strong><br/>
                     • 인사관리 및 근로계약 관리<br/>
-                    • 급여계산 및 4대보험 가입·관리<br/>
+                    • 급여계산, 원천징수, 4대보험 가입·관리<br/>
                     • 근태관리 및 출퇴근 기록 관리<br/>
                     • 긴급 상황 시 연락
                   </div>
                   <div style={{ marginBottom: '12px' }}>
                     <strong>■ 보유 및 이용 기간</strong><br/>
-                    근로관계 종료 후 5년 (근로기준법 제42조)
+                    근로관계·급여·세금 관련 법령상 보존이 필요한 기간 동안 보관 후 파기
                   </div>
                   <div style={{ marginBottom: '12px' }}>
                     <strong>■ 동의를 거부할 권리 및 불이익</strong><br/>
@@ -2368,7 +2368,7 @@ const EmployeeDashboard = () => {
                   </div>
                   <div style={{ marginBottom: '12px' }}>
                     <strong>■ 보유 및 이용 기간</strong><br/>
-                    출퇴근 기록과 함께 5년
+                    출퇴근 기록과 함께 관계 법령상 보존이 필요한 기간 동안 보관 후 파기
                   </div>
                   <div style={{ background: '#fef3c7', padding: '16px', borderRadius: '6px', marginTop: '16px', border: '2px solid #fbbf24' }}>
                     <strong style={{ color: '#92400e', fontSize: '14px' }}>⚠️ 중요 안내사항</strong>

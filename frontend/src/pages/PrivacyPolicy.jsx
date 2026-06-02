@@ -72,8 +72,10 @@ const PrivacyPolicy = () => {
               (1) 개인정보
             </h3>
             <ul style={{ marginLeft: '20px', marginBottom: '16px' }}>
-              <li><strong>필수항목:</strong> 성명, 사용자ID, 비밀번호, 연락처(휴대폰번호), 이메일, 주민등록번호(급여 계산용), 은행명, 계좌번호, 예금주명</li>
-              <li><strong>선택항목:</strong> 부서명, 직급, 사번, 입사일, 주소</li>
+              <li><strong>공통 필수항목:</strong> 성명, 사용자ID, 비밀번호, 연락처</li>
+              <li><strong>사업주 필수항목:</strong> 사업자등록번호, 사업장명, 사업장 주소 및 좌표</li>
+              <li><strong>근로자 필수항목:</strong> 주민등록번호, 주소, 은행명, 계좌번호, 예금주명</li>
+              <li><strong>선택항목:</strong> 이메일, 부서명, 직급, 사번, 입사일, 비상연락처</li>
               <li><strong>자동수집정보:</strong> 서비스 이용기록, 접속 로그, IP 주소, 쿠키, 접속 기기 정보</li>
             </ul>
 
@@ -81,8 +83,8 @@ const PrivacyPolicy = () => {
               (2) 위치정보
             </h3>
             <ul style={{ marginLeft: '20px', marginBottom: '16px' }}>
-              <li><strong>수집항목:</strong> 출퇴근 기록 시점의 GPS 위치정보(위도, 경도), Wi-Fi 접속 정보 등</li>
-              <li><strong>수집목적:</strong> 위치기반 근태 인증 및 부정 출퇴근 방지</li>
+              <li><strong>수집항목:</strong> 출퇴근 버튼 또는 QR 출퇴근 처리 시점의 GPS 좌표(위도, 경도)</li>
+              <li><strong>수집목적:</strong> 근무지 범위 내 출퇴근 확인 및 부정 출퇴근 방지</li>
             </ul>
 
             <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#333', marginTop: '32px', marginBottom: '16px' }}>
@@ -137,7 +139,7 @@ const PrivacyPolicy = () => {
               (2) 보유 및 이용 기간
             </h3>
             <p style={{ marginBottom: '16px' }}>
-              위치기반서비스 이용 목적이 달성된 경우 즉시 파기하거나, 「근로기준법」 등 관련 법령에 따라 <strong>3년간</strong> 보관할 수 있습니다.
+              위치정보가 포함된 출퇴근 기록은 근태·임금 산정 증빙으로 「근로기준법」 등 관련 법령상 보존 필요가 있는 기간 동안 보관 후 파기합니다.
             </p>
 
             <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#333', marginTop: '32px', marginBottom: '16px' }}>
@@ -147,8 +149,9 @@ const PrivacyPolicy = () => {
               회사는 개인정보 수집 및 이용목적이 달성된 후에는 해당 정보를 지체 없이 파기합니다.
             </p>
             <ul style={{ marginLeft: '20px', marginBottom: '16px' }}>
-              <li><strong>근로계약 유효 기간:</strong> 서비스 이용을 위해 필요한 기간 동안 보유</li>
-              <li><strong>근로계약 종료 후:</strong> 「근로기준법」 제42조 등 관련 법령에 따라 <strong>3년간</strong> 보관 후 파기</li>
+              <li><strong>회원 및 근로관계 관리 정보:</strong> 서비스 이용 및 근로관계 관리에 필요한 기간 동안 보유</li>
+              <li><strong>근로계약서, 임금대장, 출퇴근·휴가 등 근로관계 중요 서류:</strong> 「근로기준법」 등 관련 법령에 따라 보관 후 파기</li>
+              <li><strong>급여·세금·원천징수 관련 기록:</strong> 세법 등 관련 법령상 보존 필요 기간 동안 보관 후 파기</li>
             </ul>
 
             <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#333', marginTop: '32px', marginBottom: '16px' }}>
@@ -171,6 +174,9 @@ const PrivacyPolicy = () => {
               <li>동의 철회(탈퇴)</li>
               <li>위치정보 수집 거부</li>
             </ul>
+            <p style={{ marginBottom: '16px', fontSize: '14px', color: '#666' }}>
+              단, 관련 법령에 따라 보존이 필요한 근로계약·임금·세금 관련 기록은 해당 보존기간 동안 분리 보관될 수 있습니다.
+            </p>
 
             <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#333', marginTop: '32px', marginBottom: '16px' }}>
               7. 개인정보 보호책임자

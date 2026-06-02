@@ -74,7 +74,7 @@ const ConsentInfo = ({ privacyConsent, locationConsent, privacyConsentDate, loca
 
       <div style={{ marginTop: '16px', padding: '12px', background: '#e0f2fe', borderRadius: '6px', border: '1px solid #7dd3fc' }}>
         <p style={{ fontSize: '12px', color: '#0c4a6e', margin: 0, lineHeight: '1.6' }}>
-          📌 <strong>법적 보관 의무:</strong> 개인정보보호법 및 근로기준법에 따라 동의 기록은 근로관계 종료 후 5년간 보관됩니다.
+          📌 <strong>법적 보관 안내:</strong> 동의 기록과 근로관계·급여 관련 기록은 관계 법령상 보존이 필요한 기간 동안 분리 보관될 수 있습니다.
         </p>
       </div>
     </div>

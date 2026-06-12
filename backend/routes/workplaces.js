@@ -71,8 +71,11 @@ router.get('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ success: false, message: '사업장을 찾을 수 없습니다.' });
     }
 
-    // 권한 확인
+    // 권한 확인: owner는 소유 사업장만, 직원은 본인 소속 사업장만 (admin/super_admin은 전체)
     if (req.user.role === 'owner' && workplace.owner_id !== req.user.id) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+    }
+    if (req.user.role === 'employee' && Number(workplace.id) !== Number(req.user.workplace_id)) {
       return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 

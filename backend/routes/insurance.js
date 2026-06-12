@@ -76,6 +76,25 @@ router.get('/rates/all', authenticate, authorizeRole(['admin', 'super_admin']), 
   }
 });
 
+// 요율/금액 필드 숫자·범위 검증 (잘못된 값이 전체 급여 계산을 오염시키는 것 방지)
+function validateRateFields(b) {
+  const rates = ['national_pension_rate', 'health_insurance_rate', 'long_term_care_rate', 'employment_insurance_rate'];
+  for (const k of rates) {
+    const n = Number(b[k]);
+    if (!Number.isFinite(n) || n < 0 || n > 100) {
+      return `${k} 값이 유효하지 않습니다. (0~100 사이의 숫자여야 합니다)`;
+    }
+  }
+  const bounds = ['national_pension_min', 'national_pension_max', 'health_insurance_min', 'health_insurance_max'];
+  for (const k of bounds) {
+    if (b[k] !== undefined && b[k] !== null && b[k] !== '') {
+      const n = Number(b[k]);
+      if (!Number.isFinite(n) || n < 0) return `${k} 값이 유효하지 않습니다.`;
+    }
+  }
+  return null;
+}
+
 // 보험 요율 생성 (관리자만)
 router.post('/rates', authenticate, authorizeRole(['admin', 'super_admin']), async (req, res) => {
   try {
@@ -102,9 +121,15 @@ router.post('/rates', authenticate, authorizeRole(['admin', 'super_admin']), asy
       });
     }
 
+    // 숫자/범위 검증
+    const rateError = validateRateFields(req.body);
+    if (rateError) {
+      return res.status(400).json({ success: false, message: rateError });
+    }
+
     // 중복 체크
     const existing = await get(`
-      SELECT * FROM insurance_rates 
+      SELECT * FROM insurance_rates
       WHERE year = ? AND effective_from = ?
     `, [year, effective_from]);
 
@@ -171,6 +196,23 @@ router.put('/rates/:id', authenticate, authorizeRole(['admin', 'super_admin']), 
     const existing = await get('SELECT * FROM insurance_rates WHERE id = ?', [id]);
     if (!existing) {
       return res.status(404).json({ success: false, message: '해당 보험 요율을 찾을 수 없습니다.' });
+    }
+
+    // 숫자/범위 검증
+    const rateError = validateRateFields(req.body);
+    if (rateError) {
+      return res.status(400).json({ success: false, message: rateError });
+    }
+
+    // 중복 체크 (자기 자신 제외): 같은 연도+적용일이 다른 레코드에 있으면 차단
+    const dup = await get(
+      'SELECT id FROM insurance_rates WHERE year = ? AND effective_from = ? AND id != ?',
+      [year, effective_from, id]
+    );
+    if (dup) {
+      return res.status(400).json({
+        success: false, message: '해당 연도 및 적용일의 보험 요율이 이미 존재합니다.'
+      });
     }
 
     // 요율 업데이트

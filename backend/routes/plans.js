@@ -55,6 +55,18 @@ router.get('/current', authenticate, async (req, res) => {
       });
     }
 
+    // 권한 확인: owner는 소유 사업장만, 직원은 본인 소속 사업장만 (admin/super_admin은 전체)
+    if (!['admin', 'super_admin'].includes(req.user.role)) {
+      if (req.user.role === 'owner') {
+        const wp = await get('SELECT owner_id FROM workplaces WHERE id = ?', [workplaceId]);
+        if (!wp || wp.owner_id !== req.user.id) {
+          return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+        }
+      } else if (Number(workplaceId) !== Number(req.user.workplace_id)) {
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+      }
+    }
+
     const plan = await get(
       `SELECT * FROM subscription_plans WHERE workplace_id = ? AND is_active = true ORDER BY id DESC LIMIT 1`,
       [workplaceId]

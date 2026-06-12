@@ -147,7 +147,8 @@ router.post('/login', loginLimiter, validateLogin, async (req, res) => {
         username: user.username,
         name: user.name,
         role: user.role,
-        workplace_id: user.workplace_id
+        workplace_id: user.workplace_id,
+        tv: user.token_version || 0
       },
       JWT_SECRET,
       { expiresIn: '7d' }
@@ -371,6 +372,11 @@ router.put('/owners/:id/toggle-status', authenticate, authorizeRole(['admin', 's
       [newStatus, ownerId, 'owner']
     );
 
+    // 정지 시 기존 세션(토큰) 즉시 무효화
+    if (newStatus === 'suspended') {
+      await run('UPDATE users SET token_version = token_version + 1 WHERE id = ?', [ownerId]);
+    }
+
     const message = newStatus === 'suspended' 
       ? '사업주 계정이 일시 중지되었습니다.' 
       : '사업주 계정이 활성화되었습니다.';
@@ -461,7 +467,7 @@ router.put('/change-password', authenticate, validateChangePassword, async (req,
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // 비밀번호 업데이트 + 강제 변경 플래그 해제
-    await run('UPDATE users SET password = ?, must_change_password = ? WHERE id = ?', [hashedPassword, false, userId]);
+    await run('UPDATE users SET password = ?, must_change_password = ?, token_version = token_version + 1 WHERE id = ?', [hashedPassword, false, userId]);
 
     logAudit(req, { action: 'CHANGE_PASSWORD', entityType: 'user', entityId: userId });
 
@@ -508,7 +514,7 @@ router.put('/owner/reset-employee-password', authenticate, async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, employee.id]);
+    await run('UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?', [hashedPassword, employee.id]);
 
     res.json({ success: true, message: `${username} 직원의 비밀번호가 초기화되었습니다.` });
   } catch (error) {
@@ -536,7 +542,7 @@ router.put('/reset-password', authenticate, authorizeRole(['admin', 'super_admin
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, user.id]);
+    await run('UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?', [hashedPassword, user.id]);
 
     res.json({ success: true, message: '비밀번호가 초기화되었습니다.' });
   } catch (error) {
@@ -765,7 +771,7 @@ router.put('/admin/reset-user-password', authenticate, authorizeRole(['admin', '
     if (!user) return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await run('UPDATE users SET password = $1 WHERE id = $2', [hashedPassword, userId]);
+    await run('UPDATE users SET password = $1, token_version = token_version + 1 WHERE id = $2', [hashedPassword, userId]);
 
     console.log(`🔐 관리자 ${req.user.username}이 ${user.username}의 비밀번호를 초기화`);
     res.json({ success: true, message: `${user.username}의 비밀번호가 초기화되었습니다.` });

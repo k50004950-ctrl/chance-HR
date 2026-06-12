@@ -5,7 +5,7 @@ import Header from '../components/Header';
 import ChangePassword from '../components/ChangePassword';
 import { useTranslation } from 'react-i18next';
 import '../styles/owner-erp.css';
-import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI, pushAPI, announcementsAPI, communityAPI, apiClient } from '../services/api';
+import { workplaceAPI, employeeAPI, attendanceAPI, salaryAPI, pastEmployeeAPI, salaryHistoryAPI, pastPayrollAPI, authAPI, pushAPI, announcementsAPI, communityAPI, uploadsAPI, apiClient } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
 import ConsentInfo from '../components/ConsentInfo';
@@ -214,9 +214,24 @@ const OwnerDashboard = () => {
   const uploadBaseUrl =
     import.meta.env.VITE_API_URL?.replace('/api', '') ||
     (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
+  // 파일 접근용 단기 토큰 (세션 JWT를 URL에 노출하지 않음). 4분마다 갱신.
+  const [fileToken, setFileToken] = useState('');
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const res = await uploadsAPI.getToken();
+        if (active) setFileToken(res.data.token);
+      } catch (e) {
+        // 토큰 갱신 실패 시 다음 주기에 재시도
+      }
+    };
+    refresh();
+    const timer = setInterval(refresh, 4 * 60 * 1000);
+    return () => { active = false; clearInterval(timer); };
+  }, []);
   const getFileUrl = (filename) => {
-    const token = localStorage.getItem('token');
-    return `${uploadBaseUrl}/uploads/${filename}?token=${token}`;
+    return `${uploadBaseUrl}/uploads/${filename}?token=${fileToken}`;
   };
 
   // ============================================

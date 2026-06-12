@@ -128,14 +128,40 @@ console.log('✅ Registered: /api/_ping');
 
 // 업로드 파일 접근 보안 - JWT 인증 필수
 import { JWT_SECRET_SAFE as JWT_SECRET } from './config/constants.js';
-app.use('/uploads', (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1] || req.query.token;
-  if (!token) {
-    return res.status(401).json({ message: '파일 접근 권한이 없습니다.' });
+
+// 파일 접근용 단기 토큰 발급 (세션 JWT를 URL/이미지 src에 노출하지 않기 위함)
+app.get('/api/uploads-token', cors(corsOptions), (req, res) => {
+  const sessionToken = req.headers.authorization?.split(' ')[1];
+  if (!sessionToken) {
+    return res.status(401).json({ message: '인증이 필요합니다.' });
   }
   try {
-    jwt.verify(token, JWT_SECRET);
-    next();
+    const decoded = jwt.verify(sessionToken, JWT_SECRET);
+    const fileToken = jwt.sign({ id: decoded.id, purpose: 'file' }, JWT_SECRET, { expiresIn: '5m' });
+    return res.json({ token: fileToken });
+  } catch (error) {
+    return res.status(401).json({ message: '유효하지 않은 인증입니다.' });
+  }
+});
+
+app.use('/uploads', (req, res, next) => {
+  const headerToken = req.headers.authorization?.split(' ')[1];
+  const queryToken = req.query.token;
+  try {
+    // 헤더의 세션 토큰 (fetch/다운로드 등)
+    if (headerToken) {
+      jwt.verify(headerToken, JWT_SECRET);
+      return next();
+    }
+    // 쿼리 토큰은 반드시 단기 파일 전용 토큰이어야 함 (세션 JWT 노출 금지)
+    if (queryToken) {
+      const decoded = jwt.verify(queryToken, JWT_SECRET);
+      if (decoded.purpose !== 'file') {
+        return res.status(401).json({ message: '유효하지 않은 파일 토큰입니다.' });
+      }
+      return next();
+    }
+    return res.status(401).json({ message: '파일 접근 권한이 없습니다.' });
   } catch (error) {
     return res.status(401).json({ message: '유효하지 않은 인증입니다.' });
   }

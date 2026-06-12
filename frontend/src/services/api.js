@@ -252,6 +252,11 @@ export const accountRecoveryAPI = {
   resetPassword: (userId, newPassword, resetToken) => api.post('/account/reset-password', { userId, newPassword, resetToken })
 };
 
+// 업로드 파일 접근용 단기 토큰
+export const uploadsAPI = {
+  getToken: () => api.get('/uploads-token')
+};
+
 export const notificationsAPI = {
   getAll: (params) => api.get('/notifications', { params }),
   getUnreadCount: () => api.get('/notifications/unread-count'),

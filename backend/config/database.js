@@ -207,6 +207,9 @@ export const initDatabase = async () => {
       try {
         await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMP');
       } catch (e) { /* 이미 존재 */ }
+      try {
+        await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER DEFAULT 0');
+      } catch (e) { /* 이미 존재 */ }
 
       // SSN 컬럼 크기 확장 (암호화 값 저장용)
       try {
@@ -1115,6 +1118,9 @@ export const initDatabase = async () => {
       } catch (e) { /* 이미 존재 */ }
       try {
         await run('ALTER TABLE users ADD COLUMN reset_token_expires DATETIME');
+      } catch (e) { /* 이미 존재 */ }
+      try {
+        await run('ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0');
       } catch (e) { /* 이미 존재 */ }
 
       // Notifications 테이블

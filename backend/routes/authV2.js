@@ -336,7 +336,8 @@ router.post('/login', loginLimiter, async (req, res) => {
         role: user.role,
         workplace_id: user.workplace_id || null,
         workplaceId: user.workplace_id || null,
-        businessNumber: user.business_number || null
+        businessNumber: user.business_number || null,
+        tv: user.token_version || 0
       },
       JWT_SECRET,
       { expiresIn: '7d' }
@@ -1621,7 +1622,8 @@ router.post('/employee/signup-with-invite', async (req, res) => {
         username: username,
         role: 'employee',
         workplace_id: invitation.workplace_id,
-        workplaceId: invitation.workplace_id
+        workplaceId: invitation.workplace_id,
+        tv: 0
       },
       JWT_SECRET,
       { expiresIn: '7d' }

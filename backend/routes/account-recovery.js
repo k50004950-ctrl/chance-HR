@@ -278,7 +278,7 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
 
     // 비밀번호 업데이트 + 토큰 즉시 삭제 (일회용)
     await run(
-      'UPDATE users SET password = ?, reset_token_hash = NULL, reset_token_expires = NULL WHERE id = ?',
+      'UPDATE users SET password = ?, reset_token_hash = NULL, reset_token_expires = NULL, token_version = token_version + 1 WHERE id = ?',
       [hashedPassword, userId]
     );
 

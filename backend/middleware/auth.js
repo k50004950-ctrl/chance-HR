@@ -1,15 +1,31 @@
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET_SAFE as JWT_SECRET } from '../config/constants.js';
+import { get } from '../config/database.js';
 
-export const authenticate = (req, res, next) => {
+export const authenticate = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
-    
+
     if (!token) {
       return res.status(401).json({ message: '인증 토큰이 필요합니다.' });
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
+
+    // 토큰 무효화(revocation) 검사: 토큰의 token_version이 DB와 다르면 폐기된 토큰.
+    // tv 클레임이 없는 구버전 토큰은 만료(최대 7일)까지 허용(grandfather).
+    if (decoded.tv !== undefined && decoded.id) {
+      try {
+        const user = await get('SELECT token_version FROM users WHERE id = ?', [decoded.id]);
+        if (user && (user.token_version || 0) !== decoded.tv) {
+          return res.status(401).json({ message: '세션이 만료되었습니다. 다시 로그인해주세요.', code: 'TOKEN_REVOKED' });
+        }
+      } catch (dbError) {
+        // DB 조회 실패 시: 암호학적으로 유효한 토큰은 통과시킨다(대량 로그아웃 방지).
+        console.error('token_version 확인 오류:', dbError.message);
+      }
+    }
+
     req.user = decoded;
     next();
   } catch (error) {

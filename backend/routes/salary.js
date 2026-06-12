@@ -365,11 +365,11 @@ router.post('/calculate-tax', authenticate, async (req, res) => {
  */
 router.post('/calculate-insurance', authenticate, async (req, res) => {
   try {
-    const { basePay, payrollMonth, taxType } = req.body;
+    const { basePay, payrollMonth, taxType, dependentsCount } = req.body;
     if (basePay === undefined || basePay === null || basePay < 0) {
       return res.status(400).json({ success: false, message: '과세대상 급여액을 입력해주세요.' });
     }
-    const result = await calculateInsurance(basePay, payrollMonth, taxType);
+    const result = await calculateInsurance(basePay, payrollMonth, taxType, parseInt(dependentsCount) || 1);
     if (result.error === 'no_rates') {
       return res.status(404).json({ success: false, message: `적용 가능한 요율을 찾을 수 없습니다. (귀속월: ${result.targetYyyyMm})` });
     }

@@ -3,7 +3,7 @@ import { generatePayslipPDF } from '../utils/pdfGenerator.js';
 import { sendPayslipEmail, sendBulkPayslipEmails } from '../utils/emailSender.js';
 import { sendPushToUser } from '../services/webPush.js';
 import { logAudit } from '../utils/auditLog.js';
-import { calculateMonthlyBasePay, parsePayrollLedger, parseNumber } from './salaryCalculationService.js';
+import { calculateMonthlyBasePay, parsePayrollLedger, parseNumber, getTaxFromTable } from './salaryCalculationService.js';
 
 // ── Slip queries ──────────────────────────────────────────────
 
@@ -638,7 +638,7 @@ export const importLedger = async (workplaceId, text) => {
 
 // ── Insurance calculation ─────────────────────────────────────
 
-export const calculateInsurance = async (basePay, payrollMonth, taxType) => {
+export const calculateInsurance = async (basePay, payrollMonth, taxType, dependentsCount = 1) => {
   // 음수/NaN 방어: 기준 급여는 0 이상의 유한한 값으로 정규화
   basePay = Number(basePay);
   if (!Number.isFinite(basePay) || basePay < 0) basePay = 0;
@@ -692,7 +692,9 @@ export const calculateInsurance = async (basePay, payrollMonth, taxType) => {
   const employerEmploymentInsurance = Math.floor(basePay * eiEmployerRate);
   const totalEmployerBurden = employerNationalPension + employerHealthInsurance + employerLongTermCare + employerEmploymentInsurance;
 
-  const incomeTax = Math.floor(basePay * 0.023);
+  // 소득세는 약식(2.3%)이 아니라 명세서와 동일한 근로소득 간이세액표를 사용한다.
+  // (table 조회 실패 시 getTaxFromTable이 0을 반환 → 약식 추정으로 오도하지 않음)
+  const incomeTax = await getTaxFromTable(get, basePay, dependentsCount);
   const localTax = Math.floor(incomeTax * 0.1);
   const totalDeductions = totalInsurance + incomeTax + localTax;
   const netPay = basePay - totalDeductions;

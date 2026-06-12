@@ -73,8 +73,13 @@ export const requirePremium = (featureName) => async (req, res, next) => {
     });
   } catch (error) {
     console.error('Plan check error:', error);
-    // On error, allow through to avoid blocking users due to DB issues
-    next();
+    // Fail-closed: 오류 시 프리미엄 기능을 통과시키지 않는다 (과금/권한 우회 방지)
+    return res.status(503).json({
+      success: false,
+      message: '플랜 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+      code: 'PLAN_CHECK_FAILED',
+      feature: featureName
+    });
   }
 };
 
@@ -127,6 +132,11 @@ export const checkEmployeeLimit = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Employee limit check error:', error);
-    next();
+    // Fail-closed: 오류 시 직원 추가를 허용하지 않는다 (무료 한도 우회 방지)
+    return res.status(503).json({
+      success: false,
+      message: '플랜 한도 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+      code: 'PLAN_CHECK_FAILED'
+    });
   }
 };

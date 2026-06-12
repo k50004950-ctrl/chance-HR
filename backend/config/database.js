@@ -1,8 +1,23 @@
 import sqlite3 from 'sqlite3';
 import pg from 'pg';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import dotenv from 'dotenv';
+
+// 기본 관리자 비밀번호 결정:
+// ADMIN_PASSWORD 환경변수 우선, 없으면 dev/test는 'admin123', 그 외(운영)는 무작위 생성.
+// 무작위 생성 시 1회만 콘솔에 출력하고 must_change_password=true 로 강제 변경.
+function resolveAdminPassword() {
+  if (process.env.ADMIN_PASSWORD) {
+    return { password: process.env.ADMIN_PASSWORD, generated: false };
+  }
+  const isDevEnv = ['development', 'test'].includes(process.env.NODE_ENV);
+  if (isDevEnv) {
+    return { password: 'admin123', generated: false };
+  }
+  return { password: crypto.randomBytes(12).toString('base64url'), generated: true };
+}
 
 dotenv.config();
 
@@ -638,12 +653,17 @@ export const initDatabase = async () => {
 
       if (adminExists.rows.length === 0) {
         const bcrypt = await import('bcryptjs');
-        const hashedPassword = await bcrypt.default.hash('admin123', 10);
+        const { password: adminPw, generated } = resolveAdminPassword();
+        const hashedPassword = await bcrypt.default.hash(adminPw, 10);
         await pool.query(
           "INSERT INTO users (username, password, name, role, must_change_password) VALUES ($1, $2, $3, $4, $5)",
           ['admin', hashedPassword, '관리자', 'admin', true]
         );
-        console.log('기본 관리자 계정이 생성되었습니다. (username: admin, password: admin123)');
+        if (generated) {
+          console.log(`기본 관리자 계정이 생성되었습니다. (username: admin) 임시 비밀번호: ${adminPw} — 즉시 변경하세요.`);
+        } else {
+          console.log('기본 관리자 계정이 생성되었습니다. (username: admin)');
+        }
       }
 
       // 기존 테이블에 새 컬럼 추가 (마이그레이션)
@@ -1770,12 +1790,17 @@ export const initDatabase = async () => {
       
       if (!adminExists) {
         const bcrypt = await import('bcryptjs');
-        const hashedPassword = await bcrypt.default.hash('admin123', 10);
+        const { password: adminPw, generated } = resolveAdminPassword();
+        const hashedPassword = await bcrypt.default.hash(adminPw, 10);
         await run(
           'INSERT INTO users (username, password, name, role, must_change_password) VALUES (?, ?, ?, ?, ?)',
           ['admin', hashedPassword, '관리자', 'admin', 1]
         );
-        console.log('기본 관리자 계정이 생성되었습니다. (username: admin, password: admin123)');
+        if (generated) {
+          console.log(`기본 관리자 계정이 생성되었습니다. (username: admin) 임시 비밀번호: ${adminPw} — 즉시 변경하세요.`);
+        } else {
+          console.log('기본 관리자 계정이 생성되었습니다. (username: admin)');
+        }
       }
 
       // Leaves 테이블 (휴가 관리)

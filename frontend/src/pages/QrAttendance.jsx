@@ -21,6 +21,26 @@ const QrAttendance = () => {
     setHasChecked(false);
   }, [token]);
 
+  const getCurrentLocation = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('위치 서비스를 지원하지 않는 브라우저입니다.'));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          });
+        },
+        () => reject(new Error('위치 정보를 가져올 수 없습니다. 위치 권한을 허용해주세요.')),
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    });
+  };
+
   const handleQrCheck = async () => {
     if (!token) {
       setMessage({ type: 'error', text: 'QR 정보가 올바르지 않습니다.' });
@@ -31,7 +51,17 @@ const QrAttendance = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await attendanceAPI.checkQr({ token });
+      let location;
+      try {
+        location = await getCurrentLocation();
+      } catch (locError) {
+        setMessage({ type: 'error', text: locError.message });
+        setHasChecked(true);
+        setProcessing(false);
+        return;
+      }
+
+      const response = await attendanceAPI.checkQr({ token, ...location });
       setMessage({ type: 'success', text: response.data.message });
       setHasChecked(true);
       if (!keepLogin) {

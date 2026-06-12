@@ -104,6 +104,9 @@ export const createSlip = async (data) => {
     netPay = netPay - totalDeductions;
   }
 
+  // 실수령액 음수 방어
+  if (!Number.isFinite(netPay) || netPay < 0) netPay = 0;
+
   const totalEmployerBurden =
     (parseFloat(employerNationalPension) || 0) +
     (parseFloat(employerHealthInsurance) || 0) +
@@ -166,6 +169,9 @@ export const updateSlip = async (id, data) => {
       (parseFloat(localIncomeTax) || 0);
     netPay = netPay - totalDeductions;
   }
+
+  // 실수령액 음수 방어
+  if (!Number.isFinite(netPay) || netPay < 0) netPay = 0;
 
   const totalEmployerBurden =
     (parseFloat(employerNationalPension) || 0) +
@@ -633,6 +639,10 @@ export const importLedger = async (workplaceId, text) => {
 // ── Insurance calculation ─────────────────────────────────────
 
 export const calculateInsurance = async (basePay, payrollMonth, taxType) => {
+  // 음수/NaN 방어: 기준 급여는 0 이상의 유한한 값으로 정규화
+  basePay = Number(basePay);
+  if (!Number.isFinite(basePay) || basePay < 0) basePay = 0;
+
   let targetYyyyMm = new Date().toISOString().slice(0, 7).replace('-', '');
   if (payrollMonth && /^\d{4}-\d{2}$/.test(payrollMonth)) {
     targetYyyyMm = payrollMonth.replace('-', '');

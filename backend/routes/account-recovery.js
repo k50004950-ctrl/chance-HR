@@ -7,7 +7,7 @@ import {
   getRecoveryCredentialRequirement,
   normalizeRecoveryCredential
 } from '../utils/accountRecovery.js';
-import { passwordResetLimiter } from '../middleware/rateLimiter.js';
+import { passwordResetLimiter, accountLookupLimiter } from '../middleware/rateLimiter.js';
 import { getRedis } from '../config/redis.js';
 
 const router = express.Router();
@@ -25,7 +25,7 @@ function hashToken(token) {
 }
 
 // 아이디 찾기 (이름 + 이메일)
-router.post('/find-username', async (req, res) => {
+router.post('/find-username', accountLookupLimiter, async (req, res) => {
   try {
     const { name, email } = req.body;
 
@@ -74,7 +74,7 @@ router.post('/find-username', async (req, res) => {
 });
 
 // 비밀번호 재설정 - 이름 + 본인확인 번호 인증 (이메일 없는 경우 대안)
-router.post('/verify-reset-by-name', async (req, res) => {
+router.post('/verify-reset-by-name', passwordResetLimiter, async (req, res) => {
   try {
     const { username, name, accountType } = req.body;
     // credential: 근로자=주민번호 뒤 7자리, 사업주=사업자등록번호 10자리 (구버전 호환: ssnLast7)
@@ -158,7 +158,7 @@ router.post('/verify-reset-by-name', async (req, res) => {
 });
 
 // 비밀번호 재설정 - 인증 확인 (이메일 OTP 선행 필요)
-router.post('/verify-reset-password', async (req, res) => {
+router.post('/verify-reset-password', passwordResetLimiter, async (req, res) => {
   try {
     const { username, email } = req.body;
 
@@ -235,8 +235,8 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: '필수 정보가 누락되었습니다.' });
     }
 
-    if (newPassword.length < 4) {
-      return res.status(400).json({ success: false, message: '비밀번호는 4자 이상이어야 합니다.' });
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: '비밀번호는 8자 이상이어야 합니다.' });
     }
 
     // DB에서 사용자의 저장된 토큰 해시 및 만료시간 조회

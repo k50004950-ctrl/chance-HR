@@ -6,12 +6,16 @@ const IV_LENGTH = 16;
 const TAG_LENGTH = 16;
 
 function getEncryptionKey() {
+  // ENCRYPTION_KEY를 우선 사용. 없으면 기존 데이터 복호화 호환을 위해 JWT_SECRET fallback.
+  // (운영 환경에서는 ENCRYPTION_KEY를 별도로 설정하는 것을 권장)
   const key = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET;
   if (!key) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('ENCRYPTION_KEY 또는 JWT_SECRET 환경변수가 설정되지 않았습니다. 프로덕션에서는 필수입니다.');
+    // 명시적 development/test 환경에서만 하드코딩 키 허용. 그 외(미설정/오설정 포함)는 fail-closed.
+    const isDevEnv = ['development', 'test'].includes(process.env.NODE_ENV);
+    if (!isDevEnv) {
+      throw new Error('ENCRYPTION_KEY 또는 JWT_SECRET 환경변수가 설정되지 않았습니다. 운영 환경에서는 필수입니다.');
     }
-    // 개발 환경 전용 기본 키
+    // 개발(development/test) 환경 전용 기본 키
     return crypto.createHash('sha256').update('dev-only-key-not-for-production').digest();
   }
   // Derive a consistent 32-byte key using SHA-256

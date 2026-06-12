@@ -389,6 +389,16 @@ router.post('/excel-import', authenticate, authorizeRole(['owner', 'admin', 'sup
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = xlsx.utils.sheet_to_json(ws, { defval: '' });
 
+    // 프로토타입 오염 방지: 위험한 키가 포함된 행 제거 (CVE-2023-30533 완화)
+    const DANGEROUS_KEYS = ['__proto__', 'constructor', 'prototype'];
+    for (const row of rows) {
+      for (const key of DANGEROUS_KEYS) {
+        if (Object.prototype.hasOwnProperty.call(row, key)) {
+          delete row[key];
+        }
+      }
+    }
+
     if (rows.length === 0) {
       return res.status(400).json({ success: false, message: '엑셀에 데이터가 없습니다.' });
     }
@@ -447,7 +457,7 @@ router.post('/excel-import', authenticate, authorizeRole(['owner', 'admin', 'sup
 
         // salary_info 등록
         await run(
-          `INSERT INTO salary_info (user_id, type, amount, workplace_id)
+          `INSERT INTO salary_info (user_id, salary_type, amount, workplace_id)
            VALUES (?, ?, ?, ?)`,
           [userId, salaryType, amount, workplaceId]
         );

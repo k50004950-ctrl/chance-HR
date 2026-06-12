@@ -1,0 +1,37 @@
+let p=null;const k=()=>window.daum&&window.daum.Postcode?Promise.resolve():p||(p=new Promise((d,r)=>{const c=document.createElement("script");c.src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js",c.async=!0,c.onload=()=>d(),c.onerror=()=>r(new Error("Daum 우편번호 스크립트를 로드할 수 없습니다.")),document.head.appendChild(c)}),p),h=()=>window.kakao&&window.kakao.maps&&window.kakao.maps.services?(console.log("✅ Kakao Maps 이미 로드됨"),Promise.resolve()):(console.warn("Kakao Maps API 키가 설정되지 않았습니다. VITE_KAKAO_MAPS_KEY 환경변수를 설정하세요."),Promise.reject(new Error("Kakao Maps API 키가 설정되지 않았습니다. 관리자에게 문의하세요."))),y=async()=>{try{await k()}catch(d){throw console.error("Daum Postcode 로딩 실패:",d),new Error("주소 검색 서비스를 로드할 수 없습니다. 페이지를 새로고침 해주세요.")}return new Promise((d,r)=>{if(!window.daum||!window.daum.Postcode){r(new Error("Daum 우편번호 서비스를 로드할 수 없습니다."));return}const c=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||window.innerWidth<=768;let s=null;c&&(s=document.createElement("div"),s.id="daum-postcode-layer",s.style.cssText=`
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+        z-index: 10000;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+      `,document.body.appendChild(s),document.body.style.overflow="hidden");const u=setTimeout(()=>{c&&s&&document.body.contains(s)&&(document.body.removeChild(s),document.body.style.overflow=""),r(new Error("주소 검색 시간이 초과되었습니다. 다시 시도해주세요."))},3e4),g={oncomplete:async function(t){const i=t.roadAddress||t.jibunAddress,l=t.buildingName||"";let o=null;try{if(console.log("🗺️ Kakao Maps 로딩 시작..."),await h(),console.log("✅ Kakao Maps 로드 완료"),window.kakao&&window.kakao.maps&&window.kakao.maps.services){if(t.roadAddress){const e=new window.kakao.maps.services.Geocoder;o=await new Promise(a=>{console.log("🔍 도로명 주소 검색:",t.roadAddress);const w=setTimeout(()=>{console.log("⏱️ 도로명 주소 검색 타임아웃 (10초)"),a(null)},1e4);try{e.addressSearch(t.roadAddress,(n,m)=>{clearTimeout(w),console.log("📍 도로명 주소 검색 콜백 실행 - status:",m,"result:",n),m===window.kakao.maps.services.Status.OK&&n&&n.length>0?(console.log("✅ 도로명 주소 검색 성공:",n[0]),a({latitude:parseFloat(n[0].y),longitude:parseFloat(n[0].x),method:"geocoder_road"})):(console.log("❌ 도로명 주소 검색 실패:",m),a(null))})}catch(n){clearTimeout(w),console.error("❌ Geocoder 오류:",n),a(null)}})}if(!o&&t.jibunAddress){const e=new window.kakao.maps.services.Geocoder;o=await new Promise(a=>{console.log("🔍 지번 주소 검색:",t.jibunAddress);const w=setTimeout(()=>{console.log("⏱️ 지번 주소 검색 타임아웃 (10초)"),a(null)},1e4);try{e.addressSearch(t.jibunAddress,(n,m)=>{clearTimeout(w),console.log("📍 지번 주소 검색 콜백 실행 - status:",m,"result:",n),m===window.kakao.maps.services.Status.OK&&n&&n.length>0?(console.log("✅ 지번 주소 검색 성공:",n[0]),a({latitude:parseFloat(n[0].y),longitude:parseFloat(n[0].x),method:"geocoder_jibun"})):(console.log("❌ 지번 주소 검색 실패:",m),a(null))})}catch(n){clearTimeout(w),console.error("❌ Geocoder 오류:",n),a(null)}})}if(!o&&l){const e=new window.kakao.maps.services.Places;o=await new Promise(a=>{const w=`${i} ${l}`;console.log("🔍 장소 검색:",w);try{e.keywordSearch(w,(n,m)=>{m===window.kakao.maps.services.Status.OK&&n&&n.length>0?(console.log("✅ 장소 검색 성공:",n[0]),a({latitude:parseFloat(n[0].y),longitude:parseFloat(n[0].x),method:"places_with_building"})):(console.log("❌ 장소 검색 실패:",m),a(null))})}catch(n){console.error("❌ Places 오류:",n),a(null)}})}}else console.error("❌ Kakao Maps 서비스가 로드되지 않았습니다.")}catch(e){console.error("❌ 좌표 변환 오류:",e)}if(o?console.log(`✅ 최종 좌표 (${o.method}):`,o):console.warn("⚠️ 좌표를 찾을 수 없습니다. 주소는 입력되었으니 수동으로 좌표를 입력해주세요."),clearTimeout(u),c&&s&&document.body.contains(s))try{document.body.removeChild(s),document.body.style.overflow=""}catch(e){console.error("레이어 제거 오류:",e)}d({address:i,roadAddress:t.roadAddress,jibunAddress:t.jibunAddress,zonecode:t.zonecode,buildingName:l,latitude:o==null?void 0:o.latitude,longitude:o==null?void 0:o.longitude,method:o==null?void 0:o.method})},onclose:function(t){if(clearTimeout(u),c&&s&&document.body.contains(s))try{document.body.removeChild(s),document.body.style.overflow=""}catch(i){console.error("레이어 제거 오류:",i)}t==="COMPLETE_CLOSE"||r(new Error("주소 검색이 취소되었습니다."))},width:"100%",height:"100%"};try{console.log("📍 Daum Postcode 인스턴스 생성 시작...");const t=new window.daum.Postcode(g);if(console.log("✅ Daum Postcode 인스턴스 생성 완료"),c&&s){console.log("📱 모바일 레이어 구조 생성...");const i=document.createElement("div");i.style.cssText=`
+          position: relative;
+          width: 100%;
+          height: 100%;
+        `;const l=document.createElement("button");l.innerHTML="✕",l.style.cssText=`
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          z-index: 10002;
+          width: 44px;
+          height: 44px;
+          padding: 0;
+          background: rgba(0,0,0,0.7);
+          color: white;
+          border: none;
+          border-radius: 50%;
+          font-size: 24px;
+          font-weight: bold;
+          cursor: pointer;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        `,l.onclick=()=>{clearTimeout(u);try{document.body.contains(s)&&document.body.removeChild(s),document.body.style.overflow=""}catch(e){console.error("레이어 제거 오류:",e)}r(new Error("주소 검색이 취소되었습니다."))};const o=document.createElement("div");o.id="postcode-container",o.style.cssText=`
+          width: 100%;
+          height: 100%;
+        `,i.appendChild(l),i.appendChild(o),s.appendChild(i),console.log("🔄 Postcode를 레이어에 임베드 중..."),t.embed(o),console.log("✅ Postcode 임베드 완료")}else console.log("💻 데스크톱 팝업 열기..."),t.open(),console.log("✅ 팝업 열기 완료")}catch(t){if(console.error("❌ 주소 검색 오류:",t),clearTimeout(u),c&&s&&document.body.contains(s))try{document.body.removeChild(s),document.body.style.overflow=""}catch(i){console.error("레이어 정리 오류:",i)}r(new Error("주소 검색 창을 열 수 없습니다: "+t.message))}})},f=async d=>{try{if(await h(),window.kakao&&window.kakao.maps&&window.kakao.maps.services){const g=new window.kakao.maps.services.Places,t=await new Promise(o=>{console.log("🔍 장소 검색:",d),g.keywordSearch(d,(e,a)=>{a===window.kakao.maps.services.Status.OK&&e&&e.length>0?(console.log("✅ 장소 검색 성공:",e[0]),o({latitude:parseFloat(e[0].y),longitude:parseFloat(e[0].x),success:!0,placeName:e[0].place_name,addressName:e[0].address_name,roadAddressName:e[0].road_address_name})):o(null)})});if(t)return t;const i=new window.kakao.maps.services.Geocoder,l=await new Promise(o=>{console.log("🔍 주소 검색:",d),i.addressSearch(d,(e,a)=>{a===window.kakao.maps.services.Status.OK&&e&&e.length>0?(console.log("✅ 주소 검색 성공:",e[0]),o({latitude:parseFloat(e[0].y),longitude:parseFloat(e[0].x),success:!0})):o(null)})});if(l)return l}const r=d.split(" ").slice(0,3).join(" "),c=encodeURIComponent(r),s=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${c}&countrycodes=kr&limit=1`,{headers:{Accept:"application/json","User-Agent":"AttendanceSystem/1.0"}});if(!s.ok)throw new Error("주소를 좌표로 변환할 수 없습니다.");const u=await s.json();return u&&u.length>0?{latitude:parseFloat(u[0].lat),longitude:parseFloat(u[0].lon),success:!0,message:`주소가 간소화되어 검색되었습니다 (${r}). 정확한 위치는 "현재 위치로 설정" 버튼을 사용하거나 수동으로 조정해주세요.`}:{latitude:37.5665,longitude:126.978,success:!1,message:'정확한 좌표를 찾을 수 없어 기본 위치(서울시청)로 설정되었습니다. "현재 위치로 설정" 버튼을 사용하거나 수동으로 조정해주세요.'}}catch(r){throw console.error("좌표 변환 오류:",r),r}},b=(d,r)=>`https://www.google.com/maps?q=${d},${r}`;export{f as a,h as e,b as g,y as s};

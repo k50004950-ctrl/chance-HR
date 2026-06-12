@@ -1,7 +1,11 @@
 import express from 'express';
+import crypto from 'crypto';
 import { query } from '../config/database.js';
 import { sendVerificationEmail } from '../services/emailService.js';
 import { getRedis } from '../config/redis.js';
+import { emailVerifyLimiter } from '../middleware/rateLimiter.js';
+
+const MAX_VERIFY_ATTEMPTS = 5;
 
 const router = express.Router();
 
@@ -33,9 +37,9 @@ async function delVerification(email) {
   await redis.del(`${KEY_PREFIX}${email}`);
 }
 
-// 인증번호 생성 함수
+// 인증번호 생성 함수 (CSPRNG 사용)
 function generateVerificationCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 // 이메일 형식 검증
@@ -45,7 +49,7 @@ function isValidEmail(email) {
 }
 
 // 인증번호 전송
-router.post('/send-code', async (req, res) => {
+router.post('/send-code', emailVerifyLimiter, async (req, res) => {
   try {
     const { email, purpose } = req.body; // purpose: 'signup', 'find-id', 'reset-password'
 
@@ -90,7 +94,8 @@ router.post('/send-code', async (req, res) => {
       code,
       expiresAt: Date.now() + VERIFY_TTL * 1000,
       purpose,
-      verified: false
+      verified: false,
+      attempts: 0
     };
 
     await setVerification(lowerEmail, verificationData);
@@ -136,7 +141,7 @@ router.post('/send-code', async (req, res) => {
 });
 
 // 인증번호 확인
-router.post('/verify-code', async (req, res) => {
+router.post('/verify-code', emailVerifyLimiter, async (req, res) => {
   try {
     const { email, code } = req.body;
 
@@ -151,7 +156,22 @@ router.post('/verify-code', async (req, res) => {
       return res.status(400).json({ success: false, message: '인증번호를 먼저 요청해주세요.' });
     }
 
-    if (stored.code !== code) {
+    // 시도 횟수 제한 (무차별 대입 방지)
+    if ((stored.attempts || 0) >= MAX_VERIFY_ATTEMPTS) {
+      await delVerification(lowerEmail);
+      return res.status(429).json({ success: false, message: '인증 시도 횟수를 초과했습니다. 인증번호를 다시 요청해주세요.' });
+    }
+
+    // 상수 시간 비교 (타이밍 누출 방지)
+    const expected = String(stored.code);
+    const provided = String(code);
+    const codeMatches =
+      expected.length === provided.length &&
+      crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(provided));
+
+    if (!codeMatches) {
+      stored.attempts = (stored.attempts || 0) + 1;
+      await setVerification(lowerEmail, stored);
       return res.status(400).json({ success: false, message: '인증번호가 일치하지 않습니다.' });
     }
 

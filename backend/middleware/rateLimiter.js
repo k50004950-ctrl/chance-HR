@@ -38,3 +38,21 @@ export const passwordResetLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// 이메일 인증번호 발송/확인 제한: 15분에 5회 (이메일 폭탄·OTP 무차별 대입 방지)
+export const emailVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { message: '인증 시도가 너무 많습니다. 15분 후 다시 시도해주세요.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// 계정 찾기/본인확인 조회 제한: 15분에 10회 (계정 열거·무차별 대입 방지)
+export const accountLookupLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: '요청이 너무 많습니다. 15분 후 다시 시도해주세요.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});

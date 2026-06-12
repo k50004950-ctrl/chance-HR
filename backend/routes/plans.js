@@ -107,6 +107,21 @@ router.post('/upgrade', authenticate, async (req, res) => {
       }
     }
 
+    // 체험은 사업장당 1회만 허용 (무료 무한 갱신 방지). super_admin은 예외.
+    if (req.user.role !== 'super_admin') {
+      const priorPremium = await get(
+        `SELECT id FROM subscription_plans WHERE workplace_id = ? AND plan_type = 'premium' LIMIT 1`,
+        [workplace_id]
+      );
+      if (priorPremium) {
+        return res.status(409).json({
+          success: false,
+          message: '이미 프리미엄 체험을 사용하셨습니다. 결제를 통해 이용해주세요.',
+          code: 'TRIAL_ALREADY_USED'
+        });
+      }
+    }
+
     // Deactivate existing plans
     await run(
       `UPDATE subscription_plans SET is_active = false WHERE workplace_id = ?`,

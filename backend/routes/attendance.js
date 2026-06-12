@@ -303,7 +303,7 @@ router.post('/check-out', authenticate, async (req, res) => {
 // QR 출퇴근 체크 (근로자)
 router.post('/qr/check', authenticate, async (req, res) => {
   try {
-    const { token } = req.body;
+    const { token, latitude, longitude, accuracy } = req.body;
     const userId = req.user.id;
     const workplaceId = req.user.workplace_id;
 
@@ -319,6 +319,11 @@ router.post('/qr/check', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, message: '사업장이 지정되지 않았습니다.' });
     }
 
+    // QR 위변조/원격 출퇴근 방지: 위치 정보 필수 + 지오펜스 검증
+    if (latitude == null || longitude == null) {
+      return res.status(400).json({ success: false, message: '위치 정보가 필요합니다. 위치 권한을 허용해주세요.' });
+    }
+
     const workplace = await get(
       'SELECT * FROM workplaces WHERE qr_check_in_token = ? OR qr_check_out_token = ?',
       [token, token]
@@ -330,6 +335,20 @@ router.post('/qr/check', authenticate, async (req, res) => {
 
     if (Number(workplace.id) !== Number(workplaceId)) {
       return res.status(403).json({ success: false, message: '사업장이 일치하지 않습니다.' });
+    }
+
+    // 사업장 좌표 기준 지오펜스 (GPS 출근과 동일하게 물리적 근접 요구)
+    const workplaceLat = Number(workplace.latitude);
+    const workplaceLng = Number(workplace.longitude);
+    if (!Number.isFinite(workplaceLat) || !Number.isFinite(workplaceLng)) {
+      return res.status(400).json({
+        success: false,
+        message: '사업장 위치가 설정되지 않았습니다. 사업장 정보에서 위치를 다시 저장해주세요.'
+      });
+    }
+    const safeRadius = Number.isFinite(Number(workplace.radius)) ? Number(workplace.radius) : 100;
+    if (!isWithinWorkplace(latitude, longitude, workplaceLat, workplaceLng, safeRadius, accuracy)) {
+      return res.status(400).json({ success: false, message: '사업장 범위 내에 있지 않습니다.' });
     }
 
     const isCheckInToken = workplace.qr_check_in_token === token;
@@ -354,12 +373,12 @@ router.post('/qr/check', authenticate, async (req, res) => {
       if (existingRecord) {
         await run(
           'UPDATE attendance SET check_in_time = ?, check_in_lat = ?, check_in_lng = ?, leave_type = ? WHERE id = ?',
-          [now, null, null, null, existingRecord.id]
+          [now, latitude, longitude, null, existingRecord.id]
         );
       } else {
         await run(
           'INSERT INTO attendance (user_id, workplace_id, date, check_in_time, check_in_lat, check_in_lng, leave_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [userId, workplaceId, today, now, null, null, null]
+          [userId, workplaceId, today, now, latitude, longitude, null]
         );
       }
 
@@ -397,7 +416,7 @@ router.post('/qr/check', authenticate, async (req, res) => {
 
     await run(
       'UPDATE attendance SET check_out_time = ?, check_out_lat = ?, check_out_lng = ?, work_hours = ?, status = ?, leave_type = ? WHERE id = ?',
-      [now, null, null, workHours.toFixed(2), 'completed', null, existingRecord.id]
+      [now, latitude, longitude, workHours.toFixed(2), 'completed', null, existingRecord.id]
     );
 
     notifyAttendance({

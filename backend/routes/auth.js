@@ -439,8 +439,8 @@ router.put('/change-password', authenticate, validateChangePassword, async (req,
       return res.status(400).json({ success: false, message: '현재 비밀번호와 새 비밀번호를 입력해주세요.' });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ success: false, message: '새 비밀번호는 최소 6자 이상이어야 합니다.' });
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: '새 비밀번호는 최소 8자 이상이어야 합니다.' });
     }
 
     // 현재 사용자 정보 조회
@@ -485,8 +485,8 @@ router.put('/owner/reset-employee-password', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, message: '아이디와 새 비밀번호를 입력해주세요.' });
     }
 
-    if (newPassword.length < 4) {
-      return res.status(400).json({ success: false, message: '새 비밀번호는 최소 4자 이상이어야 합니다.' });
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: '새 비밀번호는 최소 8자 이상이어야 합니다.' });
     }
 
     // 직원이 사업주의 사업장에 소속되어 있는지 확인
@@ -526,8 +526,8 @@ router.put('/reset-password', authenticate, authorizeRole(['admin', 'super_admin
       return res.status(400).json({ success: false, message: '사용자명과 새 비밀번호를 입력해주세요.' });
     }
 
-    if (newPassword.length < 4) {
-      return res.status(400).json({ success: false, message: '새 비밀번호는 최소 4자 이상이어야 합니다.' });
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: '새 비밀번호는 최소 8자 이상이어야 합니다.' });
     }
 
     const user = await get('SELECT id FROM users WHERE username = ?', [username]);
@@ -759,7 +759,7 @@ router.put('/admin/reset-user-password', authenticate, authorizeRole(['admin', '
   try {
     const { userId, newPassword } = req.body;
     if (!userId || !newPassword) return res.status(400).json({ success: false, message: '필수 정보가 누락되었습니다.' });
-    if (newPassword.length < 4) return res.status(400).json({ success: false, message: '비밀번호는 4자 이상이어야 합니다.' });
+    if (newPassword.length < 8) return res.status(400).json({ success: false, message: '비밀번호는 8자 이상이어야 합니다.' });
 
     const user = await get('SELECT id, username FROM users WHERE id = $1', [userId]);
     if (!user) return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });

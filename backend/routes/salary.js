@@ -57,14 +57,12 @@ router.get('/calculate/:employeeId', authenticate, async (req, res) => {
     if (!employee) {
       return res.status(404).json({ success: false, message: '직원을 찾을 수 없습니다.' });
     }
-    if (req.user.role === 'employee' && req.user.id !== parseInt(employeeId)) {
-      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
-    }
-    if (req.user.role === 'owner') {
-      const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [employee.workplace_id]);
-      if (!workplace || workplace.owner_id !== req.user.id) {
+    if (req.user.role === 'employee') {
+      if (req.user.id !== parseInt(employeeId)) {
         return res.status(403).json({ success: false, message: '권한이 없습니다.' });
       }
+    } else if (!await canAccessWorkplace(req.user, employee.workplace_id)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
     const result = await calculateEmployeeSalary({ employeeId, startDate, endDate });
     if (!result) {
@@ -110,11 +108,12 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
       return res.status(400).json({ success: false, message: '시작일과 종료일을 입력해주세요.' });
     }
 
-    if (req.user.role === 'owner') {
-      const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [workplaceId]);
-      if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
-      }
+    // 사업장 전체 급여는 사업주/관리자만 조회 가능 (직원 등 그 외 역할은 차단)
+    if (!['owner', 'admin', 'super_admin'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+    }
+    if (!await canAccessWorkplace(req.user, workplaceId)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const employees = await query(
@@ -175,20 +174,24 @@ router.get('/workplace/:workplaceId', authenticate, async (req, res) => {
 router.get('/severance/:employeeId', authenticate, async (req, res) => {
   try {
     const employeeId = req.params.employeeId;
+
+    // 인가를 먼저 수행 (무거운 계산 전에 차단)
+    const target = await get('SELECT workplace_id FROM users WHERE id = ?', [employeeId]);
+    if (!target) {
+      return res.status(404).json({ success: false, message: '직원을 찾을 수 없습니다.' });
+    }
+    if (req.user.role === 'employee') {
+      if (req.user.id !== parseInt(employeeId)) {
+        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+      }
+    } else if (!await canAccessWorkplace(req.user, target.workplace_id)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+    }
+
     const result = await calculateSeverance(employeeId);
 
     if (result.error === 'not_found') {
       return res.status(404).json({ success: false, message: '직원을 찾을 수 없습니다.' });
-    }
-
-    if (req.user.role === 'employee' && req.user.id !== parseInt(employeeId)) {
-      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
-    }
-    if (req.user.role === 'owner') {
-      const workplace = await get('SELECT * FROM workplaces WHERE id = ?', [result.employee.workplace_id]);
-      if (!workplace || workplace.owner_id !== req.user.id) {
-        return res.status(403).json({ success: false, message: '권한이 없습니다.' });
-      }
     }
 
     if (result.error === 'no_hire_date') {

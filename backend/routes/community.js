@@ -5,6 +5,13 @@ import { validateCommunityPost } from '../middleware/validate.js';
 
 const router = express.Router();
 
+// 사업주↔근로자 게시판 격리: 본인 role 카테고리의 글에만 접근 허용 (super_admin 예외)
+function canAccessPostCategory(userRole, post) {
+  if (userRole === 'super_admin') return true;
+  const allowedCategory = userRole === 'owner' ? 'owner' : 'employee';
+  return post.category === allowedCategory;
+}
+
 // 게시글 목록 조회
 router.get('/posts', authenticate, async (req, res) => {
   try {
@@ -200,6 +207,9 @@ router.get('/posts/:postId/comments', authenticate, async (req, res) => {
     if (!post) {
       return res.status(404).json({ success: false, message: '게시글을 찾을 수 없습니다.' });
     }
+    if (!canAccessPostCategory(req.user.role, post)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+    }
 
     // 댓글 목록 조회
     const comments = await query(
@@ -233,6 +243,9 @@ router.post('/posts/:postId/comments', authenticate, async (req, res) => {
     const post = await get('SELECT * FROM community_posts WHERE id = ?', [postId]);
     if (!post) {
       return res.status(404).json({ success: false, message: '게시글을 찾을 수 없습니다.' });
+    }
+    if (!canAccessPostCategory(req.user.role, post)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
     }
 
     const result = await run(
@@ -328,6 +341,9 @@ router.post('/posts/:postId/like', authenticate, async (req, res) => {
     if (!post) {
       return res.status(404).json({ success: false, message: '게시글을 찾을 수 없습니다.' });
     }
+    if (!canAccessPostCategory(req.user.role, post)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+    }
 
     // 이미 추천했는지 확인
     const existingLike = await get(
@@ -372,6 +388,14 @@ router.get('/posts/:postId/like-status', authenticate, async (req, res) => {
   try {
     const { postId } = req.params;
     const userId = req.user.id;
+
+    const post = await get('SELECT category FROM community_posts WHERE id = ?', [postId]);
+    if (!post) {
+      return res.status(404).json({ success: false, message: '게시글을 찾을 수 없습니다.' });
+    }
+    if (!canAccessPostCategory(req.user.role, post)) {
+      return res.status(403).json({ success: false, message: '권한이 없습니다.' });
+    }
 
     const like = await get(
       'SELECT * FROM community_post_likes WHERE post_id = ? AND user_id = ?',

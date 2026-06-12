@@ -608,14 +608,32 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.json({ success: true, message: '휴가 정보가 저장되었습니다.' });
     }
 
+    // 입력 시간 값 검증 (NaN/형식 오류 방지)
+    const parseTs = (v) => {
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? null : d;
+    };
+    if (check_in_time && !parseTs(check_in_time)) {
+      return res.status(400).json({ success: false, message: '유효하지 않은 출근 시간 형식입니다.' });
+    }
+    if (check_out_time && !parseTs(check_out_time)) {
+      return res.status(400).json({ success: false, message: '유효하지 않은 퇴근 시간 형식입니다.' });
+    }
+
     // 근무 시간 계산
     let workHours = null;
     let status = record.status;
-    
+
     if (check_in_time && check_out_time) {
-      const checkInTime = new Date(check_in_time);
-      const checkOutTime = new Date(check_out_time);
+      const checkInTime = parseTs(check_in_time);
+      const checkOutTime = parseTs(check_out_time);
+      if (checkOutTime <= checkInTime) {
+        return res.status(400).json({ success: false, message: '퇴근 시간은 출근 시간보다 이후여야 합니다.' });
+      }
       workHours = (checkOutTime - checkInTime) / (1000 * 60 * 60);
+      if (workHours > 24) {
+        return res.status(400).json({ success: false, message: '근무 시간은 24시간을 초과할 수 없습니다.' });
+      }
       status = 'completed';
     } else if (check_in_time && !check_out_time) {
       status = 'incomplete';
